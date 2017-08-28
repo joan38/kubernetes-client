@@ -1,0 +1,14 @@
+.DS_Store
+.target
+.cache
+.classpath
+.project
+.history
+.idea
+.settings
+.ensime
+.ensime_cache
+*.iml
+bin
+target
+secrets
