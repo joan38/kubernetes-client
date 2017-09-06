@@ -10,6 +10,7 @@ import net.jcazevedo.moultingyaml._
 case class Config(apiVersion: String,
                   clusters: Seq[NamedCluster],
                   contexts: Seq[NamedContext],
+                  `current-context`: String,
                   users: Seq[NamedAuthInfo])
 
 case class NamedCluster(name: String, cluster: Cluster)
@@ -18,9 +19,7 @@ case class Cluster(server: String,
                    `certificate-authority-data`: Option[String] = None)
 
 case class NamedContext(name: String, context: Context)
-case class Context(cluster: String,
-                   user: String,
-                   namespace: Option[String] = None)
+case class Context(cluster: String, user: String, namespace: Option[String] = None)
 
 case class NamedAuthInfo(name: String, user: AuthInfo)
 case class AuthInfo(`client-certificate`: Option[String] = None,
@@ -38,38 +37,27 @@ object YamlUtils extends DefaultYamlProtocol with LazyLogging {
   implicit val authInfoFormat = yamlFormat4(AuthInfo)
   implicit val namedAuthInfoFormat = yamlFormat2(NamedAuthInfo)
 
-  implicit val configFormat = yamlFormat4(Config)
+  implicit val configFormat = yamlFormat5(Config)
 
-  def fromKubeConfigFile(kubeconfig: File,
-                         clusterNameMaybe: Option[String]): KubeConfig = {
+  def fromKubeConfigFile(kubeconfig: File, contextMaybe: Option[String]): KubeConfig = {
     val config =
       Source.fromFile(kubeconfig).mkString.parseYaml.convertTo[Config]
 
-    val namedCluster = clusterNameMaybe.fold {
-      config.clusters.headOption.getOrElse(
-        throw new IllegalArgumentException(s"No cluster in $kubeconfig"))
-    } { clusterName =>
-      config.clusters
-        .find(_.name == clusterName)
-        .getOrElse(throw new IllegalArgumentException(
-          s"Can't find cluster named $clusterName in $kubeconfig"))
-    }
-    logger.debug(s"KubeConfig for cluster ${namedCluster.name}")
+    val contextName = contextMaybe.getOrElse(config.`current-context`)
+    val namedContext = config.contexts
+      .find(_.name == contextName)
+      .getOrElse(throw new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
+    logger.debug(s"KubeConfig with context ${namedContext.name}")
+    val context = namedContext.context
 
-    val cluster = namedCluster.cluster
-    val context = config.contexts
-      .map(_.context)
-      .find(_.cluster == namedCluster.name)
-      .getOrElse(
-        throw new IllegalArgumentException(
-          s"No context named ${namedCluster.name} in $kubeconfig")
-      )
+    val cluster = config.clusters
+      .find(_.name == context.cluster)
+      .getOrElse(throw new IllegalArgumentException(s"Can't find cluster named ${context.cluster} in $kubeconfig"))
+      .cluster
+
     val user = config.users
       .find(_.name == context.user)
-      .getOrElse(
-        throw new IllegalArgumentException(
-          s"No user named ${context.user} in $kubeconfig")
-      )
+      .getOrElse(throw new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
       .user
 
     KubeConfig(

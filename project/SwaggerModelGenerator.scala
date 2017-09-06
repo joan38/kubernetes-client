@@ -89,16 +89,16 @@ object SwaggerModelGenerator extends AutoPlugin {
 
   def generateType(property: Property): String =
     (property.`type`, property.$ref) match {
-      case (Some(t), None) => swaggerToScalaType(t, property.items.orElse(property.additionalProperties))
+      case (Some(t), None)   => swaggerToScalaType(t, property.items.orElse(property.additionalProperties))
       case (None, Some(ref)) => sanitizeClassPath(ref)
     }
 
   def swaggerToScalaType(swaggerType: String, subProperty: Option[Property] = None) =
     (swaggerType, subProperty) match {
-      case ("integer", None) => "Int"
+      case ("integer", None)             => "Int"
       case ("object", Some(subProperty)) => s"Map[String, ${generateType(subProperty)}]"
-      case ("array", Some(subProperty)) => s"Seq[${generateType(subProperty)}]"
-      case (swaggerType, _) => swaggerType.take(1).toUpperCase + swaggerType.drop(1)
+      case ("array", Some(subProperty))  => s"Seq[${generateType(subProperty)}]"
+      case (swaggerType, _)              => swaggerType.take(1).toUpperCase + swaggerType.drop(1)
     }
 
   def sanitizeClassPath(classPath: String) =
