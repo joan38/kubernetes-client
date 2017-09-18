@@ -18,6 +18,8 @@ private[kubernetesclient] case class DeploymentsOperations(config: KubeConfig, p
 
 private[kubernetesclient] case class DeploymentOperations(config: KubeConfig, resourceUri: Uri)(
   implicit val system: ActorSystem,
-  val decoder: Decoder[Deployment]
+  val decoder: Decoder[Deployment],
+  val encoder: Encoder[Deployment]
 ) extends Gettable[Deployment]
+    with Replaceable[Deployment]
     with Deletable

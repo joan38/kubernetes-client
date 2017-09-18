@@ -29,8 +29,10 @@ private[kubernetesclient] case class PodsOperations(config: KubeConfig, private 
 
 private[kubernetesclient] case class PodOperations(config: KubeConfig, resourceUri: Uri)(
   implicit val system: ActorSystem,
-  val decoder: Decoder[Pod]
+  val decoder: Decoder[Pod],
+  val encoder: Encoder[Pod]
 ) extends Gettable[Pod]
+    with Replaceable[Pod]
     with Deletable
     with LazyLogging {
 

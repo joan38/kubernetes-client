@@ -23,6 +23,18 @@ trait Creatable[Resource] {
       .map(_ => ())
 }
 
+trait Replaceable[Resource] {
+  protected def config: KubeConfig
+  protected def resourceUri: Uri
+  protected implicit def system: ActorSystem
+  protected implicit def encoder: Encoder[Resource]
+
+  def replace(resource: Resource)(implicit ec: ExecutionContext, mat: Materializer): Future[Unit] =
+    RequestUtils
+      .singleRequest(config, HttpMethods.PUT, resourceUri, Option(resource))
+      .map(_ => ())
+}
+
 trait Gettable[Resource] {
   protected def config: KubeConfig
   protected def resourceUri: Uri
