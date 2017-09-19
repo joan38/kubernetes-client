@@ -1,9 +1,10 @@
 # Kubernetes Client
 
+[![Latest version](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client/latest.svg?color=blue)](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client)
 
 ## Installation
 ```scala
-"com.goyeau" %% "kubernetes-client" % "<latest version>"
+"com.goyeau" %% "kubernetes-client" % "<Latest version>"
 ```
 
 
