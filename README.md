@@ -2,6 +2,7 @@
 
 [![Latest version](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client/latest.svg?color=blue)](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client)
 
+
 ## Installation
 ```scala
 "com.goyeau" %% "kubernetes-client" % "<Latest version>"
@@ -92,9 +93,13 @@ val deployment = Deployment(
   )
 )
 
-client.namespaces("my-namespace").deployments.create(deployment)
+client.deployments.namespace("my-namespace").create(deployment)
 ```
 
+## Related projects
+
+* [Skuber](https://github.com/doriordan/skuber)
+* [Kubernetes Client for Java](https://github.com/fabric8io/kubernetes-client)
 
 ## License
 

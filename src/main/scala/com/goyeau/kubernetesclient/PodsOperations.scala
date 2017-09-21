@@ -15,22 +15,34 @@ import akka.stream.scaladsl.Flow
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.generic.auto._
-import io.k8s.api.core.v1.Pod
+import io.k8s.api.core.v1.{Pod, PodList}
 
-private[kubernetesclient] case class PodsOperations(config: KubeConfig, private val namespace: String)(
-  implicit val system: ActorSystem,
-  val encoder: Encoder[Pod]
+private[kubernetesclient] case class PodsOperations(protected val config: KubeConfig)(
+  implicit protected val system: ActorSystem,
+  protected val decoder: Decoder[PodList]
+) extends Listable[PodList] {
+  protected val resourceUri = s"${config.server}/api/v1/pods"
+
+  def namespace(namespace: String) = NamespacedPodsOperations(config, namespace)
+}
+
+private[kubernetesclient] case class NamespacedPodsOperations(protected val config: KubeConfig,
+                                                              protected val namespace: String)(
+  implicit protected val system: ActorSystem,
+  protected val encoder: Encoder[Pod],
+  protected val decoder: Decoder[PodList]
 ) extends Creatable[Pod]
+    with Listable[PodList]
     with GroupDeletable {
-  val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/pods"
+  protected val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/pods"
 
   def apply(podName: String) = PodOperations(config, s"$resourceUri/$podName")
 }
 
-private[kubernetesclient] case class PodOperations(config: KubeConfig, resourceUri: Uri)(
-  implicit val system: ActorSystem,
-  val decoder: Decoder[Pod],
-  val encoder: Encoder[Pod]
+private[kubernetesclient] case class PodOperations(protected val config: KubeConfig, protected val resourceUri: Uri)(
+  implicit protected val system: ActorSystem,
+  protected val encoder: Encoder[Pod],
+  protected val decoder: Decoder[Pod]
 ) extends Gettable[Pod]
     with Replaceable[Pod]
     with Deletable

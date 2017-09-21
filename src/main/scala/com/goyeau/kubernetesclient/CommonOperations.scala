@@ -47,6 +47,18 @@ trait Gettable[Resource] {
       .map(response => decode[Resource](response).fold(throw _, identity))
 }
 
+trait Listable[Resource] {
+  protected def config: KubeConfig
+  protected def resourceUri: Uri
+  protected implicit def system: ActorSystem
+  protected implicit def decoder: Decoder[Resource]
+
+  def list()(implicit ec: ExecutionContext, mat: Materializer): Future[Resource] =
+    RequestUtils
+      .singleRequest(config, HttpMethods.GET, resourceUri)
+      .map(response => decode[Resource](response).fold(throw _, identity))
+}
+
 trait Deletable {
   protected def config: KubeConfig
   protected def resourceUri: Uri
