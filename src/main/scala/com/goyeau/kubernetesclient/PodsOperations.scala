@@ -3,6 +3,7 @@ package com.goyeau.kubernetesclient
 import java.io.IOException
 import java.net.URLEncoder
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 import akka.actor.ActorSystem
@@ -10,6 +11,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{Message, WebSocketRequest}
+import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import com.typesafe.scalalogging.LazyLogging
@@ -67,7 +69,8 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
         subprotocol = Option("v4.channel.k8s.io")
       ),
       flow,
-      SecurityUtils.httpsConnectionContext(config)
+      SecurityUtils.httpsConnectionContext(config),
+      settings = ClientConnectionSettings(system).withIdleTimeout(10.minutes)
     )
 
     upgradeResponse.map(_.response.status).flatMap {
