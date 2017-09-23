@@ -72,7 +72,12 @@ object SwaggerModelGenerator extends AutoPlugin {
   }
 
   def generateAttributes(properties: Iterable[(String, Property)], required: Seq[String]) =
-    properties
+    properties.toSeq
+      .sortBy {
+        case (name, _) =>
+          if (required.contains(name)) required.indexOf(name)
+          else Int.MaxValue
+      }
       .map {
         case (name, property) =>
           val description = generateDescription(property.description)
