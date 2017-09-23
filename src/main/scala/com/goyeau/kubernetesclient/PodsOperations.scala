@@ -10,14 +10,17 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
-import akka.http.scaladsl.model.ws.{Message, WebSocketRequest}
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.Materializer
+import akka.stream.javadsl.BidiFlow
 import akka.stream.scaladsl.Flow
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.generic.auto._
+import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
+import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 
 private[kubernetesclient] case class PodsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
@@ -50,7 +53,7 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
     with Deletable
     with LazyLogging {
 
-  def exec[Result](flow: Flow[Message, Message, Future[Result]],
+  def exec[Result](flow: Flow[Either[Status, String], Message, Future[Result]],
                    container: Option[String] = None,
                    command: Seq[String] = Seq.empty,
                    stdin: Boolean = false,
@@ -62,13 +65,22 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
     val execParams = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
     val execUri = s"${resourceUri.toString.replace("http", "ws")}/exec?$execParams"
 
+    val mapFlow = BidiFlow.fromFunctions[Message, Message, Message, Either[Status, String]](
+      identity(_), {
+        case BinaryMessage.Strict(data) =>
+          val log = data.utf8String
+          decode[Status](log.trim).fold(_ => Right(log), Left(_))
+        case message => throw new IllegalStateException(s"Unexpected message type received: $message")
+      }
+    )
+
     val (upgradeResponse, closed) = Http().singleWebSocketRequest(
       WebSocketRequest(
         execUri,
         extraHeaders = config.oauthToken.toList.map(token => Authorization(OAuth2BearerToken(token))),
         subprotocol = Option("v4.channel.k8s.io")
       ),
-      flow,
+      flow.join(mapFlow),
       SecurityUtils.httpsConnectionContext(config),
       settings = ClientConnectionSettings(system).withIdleTimeout(10.minutes)
     )
