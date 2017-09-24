@@ -96,10 +96,12 @@ val deployment = Deployment(
 client.deployments.namespace("my-namespace").create(deployment)
 ```
 
+
 ## Related projects
 
 * [Skuber](https://github.com/doriordan/skuber)
 * [Kubernetes Client for Java](https://github.com/fabric8io/kubernetes-client)
+
 
 ## License
 
