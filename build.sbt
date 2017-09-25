@@ -1,4 +1,4 @@
-name := "kubernetes-client"
+name := "Kubernetes Client"
 organization := "com.goyeau"
 scalaVersion := "2.12.3"
 version := {
@@ -28,12 +28,11 @@ publishTo := Option(
 publishMavenStyle := true
 
 lazy val circe = {
-  val circeVersion = "0.9.0-M1"
+  val circeVersion = "0.8.0"
   Seq(
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
-    "io.circe" %% "circe-parser" % circeVersion,
-    "io.circe" %% "circe-shapes" % circeVersion
+    "io.circe" %% "circe-parser" % circeVersion
   )
 }
 
