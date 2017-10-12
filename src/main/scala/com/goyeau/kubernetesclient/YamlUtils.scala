@@ -28,16 +28,16 @@ case class AuthInfo(`client-certificate`: Option[String] = None,
                     `client-key-data`: Option[String] = None)
 
 object YamlUtils extends DefaultYamlProtocol with LazyLogging {
-  implicit val clusterFormat = yamlFormat3(Cluster)
-  implicit val namedClusterFormat = yamlFormat2(NamedCluster)
+  implicit val clusterFormat: YamlFormat[Cluster] = yamlFormat3(Cluster)
+  implicit val namedClusterFormat: YamlFormat[NamedCluster] = yamlFormat2(NamedCluster)
 
-  implicit val contextFormat = yamlFormat3(Context)
-  implicit val namedContextFormat = yamlFormat2(NamedContext)
+  implicit val contextFormat: YamlFormat[Context] = yamlFormat3(Context)
+  implicit val namedContextFormat: YamlFormat[NamedContext] = yamlFormat2(NamedContext)
 
-  implicit val authInfoFormat = yamlFormat4(AuthInfo)
-  implicit val namedAuthInfoFormat = yamlFormat2(NamedAuthInfo)
+  implicit val authInfoFormat: YamlFormat[AuthInfo] = yamlFormat4(AuthInfo)
+  implicit val namedAuthInfoFormat: YamlFormat[NamedAuthInfo] = yamlFormat2(NamedAuthInfo)
 
-  implicit val configFormat = yamlFormat5(Config)
+  implicit val configFormat: YamlFormat[Config] = yamlFormat5(Config)
 
   def fromKubeConfigFile(kubeconfig: File, contextMaybe: Option[String]): KubeConfig = {
     val config =
