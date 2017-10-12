@@ -1,6 +1,6 @@
 package com.goyeau.kubernetesclient
 
-import java.io.IOException
+import java.io.{IOException, PrintWriter, StringWriter}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -29,16 +29,19 @@ object RequestUtils extends LazyLogging {
           uri,
           headers = config.oauthToken.toList.map(token => Authorization(OAuth2BearerToken(token))),
           entity = data.fold(HttpEntity.Empty) { data =>
-            HttpEntity(ContentTypes.`application/json`, ByteString(data.asJson.noSpaces))
+            val printer = Printer.noSpaces.copy(dropNullKeys = true)
+            HttpEntity(ContentTypes.`application/json`, ByteString(printer.pretty(data.asJson)))
           }
         ),
         SecurityUtils.httpsConnectionContext(config)
       )
       entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
       _ = if (response.status.isFailure) {
-        val message = s"${response.status.reason}: ${entity.utf8String}"
-        logger.error(message)
-        throw new IOException(message)
+        val exception = new IOException(s"${response.status.reason}: ${entity.utf8String}")
+        val writer = new StringWriter()
+        exception.printStackTrace(new PrintWriter(writer, true))
+        logger.error(writer.toString)
+        throw exception
       }
     } yield entity.utf8String
 }

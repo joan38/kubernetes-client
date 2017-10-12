@@ -37,7 +37,7 @@ lazy val circe = {
 }
 
 lazy val akkaHttp = {
-  val akkaHttpVersion = "10.0.9"
+  val akkaHttpVersion = "10.0.10"
   Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test

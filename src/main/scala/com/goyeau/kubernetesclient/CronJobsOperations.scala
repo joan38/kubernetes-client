@@ -4,13 +4,13 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import io.circe._
 import io.circe.generic.auto._
-import io.k8s.api.batch.v2alpha1.{CronJob, CronJobList}
+import io.k8s.api.batch.v1beta1.{CronJob, CronJobList}
 
 private[kubernetesclient] case class CronJobsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val decoder: Decoder[CronJobList]
 ) extends Listable[CronJobList] {
-  protected val resourceUri = s"${config.server}/apis/batch/v2alpha1/cronjobs"
+  protected val resourceUri = s"${config.server}/apis/batch/v1beta1/cronjobs"
 
   def namespace(namespace: String) = NamespacedCronJobsOperations(config, namespace)
 }
@@ -23,7 +23,7 @@ private[kubernetesclient] case class NamespacedCronJobsOperations(protected val 
 ) extends Creatable[CronJob]
     with Listable[CronJobList]
     with GroupDeletable {
-  protected val resourceUri = s"${config.server}/apis/batch/v2alpha1/namespaces/$namespace/cronjobs"
+  protected val resourceUri = s"${config.server}/apis/batch/v1beta1/namespaces/$namespace/cronjobs"
 
   def apply(cronJobName: String) = CronJobOperations(config, s"$resourceUri/$cronJobName")
 }

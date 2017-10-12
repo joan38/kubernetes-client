@@ -13,7 +13,7 @@ import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.Materializer
-import akka.stream.javadsl.BidiFlow
+import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Flow
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
