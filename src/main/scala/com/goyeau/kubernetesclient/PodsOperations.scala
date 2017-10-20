@@ -4,17 +4,18 @@ import java.io.IOException
 import java.net.URLEncoder
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
-import akka.http.scaladsl.model.ws.{BinaryMessage, Message, WebSocketRequest}
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.Materializer
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Flow
+import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.generic.auto._
@@ -63,15 +64,19 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
     val containerParam = container.fold("")(containerName => s"&container=$containerName")
     val commandParam = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
     val execParams = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
-    val execUri = s"${resourceUri.toString.replace("http", "ws")}/exec?$execParams"
+    val execUri = s"${resourceUri.toString.replaceFirst("http", "ws")}/exec?$execParams"
 
-    val mapFlow = BidiFlow.fromFunctions[Message, Message, Message, Either[Status, String]](
-      identity(_), {
-        case BinaryMessage.Strict(data) =>
-          val log = data.utf8String
-          decode[Status](log.trim).fold(_ => Right(log), Left(_))
-        case message => throw new IllegalStateException(s"Unexpected message type received: $message")
-      }
+    val mapFlow = BidiFlow.fromFlows(
+      Flow.fromFunction[Message, Message](identity),
+      Flow
+        .fromFunction[Message, Future[String]] {
+          case BinaryMessage.Strict(data)     => Future.successful(data.utf8String)
+          case BinaryMessage.Streamed(stream) => stream.runFold(ByteString(""))(_ ++ _).map(_.utf8String)
+          case TextMessage.Strict(data)       => Future.successful(data)
+          case TextMessage.Streamed(stream)   => stream.runFold("")(_ + _)
+        }
+        .mapAsync(parallelism = 1)(identity)
+        .map(log => decode[Status](log.trim).fold(_ => Right(log), Left(_)))
     )
 
     val (upgradeResponse, closed) = Http().singleWebSocketRequest(
