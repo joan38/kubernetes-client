@@ -8,7 +8,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
-import akka.stream.Materializer
+import akka.stream.{ActorMaterializer, Materializer}
 import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
@@ -20,8 +20,8 @@ object RequestUtils extends LazyLogging {
   def singleRequest[Data: Encoder](config: KubeConfig, method: HttpMethod, uri: Uri, data: Option[Data] = None)(
     implicit ec: ExecutionContext,
     system: ActorSystem,
-    mat: Materializer
-  ): Future[String] =
+  ): Future[String] = {
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
     for {
       response <- Http().singleRequest(
         HttpRequest(
@@ -44,4 +44,5 @@ object RequestUtils extends LazyLogging {
         throw exception
       }
     } yield entity.utf8String
+  }
 }

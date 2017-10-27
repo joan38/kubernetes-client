@@ -3,12 +3,13 @@ package com.goyeau.kubernetesclient
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import io.circe._
-import io.circe.generic.auto._
 import io.k8s.api.core.v1.{Service, ServiceList}
 
 private[kubernetesclient] case class ServicesOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
-  protected val decoder: Decoder[ServiceList]
+  protected val resourceDecoder: Decoder[ServiceList],
+  encoder: Encoder[Service],
+  decoder: Decoder[Service]
 ) extends Listable[ServiceList] {
   protected val resourceUri = s"${config.server}/api/v1/services"
 
@@ -18,8 +19,9 @@ private[kubernetesclient] case class ServicesOperations(protected val config: Ku
 private[kubernetesclient] case class NamespacedServicesOperations(protected val config: KubeConfig,
                                                                   protected val namespace: String)(
   implicit protected val system: ActorSystem,
-  protected val encoder: Encoder[Service],
-  protected val decoder: Decoder[ServiceList]
+  protected val resourceEncoder: Encoder[Service],
+  decoder: Decoder[Service],
+  protected val resourceDecoder: Decoder[ServiceList]
 ) extends Creatable[Service]
     with Listable[ServiceList]
     with GroupDeletable {
@@ -31,8 +33,8 @@ private[kubernetesclient] case class NamespacedServicesOperations(protected val 
 private[kubernetesclient] case class ServiceOperations(protected val config: KubeConfig,
                                                        protected val resourceUri: Uri)(
   implicit protected val system: ActorSystem,
-  protected val encoder: Encoder[Service],
-  protected val decoder: Decoder[Service]
+  protected val resourceEncoder: Encoder[Service],
+  protected val resourceDecoder: Decoder[Service]
 ) extends Gettable[Service]
     with Replaceable[Service]
     with Deletable
