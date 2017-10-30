@@ -16,7 +16,6 @@ import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
-import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -54,8 +53,7 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
   protected val resourceDecoder: Decoder[Pod]
 ) extends Gettable[Pod]
     with Replaceable[Pod]
-    with Deletable
-    with LazyLogging {
+    with Deletable {
 
   def exec[Result](flow: Flow[Either[Status, String], Message, Future[Result]],
                    container: Option[String] = None,
