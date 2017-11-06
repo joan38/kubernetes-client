@@ -26,6 +26,6 @@ object KubeConfig {
 
   def apply(kubeconfig: File): KubeConfig = YamlUtils.fromKubeConfigFile(kubeconfig, None)
 
-  def apply(kubeconfig: File, clusterName: String): KubeConfig =
-    YamlUtils.fromKubeConfigFile(kubeconfig, Option(clusterName))
+  def apply(kubeconfig: File, contextName: String): KubeConfig =
+    YamlUtils.fromKubeConfigFile(kubeconfig, Option(contextName))
 }
