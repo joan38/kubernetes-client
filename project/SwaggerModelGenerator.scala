@@ -56,12 +56,8 @@ object SwaggerModelGenerator extends AutoPlugin {
            |case class $className(value: $scalaType) extends AnyVal
            |
            |object $className {
-           |  implicit val encode: Encoder[$className] = new Encoder[$className] {
-           |    final def apply(obj: $className): Json = Json.from$scalaType(obj.value)
-           |  }
-           |  implicit val decode: Decoder[$className] = new Decoder[$className] {
-           |    final def apply(cursor: HCursor): Decoder.Result[$className] = cursor.as[$scalaType].map($className(_))
-           |  }
+           |  implicit val encode: Encoder[$className] = obj => Json.from$scalaType(obj.value)
+           |  implicit val decode: Decoder[$className] = _.as[$scalaType].map($className(_))
            |}""".stripMargin
     }
     IO.write(file, s"""package $packageName
@@ -107,7 +103,8 @@ object SwaggerModelGenerator extends AutoPlugin {
     }
 
   def sanitizeClassPath(classPath: String) =
-    classPath
-      .replace("#/definitions/", "")
-      .replace("-", "")
+    classPath.replace("#/definitions/", "").replace("-", "") match {
+      case "io.k8s.apimachinery.pkg.util.intstr.IntOrString" => "com.goyeau.kubernetesclient.IntOrString"
+      case c                                                 => c
+    }
 }
