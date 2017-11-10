@@ -23,6 +23,7 @@ private[kubernetesclient] case class NamespacedJobsOperations(protected val conf
   decoder: Decoder[Job],
   protected val resourceDecoder: Decoder[JobList]
 ) extends Creatable[Job]
+    with CreateOrUpdatable[Job]
     with Listable[JobList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/apis/batch/v1/namespaces/$namespace/jobs"

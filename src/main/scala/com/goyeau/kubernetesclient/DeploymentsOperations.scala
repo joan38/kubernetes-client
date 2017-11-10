@@ -23,6 +23,7 @@ private[kubernetesclient] case class NamespacedDeploymentsOperations(protected v
   decoder: Decoder[Deployment],
   protected val resourceDecoder: Decoder[DeploymentList]
 ) extends Creatable[Deployment]
+    with CreateOrUpdatable[Deployment]
     with Listable[DeploymentList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/apis/extensions/v1beta1/namespaces/$namespace/deployments"

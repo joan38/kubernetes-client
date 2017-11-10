@@ -1,13 +1,14 @@
 package com.goyeau.kubernetesclient
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.reflectiveCalls
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpMethods, Uri}
 import io.circe.generic.auto._
 import io.circe._
 import io.circe.parser._
-import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
+import io.k8s.apimachinery.pkg.apis.meta.v1.{DeleteOptions, ObjectMeta}
 import com.goyeau.kubernetesclient.RequestUtils.nothingEncoder
 
 trait Creatable[Resource] {
@@ -33,6 +34,27 @@ trait Replaceable[Resource] {
     RequestUtils
       .singleRequest(config, HttpMethods.PUT, resourceUri, Option(resource))
       .map(_ => ())
+  }
+}
+
+trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] {
+  self: Creatable[Resource] =>
+  protected def config: KubeConfig
+  protected def resourceUri: Uri
+  protected implicit def resourceEncoder: Encoder[Resource]
+
+  def createOrUpdate(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
+    implicit val ec: ExecutionContext = system.dispatcher
+    create(resource).recoverWith {
+      case KubernetesException(409, _) =>
+        RequestUtils
+          .singleRequest(config,
+                         HttpMethods.PATCH,
+                         s"$resourceUri/${resource.metadata.get.name.get}",
+                         Option(resource),
+                         RequestUtils.strategicMergePatch)
+          .map(_ => ())
+    }
   }
 }
 

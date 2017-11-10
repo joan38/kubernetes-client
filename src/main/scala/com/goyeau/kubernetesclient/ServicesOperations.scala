@@ -23,6 +23,7 @@ private[kubernetesclient] case class NamespacedServicesOperations(protected val 
   decoder: Decoder[Service],
   protected val resourceDecoder: Decoder[ServiceList]
 ) extends Creatable[Service]
+    with CreateOrUpdatable[Service]
     with Listable[ServiceList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/services"

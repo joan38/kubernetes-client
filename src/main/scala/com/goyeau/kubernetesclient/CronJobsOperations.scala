@@ -23,6 +23,7 @@ private[kubernetesclient] case class NamespacedCronJobsOperations(protected val 
   decoder: Decoder[CronJob],
   protected val resourceDecoder: Decoder[CronJobList]
 ) extends Creatable[CronJob]
+    with CreateOrUpdatable[CronJob]
     with Listable[CronJobList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/apis/batch/v1beta1/namespaces/$namespace/cronjobs"

@@ -23,6 +23,7 @@ private[kubernetesclient] case class NamespacedHorizontalPodAutoscalersOperation
   decoder: Decoder[HorizontalPodAutoscaler],
   protected val resourceDecoder: Decoder[HorizontalPodAutoscalerList]
 ) extends Creatable[HorizontalPodAutoscaler]
+    with CreateOrUpdatable[HorizontalPodAutoscaler]
     with Listable[HorizontalPodAutoscalerList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/apis/autoscaling/v1/namespaces/$namespace/horizontalpodautoscalers"

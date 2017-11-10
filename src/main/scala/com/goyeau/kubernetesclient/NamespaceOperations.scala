@@ -11,6 +11,7 @@ private[kubernetesclient] case class NamespacesOperations(protected val config: 
   decoder: Decoder[Namespace],
   protected val resourceDecoder: Decoder[NamespaceList]
 ) extends Creatable[Namespace]
+    with CreateOrUpdatable[Namespace]
     with Listable[NamespaceList] {
   protected val resourceUri = s"${config.server}/api/v1/namespaces"
 

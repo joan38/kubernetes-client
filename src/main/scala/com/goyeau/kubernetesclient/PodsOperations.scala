@@ -40,6 +40,7 @@ private[kubernetesclient] case class NamespacedPodsOperations(protected val conf
   decoder: Decoder[Pod],
   protected val resourceDecoder: Decoder[PodList]
 ) extends Creatable[Pod]
+    with CreateOrUpdatable[Pod]
     with Listable[PodList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/pods"

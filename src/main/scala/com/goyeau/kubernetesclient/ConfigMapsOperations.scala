@@ -23,6 +23,7 @@ private[kubernetesclient] case class NamespacedConfigMapsOperations(protected va
   decoder: Decoder[ConfigMap],
   protected val resourceDecoder: Decoder[ConfigMapList]
 ) extends Creatable[ConfigMap]
+    with CreateOrUpdatable[ConfigMap]
     with Listable[ConfigMapList]
     with GroupDeletable {
   protected val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/configmaps"
