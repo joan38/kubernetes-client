@@ -13,6 +13,7 @@ import io.circe.syntax._
 
 object RequestUtils {
   implicit val nothingEncoder: Encoder[Nothing] = null
+
   val strategicMergePatch = ContentType(
     MediaType.customWithFixedCharset("application", "strategic-merge-patch+json", HttpCharsets.`UTF-8`)
   )

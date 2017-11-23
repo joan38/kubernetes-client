@@ -45,16 +45,22 @@ trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] {
 
   def createOrUpdate(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
     implicit val ec: ExecutionContext = system.dispatcher
-    create(resource).recoverWith {
-      case KubernetesException(409, _) =>
+
+    val fullResourceUri: Uri = s"$resourceUri/${resource.metadata.get.name.get}"
+    RequestUtils
+      .singleRequest[Nothing](config, HttpMethods.GET, fullResourceUri)
+      .recoverWith {
+        case KubernetesException(404, _) => create(resource)
+      }
+      .flatMap { _ =>
         RequestUtils
           .singleRequest(config,
                          HttpMethods.PATCH,
-                         s"$resourceUri/${resource.metadata.get.name.get}",
+                         fullResourceUri,
                          Option(resource),
                          RequestUtils.strategicMergePatch)
           .map(_ => ())
-    }
+      }
   }
 }
 
