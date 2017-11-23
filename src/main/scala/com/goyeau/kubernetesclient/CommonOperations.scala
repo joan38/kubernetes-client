@@ -4,7 +4,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.reflectiveCalls
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{HttpMethods, Uri}
+import akka.http.scaladsl.model.{HttpMethods, StatusCodes, Uri}
 import io.circe.generic.auto._
 import io.circe._
 import io.circe.parser._
@@ -50,7 +50,7 @@ trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] {
     RequestUtils
       .singleRequest[Nothing](config, HttpMethods.GET, fullResourceUri)
       .recoverWith {
-        case KubernetesException(404, _) => create(resource)
+        case e: KubernetesException if e.statusCode == StatusCodes.NotFound.intValue => create(resource)
       }
       .flatMap { _ =>
         RequestUtils

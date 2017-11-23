@@ -1,6 +1,5 @@
 package com.goyeau.kubernetesclient
 
-import java.io.IOException
 import java.net.URLEncoder
 
 import scala.concurrent.duration._
@@ -8,7 +7,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{StatusCodes, Uri}
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
@@ -83,7 +82,7 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
         .map(log => decode[Status](log.trim).fold(_ => Right(log), Left(_)))
     )
 
-    val (upgradeResponse, closed) = Http().singleWebSocketRequest(
+    val (upgradeResponse, eventualResult) = Http().singleWebSocketRequest(
       WebSocketRequest(
         execUri,
         extraHeaders = config.oauthToken.toList.map(token => Authorization(OAuth2BearerToken(token))),
@@ -94,9 +93,12 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
       settings = ClientConnectionSettings(system).withIdleTimeout(10.minutes)
     )
 
-    upgradeResponse.map(_.response.status).flatMap {
-      case StatusCodes.SwitchingProtocols => closed
-      case status                         => throw new IOException(s"Connection to Kubernetes API failed: $status")
-    }
+    for {
+      upgrade <- upgradeResponse
+      response = upgrade.response
+      entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
+      _ = if (response.status.isFailure) throw new KubernetesException(response.status.intValue, entity.utf8String)
+      result <- eventualResult
+    } yield result
   }
 }
