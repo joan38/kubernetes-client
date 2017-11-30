@@ -1,5 +1,9 @@
 package com.goyeau.kubernetesclient
 
+import java.util.Base64
+
+import scala.concurrent.Future
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import io.circe._
@@ -29,6 +33,14 @@ private[kubernetesclient] case class NamespacedSecretsOperations(protected val c
   protected val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/secrets"
 
   def apply(configMapName: String) = SecretOperations(config, s"$resourceUri/$configMapName")
+
+  def createEncode(resource: Secret)(implicit system: ActorSystem): Future[Unit] = create(encode(resource))
+
+  def createOrUpdateEncode(resource: Secret)(implicit system: ActorSystem): Future[Unit] =
+    createOrUpdate(encode(resource))
+
+  private def encode(resource: Secret) =
+    resource.copy(data = resource.data.map(_.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes))))
 }
 
 private[kubernetesclient] case class SecretOperations(protected val config: KubeConfig, protected val resourceUri: Uri)(
