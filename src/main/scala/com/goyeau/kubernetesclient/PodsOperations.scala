@@ -66,8 +66,8 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
     implicit val ec: ExecutionContext = system.dispatcher
     val containerParam = container.fold("")(containerName => s"&container=$containerName")
     val commandParam = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
-    val execParams = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
-    val execUri = s"${resourceUri.toString.replaceFirst("http", "ws")}/exec?$execParams"
+    val params = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
+    val uri = s"${resourceUri.toString.replaceFirst("http", "ws")}/exec?$params"
 
     val mapFlow = BidiFlow.fromFlows(
       Flow.fromFunction[Message, Message](identity),
@@ -84,7 +84,7 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
 
     val (upgradeResponse, eventualResult) = Http().singleWebSocketRequest(
       WebSocketRequest(
-        execUri,
+        uri,
         extraHeaders = config.oauthToken.toList.map(token => Authorization(OAuth2BearerToken(token))),
         subprotocol = Option("v4.channel.k8s.io")
       ),
@@ -97,7 +97,8 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
       upgrade <- upgradeResponse
       response = upgrade.response
       entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
-      _ = if (response.status.isFailure) throw new KubernetesException(response.status.intValue, entity.utf8String)
+      _ = if (response.status.isFailure)
+        throw new KubernetesException(response.status.intValue, uri, entity.utf8String)
       result <- eventualResult
     } yield result
   }

@@ -9,6 +9,7 @@ case class KubernetesClient(config: KubeConfig)(implicit system: ActorSystem) {
   lazy val jobs = JobsOperations(config)
   lazy val cronJobs = CronJobsOperations(config)
   lazy val deployments = DeploymentsOperations(config)
+  lazy val statefulSets = StatefulSetsOperations(config)
   lazy val services = ServicesOperations(config)
   lazy val configMaps = ConfigMapsOperations(config)
   lazy val secrets = SecretsOperations(config)

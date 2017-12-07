@@ -2,6 +2,7 @@ package com.goyeau.kubernetesclient
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.reflectiveCalls
+import scala.util.{Failure, Success}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpMethods, StatusCodes, Uri}
@@ -37,8 +38,7 @@ trait Replaceable[Resource] {
   }
 }
 
-trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] {
-  self: Creatable[Resource] =>
+trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] { self: Creatable[Resource] =>
   protected def config: KubeConfig
   protected def resourceUri: Uri
   protected implicit def resourceEncoder: Encoder[Resource]
@@ -47,19 +47,19 @@ trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] {
     implicit val ec: ExecutionContext = system.dispatcher
 
     val fullResourceUri: Uri = s"$resourceUri/${resource.metadata.get.name.get}"
+    def update() =
+      RequestUtils
+        .singleRequest(config, HttpMethods.PATCH, fullResourceUri, Option(resource), RequestUtils.strategicMergePatch)
+        .map(_ => ())
+
     RequestUtils
       .singleRequest[Nothing](config, HttpMethods.GET, fullResourceUri)
+      .flatMap(_ => update())
       .recoverWith {
-        case e: KubernetesException if e.statusCode == StatusCodes.NotFound.intValue => create(resource)
-      }
-      .flatMap { _ =>
-        RequestUtils
-          .singleRequest(config,
-                         HttpMethods.PATCH,
-                         fullResourceUri,
-                         Option(resource),
-                         RequestUtils.strategicMergePatch)
-          .map(_ => ())
+        case e: KubernetesException if e.statusCode == StatusCodes.NotFound.intValue =>
+          create(resource).recoverWith {
+            case e: KubernetesException if e.statusCode == StatusCodes.Conflict.intValue => update()
+          }
       }
   }
 }

@@ -46,7 +46,8 @@ object RequestUtils {
         SecurityUtils.httpsConnectionContext(config)
       )
       entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
-      _ = if (response.status.isFailure) throw new KubernetesException(response.status.intValue, entity.utf8String)
+      _ = if (response.status.isFailure)
+        throw new KubernetesException(response.status.intValue, uri, entity.utf8String)
     } yield entity.utf8String
   }
 }

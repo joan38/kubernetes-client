@@ -3,7 +3,7 @@ package com.goyeau.kubernetesclient
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import io.circe._
-import io.k8s.api.apps.v1beta1.{Deployment, DeploymentList}
+import io.k8s.api.apps.v1beta2.{Deployment, DeploymentList}
 
 private[kubernetesclient] case class DeploymentsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
@@ -11,7 +11,7 @@ private[kubernetesclient] case class DeploymentsOperations(protected val config:
   encoder: Encoder[Deployment],
   decoder: Decoder[Deployment]
 ) extends Listable[DeploymentList] {
-  protected val resourceUri = s"${config.server}/apis/extensions/v1beta1/deployments"
+  protected val resourceUri = s"${config.server}/apis/apps/v1beta2/deployments"
 
   def namespace(namespace: String) = NamespacedDeploymentsOperations(config, namespace)
 }
@@ -26,7 +26,7 @@ private[kubernetesclient] case class NamespacedDeploymentsOperations(protected v
     with CreateOrUpdatable[Deployment]
     with Listable[DeploymentList]
     with GroupDeletable {
-  protected val resourceUri = s"${config.server}/apis/extensions/v1beta1/namespaces/$namespace/deployments"
+  protected val resourceUri = s"${config.server}/apis/apps/v1beta2/namespaces/$namespace/deployments"
 
   def apply(deploymentName: String) = DeploymentOperations(config, s"$resourceUri/$deploymentName")
 }

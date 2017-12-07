@@ -1,3 +1,6 @@
 package com.goyeau.kubernetesclient
 
-class KubernetesException(val statusCode: Int, message: String) extends Exception(message)
+import akka.http.scaladsl.model.Uri
+
+class KubernetesException(val statusCode: Int, val uri: Uri, message: String)
+    extends Exception(s"$uri returned $statusCode: $message")
