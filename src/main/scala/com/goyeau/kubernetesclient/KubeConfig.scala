@@ -2,8 +2,6 @@ package com.goyeau.kubernetesclient
 
 import java.io.File
 
-import scala.io.Source
-
 import akka.http.scaladsl.model.Uri
 
 case class KubeConfig(server: Uri,

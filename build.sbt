@@ -6,7 +6,7 @@ version := {
   if (ver.contains("+")) ver + "-SNAPSHOT"
   else ver
 }
-scalacOptions += "-deprecation"
+scalacOptions ++= Seq("-deprecation", "-feature", "-Ywarn-unused:imports")
 enablePlugins(SwaggerModelGenerator)
 libraryDependencies ++= akkaHttp ++ circe ++ logging ++ moultingyaml ++ bouncycastle
 

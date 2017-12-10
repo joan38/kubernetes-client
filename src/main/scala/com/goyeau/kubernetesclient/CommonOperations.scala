@@ -2,7 +2,6 @@ package com.goyeau.kubernetesclient
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.reflectiveCalls
-import scala.util.{Failure, Success}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpMethods, StatusCodes, Uri}
@@ -49,7 +48,7 @@ trait CreateOrUpdatable[Resource <: { def metadata: Option[ObjectMeta] }] { self
     val fullResourceUri: Uri = s"$resourceUri/${resource.metadata.get.name.get}"
     def update() =
       RequestUtils
-        .singleRequest(config, HttpMethods.PATCH, fullResourceUri, Option(resource), RequestUtils.strategicMergePatch)
+        .singleRequest(config, HttpMethods.PATCH, fullResourceUri, Option(resource), RequestUtils.mergePatch)
         .map(_ => ())
 
     RequestUtils
