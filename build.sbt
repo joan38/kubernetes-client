@@ -3,8 +3,8 @@ organization := "com.goyeau"
 scalaVersion := "2.12.3"
 version := {
   val ver = version.value
-  if (!ver.contains("+")) ver
-  else ver + "-SNAPSHOT"
+  if (ver.contains("+")) ver + "-SNAPSHOT"
+  else ver
 }
 scalacOptions += "-deprecation"
 enablePlugins(SwaggerModelGenerator)
