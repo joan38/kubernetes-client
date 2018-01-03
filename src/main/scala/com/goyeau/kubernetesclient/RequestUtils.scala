@@ -39,7 +39,7 @@ object RequestUtils {
           uri,
           headers = config.oauthToken.toList.map(token => Authorization(OAuth2BearerToken(token))),
           entity = data.fold(HttpEntity.Empty) { data =>
-            val printer = Printer.noSpaces.copy(dropNullKeys = true)
+            val printer = Printer.noSpaces.copy(dropNullValues = true)
             HttpEntity(contentType, ByteString(printer.pretty(data.asJson)))
           }
         ),

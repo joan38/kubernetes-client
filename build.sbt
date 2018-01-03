@@ -1,6 +1,6 @@
 name := "Kubernetes Client"
 organization := "com.goyeau"
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 version := {
   val ver = version.value
   if (ver.contains("+")) ver + "-SNAPSHOT"
@@ -28,7 +28,7 @@ publishTo := Option(
 publishMavenStyle := true
 
 lazy val circe = {
-  val circeVersion = "0.8.0"
+  val circeVersion = "0.9.0"
   Seq(
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
@@ -37,7 +37,7 @@ lazy val circe = {
 }
 
 lazy val akkaHttp = {
-  val akkaHttpVersion = "10.0.10"
+  val akkaHttpVersion = "10.0.11"
   Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
@@ -49,6 +49,6 @@ lazy val moultingyaml = Seq("net.jcazevedo" %% "moultingyaml" % "0.4.0")
 lazy val bouncycastle = Seq("org.bouncycastle" % "bcpkix-jdk15on" % "1.58")
 
 lazy val logging = Seq(
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.1",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
