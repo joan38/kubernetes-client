@@ -8,7 +8,7 @@ version := {
 }
 scalacOptions ++= Seq("-deprecation", "-feature", "-Ywarn-unused:imports")
 enablePlugins(SwaggerModelGenerator)
-libraryDependencies ++= akkaHttp ++ circe ++ logging ++ moultingyaml ++ bouncycastle
+libraryDependencies ++= akkaHttp ++ circe ++ logging ++ circeYaml ++ bouncycastle
 
 licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
 homepage := Option(url("https://github.com/joan38/kubernetes-client"))
@@ -44,7 +44,7 @@ lazy val akkaHttp = {
   )
 }
 
-lazy val moultingyaml = Seq("net.jcazevedo" %% "moultingyaml" % "0.4.0")
+lazy val circeYaml = Seq("io.circe" %% "circe-yaml" % "0.7.0")
 
 lazy val bouncycastle = Seq("org.bouncycastle" % "bcpkix-jdk15on" % "1.58")
 
