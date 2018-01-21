@@ -31,8 +31,7 @@ private[kubernetesclient] case class NamespacedServicesOperations(protected val 
   def apply(serviceName: String) = ServiceOperations(config, s"$resourceUri/$serviceName")
 }
 
-private[kubernetesclient] case class ServiceOperations(protected val config: KubeConfig,
-                                                       protected val resourceUri: Uri)(
+private[kubernetesclient] case class ServiceOperations(protected val config: KubeConfig, protected val resourceUri: Uri)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[Service],
   protected val resourceDecoder: Decoder[Service]

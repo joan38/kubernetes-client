@@ -60,9 +60,10 @@ object SwaggerModelGenerator extends AutoPlugin {
            |  implicit val decode: Decoder[$className] = _.as[$scalaType].map($className(_))
            |}""".stripMargin
     }
-    IO.write(file, s"""package $packageName
-                      |
-                      |$generatedClass""".stripMargin)
+    IO.write(file,
+             s"""package $packageName
+                |
+                |$generatedClass""".stripMargin)
     log.info(s"Generated $file")
     file
   }

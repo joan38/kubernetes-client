@@ -31,8 +31,7 @@ private[kubernetesclient] case class NamespacedCronJobsOperations(protected val 
   def apply(cronJobName: String) = CronJobOperations(config, s"$resourceUri/$cronJobName")
 }
 
-private[kubernetesclient] case class CronJobOperations(protected val config: KubeConfig,
-                                                       protected val resourceUri: Uri)(
+private[kubernetesclient] case class CronJobOperations(protected val config: KubeConfig, protected val resourceUri: Uri)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[CronJob],
   protected val resourceDecoder: Decoder[CronJob]
