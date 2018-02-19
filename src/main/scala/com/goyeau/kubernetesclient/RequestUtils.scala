@@ -28,26 +28,29 @@ object RequestUtils {
                                    data: Option[Data] = None,
                                    contentType: ContentType = ContentTypes.`application/json`)(
     implicit ec: ExecutionContext,
-    system: ActorSystem,
+    system: ActorSystem
   ): Future[String] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
+    val fullUri = s"${config.server}/$uri"
 
     for {
       response <- Http().singleRequest(
         HttpRequest(
           method,
-          uri,
+          fullUri,
           headers = config.oauthToken.toList.map(token => Authorization(OAuth2BearerToken(token))),
-          entity = data.fold(HttpEntity.Empty) { data =>
-            val printer = Printer.noSpaces.copy(dropNullValues = true)
-            HttpEntity(contentType, ByteString(printer.pretty(data.asJson)))
+          entity = data.fold(HttpEntity.Empty) {
+            case data: String => HttpEntity(contentType, ByteString(data))
+            case data =>
+              val printer = Printer.noSpaces.copy(dropNullValues = true)
+              HttpEntity(contentType, ByteString(printer.pretty(data.asJson)))
           }
         ),
         SecurityUtils.httpsConnectionContext(config)
       )
       entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
       _ = if (response.status.isFailure)
-        throw new KubernetesException(response.status.intValue, uri, entity.utf8String)
+        throw KubernetesException(response.status.intValue, fullUri, entity.utf8String)
     } yield entity.utf8String
   }
 }

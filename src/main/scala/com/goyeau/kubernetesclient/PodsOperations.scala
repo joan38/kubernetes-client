@@ -7,7 +7,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
@@ -23,11 +22,11 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 
 private[kubernetesclient] case class PodsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
-  protected val resourceDecoder: Decoder[PodList],
+  protected val listDecoder: Decoder[PodList],
   encoder: Encoder[Pod],
   decoder: Decoder[Pod]
 ) extends Listable[PodList] {
-  protected val resourceUri = s"${config.server}/api/v1/pods"
+  protected val resourceUri = "api/v1/pods"
 
   def namespace(namespace: String) = NamespacedPodsOperations(config, namespace)
 }
@@ -36,26 +35,19 @@ private[kubernetesclient] case class NamespacedPodsOperations(protected val conf
                                                               protected val namespace: String)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[Pod],
-  decoder: Decoder[Pod],
-  protected val resourceDecoder: Decoder[PodList]
+  protected val resourceDecoder: Decoder[Pod],
+  protected val listDecoder: Decoder[PodList]
 ) extends Creatable[Pod]
-    with CreateOrUpdatable[Pod]
-    with Listable[PodList]
-    with GroupDeletable {
-  protected val resourceUri = s"${config.server}/api/v1/namespaces/$namespace/pods"
-
-  def apply(podName: String) = PodOperations(config, s"$resourceUri/$podName")
-}
-
-private[kubernetesclient] case class PodOperations(protected val config: KubeConfig, protected val resourceUri: Uri)(
-  implicit protected val system: ActorSystem,
-  protected val resourceEncoder: Encoder[Pod],
-  protected val resourceDecoder: Decoder[Pod]
-) extends Gettable[Pod]
     with Replaceable[Pod]
-    with Deletable {
+    with Gettable[Pod]
+    with Listable[PodList]
+    with Proxy
+    with Deletable
+    with GroupDeletable {
+  protected val resourceUri = s"api/v1/namespaces/$namespace/pods"
 
-  def exec[Result](flow: Flow[Either[Status, String], Message, Future[Result]],
+  def exec[Result](podName: String,
+                   flow: Flow[Either[Status, String], Message, Future[Result]],
                    container: Option[String] = None,
                    command: Seq[String] = Seq.empty,
                    stdin: Boolean = false,
@@ -67,7 +59,7 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
     val containerParam = container.fold("")(containerName => s"&container=$containerName")
     val commandParam = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
     val params = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
-    val uri = s"${resourceUri.toString.replaceFirst("http", "ws")}/exec?$params"
+    val uri = s"${config.server.toString.replaceFirst("http", "ws")}/$resourceUri/$podName/exec?$params"
 
     val mapFlow = BidiFlow.fromFlows(
       Flow.fromFunction[Message, Message](identity),
@@ -98,7 +90,7 @@ private[kubernetesclient] case class PodOperations(protected val config: KubeCon
       response = upgrade.response
       entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
       _ = if (response.status.isFailure)
-        throw new KubernetesException(response.status.intValue, uri, entity.utf8String)
+        throw KubernetesException(response.status.intValue, uri, entity.utf8String)
       result <- eventualResult
     } yield result
   }
