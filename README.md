@@ -5,7 +5,7 @@
 
 ## Installation
 ```scala
-"com.goyeau" %% "kubernetes-client" % "<Latest version>"
+"com.goyeau" %% "kubernetes-client" % "<latest version>"
 ```
 
 
