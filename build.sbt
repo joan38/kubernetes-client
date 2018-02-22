@@ -25,7 +25,6 @@ publishTo := Option(
   if (isSnapshot.value) Opts.resolver.sonatypeSnapshots
   else Opts.resolver.sonatypeStaging
 )
-publishMavenStyle := true
 
 lazy val circe = {
   val circeVersion = "0.9.0"
