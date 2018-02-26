@@ -20,7 +20,7 @@ trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
 
   def create(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
     implicit val ec: ExecutionContext = system.dispatcher
-    RequestUtils.singleRequest(config, HttpMethods.POST, resourceUri, Option(resource)).map(_ => ())
+    RequestUtils.singleRequest(config, HttpMethods.POST, resourceUri, data = Option(resource)).map(_ => ())
   }
 
   def createOrUpdate(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
@@ -29,7 +29,7 @@ trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
     val fullResourceUri: Uri = s"$resourceUri/${resource.metadata.get.name.get}"
     def update() =
       RequestUtils
-        .singleRequest(config, HttpMethods.PATCH, fullResourceUri, Option(resource), RequestUtils.mergePatch)
+        .singleRequest(config, HttpMethods.PATCH, fullResourceUri, RequestUtils.mergePatch, data = Option(resource))
         .map(_ => ())
 
     RequestUtils
@@ -52,7 +52,10 @@ trait Replaceable[Resource <: { def metadata: Option[ObjectMeta] }] {
   def replace(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
     implicit val ec: ExecutionContext = system.dispatcher
     RequestUtils
-      .singleRequest(config, HttpMethods.PUT, s"$resourceUri/${resource.metadata.get.name.get}", Option(resource))
+      .singleRequest(config,
+                     HttpMethods.PUT,
+                     s"$resourceUri/${resource.metadata.get.name.get}",
+                     data = Option(resource))
       .map(_ => ())
   }
 }
@@ -91,11 +94,11 @@ trait Proxy {
     name: String,
     method: HttpMethod,
     path: Uri,
-    data: Option[String] = None,
-    contentType: ContentType = ContentTypes.`text/plain(UTF-8)`
+    contentType: ContentType = ContentTypes.`text/plain(UTF-8)`,
+    data: Option[String] = None
   )(implicit system: ActorSystem): Future[String] = {
     implicit val ec: ExecutionContext = system.dispatcher
-    RequestUtils.singleRequest(config, method, s"$resourceUri/$name/proxy/$path", data, contentType)
+    RequestUtils.singleRequest(config, method, s"$resourceUri/$name/proxy$path", contentType, data)
   }
 }
 
@@ -105,7 +108,7 @@ trait Deletable {
 
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None)(implicit system: ActorSystem): Future[Unit] = {
     implicit val ec: ExecutionContext = system.dispatcher
-    RequestUtils.singleRequest(config, HttpMethods.DELETE, s"$resourceUri/$name", deleteOptions).map(_ => ())
+    RequestUtils.singleRequest(config, HttpMethods.DELETE, s"$resourceUri/$name", data = deleteOptions).map(_ => ())
   }
 
   def deleteTerminated(name: String,

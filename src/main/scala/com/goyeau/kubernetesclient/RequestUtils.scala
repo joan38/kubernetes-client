@@ -25,8 +25,8 @@ object RequestUtils {
   def singleRequest[Data: Encoder](config: KubeConfig,
                                    method: HttpMethod,
                                    uri: Uri,
-                                   data: Option[Data] = None,
-                                   contentType: ContentType = ContentTypes.`application/json`)(
+                                   contentType: ContentType = ContentTypes.`application/json`,
+                                   data: Option[Data] = None)(
     implicit ec: ExecutionContext,
     system: ActorSystem
   ): Future[String] = {
