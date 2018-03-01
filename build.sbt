@@ -27,7 +27,7 @@ publishTo := Option(
 )
 
 lazy val circe = {
-  val circeVersion = "0.9.0"
+  val circeVersion = "0.9.1"
   Seq(
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
