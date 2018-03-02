@@ -27,8 +27,8 @@ object RequestUtils {
                                    uri: Uri,
                                    contentType: ContentType = ContentTypes.`application/json`,
                                    data: Option[Data] = None)(
-    implicit ec: ExecutionContext,
-    system: ActorSystem
+    implicit system: ActorSystem,
+    ec: ExecutionContext
   ): Future[String] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val fullUri = s"${config.server}/$uri"

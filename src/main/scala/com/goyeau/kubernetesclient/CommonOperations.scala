@@ -1,6 +1,6 @@
 package com.goyeau.kubernetesclient
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 import scala.util.{Failure, Success}
@@ -15,17 +15,15 @@ import com.goyeau.kubernetesclient.RequestUtils.nothingEncoder
 
 trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
   protected implicit def resourceEncoder: Encoder[Resource]
 
-  def create(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  def create(resource: Resource): Future[Unit] =
     RequestUtils.singleRequest(config, HttpMethods.POST, resourceUri, data = Option(resource)).map(_ => ())
-  }
 
-  def createOrUpdate(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
-    implicit val ec: ExecutionContext = system.dispatcher
-
+  def createOrUpdate(resource: Resource): Future[Unit] = {
     val fullResourceUri: Uri = s"$resourceUri/${resource.metadata.get.name.get}"
     def update() =
       RequestUtils
@@ -46,48 +44,50 @@ trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
 
 trait Replaceable[Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
   protected implicit def resourceEncoder: Encoder[Resource]
 
-  def replace(resource: Resource)(implicit system: ActorSystem): Future[Unit] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  def replace(resource: Resource): Future[Unit] =
     RequestUtils
       .singleRequest(config,
                      HttpMethods.PUT,
                      s"$resourceUri/${resource.metadata.get.name.get}",
                      data = Option(resource))
       .map(_ => ())
-  }
 }
 
 trait Gettable[Resource] {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
   protected implicit def resourceDecoder: Decoder[Resource]
 
-  def get(name: String)(implicit system: ActorSystem): Future[Resource] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  def get(name: String): Future[Resource] =
     RequestUtils
       .singleRequest(config, HttpMethods.GET, s"$resourceUri/$name")
       .map(response => decode[Resource](response).fold(throw _, identity))
-  }
 }
 
 trait Listable[Resource] {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
   protected implicit def listDecoder: Decoder[Resource]
 
-  def list()(implicit system: ActorSystem): Future[Resource] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  def list(): Future[Resource] =
     RequestUtils
       .singleRequest(config, HttpMethods.GET, resourceUri)
       .map(response => decode[Resource](response).fold(throw _, identity))
-  }
 }
 
 trait Proxy {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
 
   def proxy(
@@ -96,25 +96,20 @@ trait Proxy {
     path: Uri,
     contentType: ContentType = ContentTypes.`text/plain(UTF-8)`,
     data: Option[String] = None
-  )(implicit system: ActorSystem): Future[String] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  ): Future[String] =
     RequestUtils.singleRequest(config, method, s"$resourceUri/$name/proxy$path", contentType, data)
-  }
 }
 
 trait Deletable {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
 
-  def delete(name: String, deleteOptions: Option[DeleteOptions] = None)(implicit system: ActorSystem): Future[Unit] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  def delete(name: String, deleteOptions: Option[DeleteOptions] = None): Future[Unit] =
     RequestUtils.singleRequest(config, HttpMethods.DELETE, s"$resourceUri/$name", data = deleteOptions).map(_ => ())
-  }
 
-  def deleteTerminated(name: String,
-                       deleteOptions: Option[DeleteOptions] = None)(implicit system: ActorSystem): Future[Unit] = {
-    implicit val ec: ExecutionContext = system.dispatcher
-
+  def deleteTerminated(name: String, deleteOptions: Option[DeleteOptions] = None): Future[Unit] = {
     def retry() = {
       Thread.sleep(1.second.toMillis)
       deleteTerminated(name, deleteOptions)
@@ -131,12 +126,12 @@ trait Deletable {
 
 trait GroupDeletable {
   protected def config: KubeConfig
+  protected implicit val system: ActorSystem
+  import system.dispatcher
   protected def resourceUri: Uri
 
-  def delete()(implicit system: ActorSystem): Future[Unit] = {
-    implicit val ec: ExecutionContext = system.dispatcher
+  def delete(): Future[Unit] =
     RequestUtils
       .singleRequest(config, HttpMethods.DELETE, resourceUri)
       .map(_ => ())
-  }
 }
