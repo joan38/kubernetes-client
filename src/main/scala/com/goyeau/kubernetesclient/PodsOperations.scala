@@ -53,9 +53,8 @@ private[kubernetesclient] case class NamespacedPodsOperations(protected val conf
                    stdin: Boolean = false,
                    stdout: Boolean = true,
                    stderr: Boolean = true,
-                   tty: Boolean = false)(implicit system: ActorSystem): Future[Result] = {
+                   tty: Boolean = false)(implicit ec: ExecutionContext): Future[Result] = {
     implicit val materializer: Materializer = ActorMaterializer()
-    implicit val ec: ExecutionContext = system.dispatcher
     val containerParam = container.fold("")(containerName => s"&container=$containerName")
     val commandParam = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
     val params = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"

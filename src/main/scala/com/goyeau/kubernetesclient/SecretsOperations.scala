@@ -2,7 +2,7 @@ package com.goyeau.kubernetesclient
 
 import java.util.Base64
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 import akka.actor.ActorSystem
 import io.circe._
@@ -33,9 +33,9 @@ private[kubernetesclient] case class NamespacedSecretsOperations(protected val c
     with GroupDeletable {
   protected val resourceUri = s"api/v1/namespaces/$namespace/secrets"
 
-  def createEncode(resource: Secret)(implicit system: ActorSystem): Future[Unit] = create(encode(resource))
+  def createEncode(resource: Secret)(implicit ec: ExecutionContext): Future[Unit] = create(encode(resource))
 
-  def createOrUpdateEncode(resource: Secret)(implicit system: ActorSystem): Future[Unit] =
+  def createOrUpdateEncode(resource: Secret)(implicit ec: ExecutionContext): Future[Unit] =
     createOrUpdate(encode(resource))
 
   private def encode(resource: Secret) =
