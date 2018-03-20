@@ -1,6 +1,6 @@
 # Kubernetes Client
 
-[![Latest version](https://img.shields.io/maven-central/v/com.goyeau/kubernetes-client_2.12.svg?label=latest%20release)](https://github.com/joan38/kubernetes-client)
+[![Latest version](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client/latest.svg?color=blue)](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client)
 
 
 ## Installation
