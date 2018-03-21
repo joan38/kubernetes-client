@@ -1,6 +1,6 @@
 name := "Kubernetes Client"
 organization := "com.goyeau"
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.5"
 version := {
   val ver = version.value
   if (ver.contains("+")) ver + "-SNAPSHOT"
