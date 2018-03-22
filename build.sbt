@@ -10,7 +10,7 @@ scalacOptions ++= Seq("-deprecation", "-feature", "-Ywarn-unused:imports")
 enablePlugins(SwaggerModelGenerator)
 libraryDependencies ++= akkaHttp ++ circe ++ logging ++ circeYaml ++ bouncycastle
 
-licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+licenses += "APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0")
 homepage := Option(url("https://github.com/joan38/kubernetes-client"))
 scmInfo := Option(
   ScmInfo(
@@ -18,8 +18,7 @@ scmInfo := Option(
     "https://github.com/joan38/kubernetes-client.git"
   )
 )
-developers := List(
-  Developer(id = "joan38", name = "Joan Goyeau", email = "joan@goyeau.com", url = url("http://goyeau.com"))
+developers += Developer(id = "joan38", name = "Joan Goyeau", email = "joan@goyeau.com", url = url("http://goyeau.com")
 )
 publishTo := Option(
   if (isSnapshot.value) Opts.resolver.sonatypeSnapshots
