@@ -1,12 +1,20 @@
 name := "Kubernetes Client"
 organization := "com.goyeau"
 scalaVersion := "2.12.5"
-version := {
-  val ver = version.value
-  if (ver.contains("+")) ver + "-SNAPSHOT"
-  else ver
-}
-scalacOptions ++= Seq("-deprecation", "-feature", "-Ywarn-unused:imports")
+dynverSonatypeSnapshots := true
+scalacOptions ++= Seq(
+  "-deprecation",
+  "-feature",
+  "-Xlint:unsound-match",
+  "-Ywarn-inaccessible",
+  "-Ywarn-infer-any",
+  "-Ywarn-unused:imports",
+  "-Ywarn-unused:locals",
+  "-Ywarn-unused:patvars",
+  "-Ywarn-unused:privates",
+  "-Ypartial-unification",
+  "-Ywarn-dead-code"
+)
 enablePlugins(SwaggerModelGenerator)
 libraryDependencies ++= akkaHttp ++ circe ++ logging ++ circeYaml ++ bouncycastle
 
@@ -26,7 +34,7 @@ publishTo := Option(
 )
 
 lazy val circe = {
-  val circeVersion = "0.9.2"
+  val circeVersion = "0.9.3"
   Seq(
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
@@ -35,18 +43,19 @@ lazy val circe = {
 }
 
 lazy val akkaHttp = {
-  val akkaHttpVersion = "10.0.11"
+  val akkaHttpVersion = "10.1.1"
   Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+    "com.typesafe.akka" %% "akka-stream" % "2.5.11",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
   )
 }
 
 lazy val circeYaml = Seq("io.circe" %% "circe-yaml" % "0.7.0")
 
-lazy val bouncycastle = Seq("org.bouncycastle" % "bcpkix-jdk15on" % "1.58")
+lazy val bouncycastle = Seq("org.bouncycastle" % "bcpkix-jdk15on" % "1.59")
 
 lazy val logging = Seq(
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.8.0",
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
