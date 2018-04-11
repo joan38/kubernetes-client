@@ -1,4 +1,4 @@
-# Kubernetes Client
+# Kubernetes Client for Scala
 
 [![Latest version](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client/latest.svg?color=blue)](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client)
 
@@ -101,3 +101,11 @@ client.deployments.namespace("my-namespace").create(deployment)
 
 * [Skuber](https://github.com/doriordan/skuber)
 * [Kubernetes Client for Java](https://github.com/fabric8io/kubernetes-client)
+
+
+## Why Kubernetes Client for Scala?
+
+You might wonder why using this library instead of Skuber for example? The main reason is that Kubernetes Client has
+been designed so that we can just create all the payload case classes by just ingesting the swagger api provided by
+Kubernetes' main repo, just like Kubernetes Client for Java is doing. So we will always be up to date with the latest
+Kubernetes API.
