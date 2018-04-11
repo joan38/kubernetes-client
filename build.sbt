@@ -1,6 +1,6 @@
 name := "Kubernetes Client"
 organization := "com.goyeau"
-scalaVersion := "2.12.5"
+scalaVersion := "2.12.4"
 dynverSonatypeSnapshots := true
 scalacOptions ++= Seq(
   "-deprecation",
