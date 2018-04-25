@@ -15,9 +15,9 @@ import com.goyeau.kubernetesclient.RequestUtils.nothingEncoder
 
 trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
-  protected implicit def resourceEncoder: Encoder[Resource]
+  implicit protected def resourceEncoder: Encoder[Resource]
 
   def create(resource: Resource)(implicit ec: ExecutionContext): Future[Unit] =
     RequestUtils.singleRequest(config, HttpMethods.POST, resourceUri, data = Option(resource)).map(_ => ())
@@ -43,9 +43,9 @@ trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
 
 trait Replaceable[Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
-  protected implicit def resourceEncoder: Encoder[Resource]
+  implicit protected def resourceEncoder: Encoder[Resource]
 
   def replace(resource: Resource)(implicit ec: ExecutionContext): Future[Unit] =
     RequestUtils
@@ -58,9 +58,9 @@ trait Replaceable[Resource <: { def metadata: Option[ObjectMeta] }] {
 
 trait Gettable[Resource] {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
-  protected implicit def resourceDecoder: Decoder[Resource]
+  implicit protected def resourceDecoder: Decoder[Resource]
 
   def get(name: String)(implicit ec: ExecutionContext): Future[Resource] =
     RequestUtils
@@ -70,9 +70,9 @@ trait Gettable[Resource] {
 
 trait Listable[Resource] {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
-  protected implicit def listDecoder: Decoder[Resource]
+  implicit protected def listDecoder: Decoder[Resource]
 
   def list()(implicit ec: ExecutionContext): Future[Resource] =
     RequestUtils
@@ -82,7 +82,7 @@ trait Listable[Resource] {
 
 trait Proxy {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
 
   def proxy(
@@ -97,7 +97,7 @@ trait Proxy {
 
 trait Deletable {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
 
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None)(implicit ec: ExecutionContext): Future[Unit] =
@@ -121,7 +121,7 @@ trait Deletable {
 
 trait GroupDeletable {
   protected def config: KubeConfig
-  protected implicit val system: ActorSystem
+  implicit protected val system: ActorSystem
   protected def resourceUri: Uri
 
   def delete()(implicit ec: ExecutionContext): Future[Unit] =
