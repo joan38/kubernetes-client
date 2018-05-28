@@ -31,8 +31,10 @@ private[kubernetesclient] case class PodsOperations(protected val config: KubeCo
   def namespace(namespace: String) = NamespacedPodsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedPodsOperations(protected val config: KubeConfig,
-                                                              protected val namespace: String)(
+private[kubernetesclient] case class NamespacedPodsOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[Pod],
   protected val resourceDecoder: Decoder[Pod],
@@ -46,14 +48,16 @@ private[kubernetesclient] case class NamespacedPodsOperations(protected val conf
     with GroupDeletable {
   protected val resourceUri = s"api/v1/namespaces/$namespace/pods"
 
-  def exec[Result](podName: String,
-                   flow: Flow[Either[Status, String], Message, Future[Result]],
-                   container: Option[String] = None,
-                   command: Seq[String] = Seq.empty,
-                   stdin: Boolean = false,
-                   stdout: Boolean = true,
-                   stderr: Boolean = true,
-                   tty: Boolean = false)(implicit ec: ExecutionContext): Future[Result] = {
+  def exec[Result](
+    podName: String,
+    flow: Flow[Either[Status, String], Message, Future[Result]],
+    container: Option[String] = None,
+    command: Seq[String] = Seq.empty,
+    stdin: Boolean = false,
+    stdout: Boolean = true,
+    stderr: Boolean = true,
+    tty: Boolean = false
+  )(implicit ec: ExecutionContext): Future[Result] = {
     implicit val materializer: Materializer = ActorMaterializer()
     val containerParam = container.fold("")(containerName => s"&container=$containerName")
     val commandParam = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString

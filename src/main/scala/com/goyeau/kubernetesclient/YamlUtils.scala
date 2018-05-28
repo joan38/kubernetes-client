@@ -8,25 +8,31 @@ import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
 import io.circe.yaml.parser
 
-case class Config(apiVersion: String,
-                  clusters: Seq[NamedCluster],
-                  contexts: Seq[NamedContext],
-                  `current-context`: String,
-                  users: Seq[NamedAuthInfo])
+case class Config(
+  apiVersion: String,
+  clusters: Seq[NamedCluster],
+  contexts: Seq[NamedContext],
+  `current-context`: String,
+  users: Seq[NamedAuthInfo]
+)
 
 case class NamedCluster(name: String, cluster: Cluster)
-case class Cluster(server: String,
-                   `certificate-authority`: Option[String] = None,
-                   `certificate-authority-data`: Option[String] = None)
+case class Cluster(
+  server: String,
+  `certificate-authority`: Option[String] = None,
+  `certificate-authority-data`: Option[String] = None
+)
 
 case class NamedContext(name: String, context: Context)
 case class Context(cluster: String, user: String, namespace: Option[String] = None)
 
 case class NamedAuthInfo(name: String, user: AuthInfo)
-case class AuthInfo(`client-certificate`: Option[String] = None,
-                    `client-certificate-data`: Option[String] = None,
-                    `client-key`: Option[String] = None,
-                    `client-key-data`: Option[String] = None)
+case class AuthInfo(
+  `client-certificate`: Option[String] = None,
+  `client-certificate-data`: Option[String] = None,
+  `client-key`: Option[String] = None,
+  `client-key-data`: Option[String] = None
+)
 
 object YamlUtils extends LazyLogging {
 

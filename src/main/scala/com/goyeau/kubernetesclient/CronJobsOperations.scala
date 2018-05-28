@@ -15,8 +15,10 @@ private[kubernetesclient] case class CronJobsOperations(protected val config: Ku
   def namespace(namespace: String) = NamespacedCronJobsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedCronJobsOperations(protected val config: KubeConfig,
-                                                                  protected val namespace: String)(
+private[kubernetesclient] case class NamespacedCronJobsOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[CronJob],
   protected val resourceDecoder: Decoder[CronJob],

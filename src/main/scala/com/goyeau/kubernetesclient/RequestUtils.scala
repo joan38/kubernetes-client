@@ -22,11 +22,13 @@ object RequestUtils {
   )
   val jsonPatch = ContentType(MediaType.customWithFixedCharset("application", "json-patch+json", HttpCharsets.`UTF-8`))
 
-  def singleRequest[Data: Encoder](config: KubeConfig,
-                                   method: HttpMethod,
-                                   uri: Uri,
-                                   contentType: ContentType = ContentTypes.`application/json`,
-                                   data: Option[Data] = None)(
+  def singleRequest[Data: Encoder](
+    config: KubeConfig,
+    method: HttpMethod,
+    uri: Uri,
+    contentType: ContentType = ContentTypes.`application/json`,
+    data: Option[Data] = None
+  )(
     implicit system: ActorSystem,
     ec: ExecutionContext
   ): Future[String] = {

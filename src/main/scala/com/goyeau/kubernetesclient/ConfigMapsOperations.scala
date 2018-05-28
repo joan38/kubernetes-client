@@ -15,8 +15,10 @@ private[kubernetesclient] case class ConfigMapsOperations(protected val config: 
   def namespace(namespace: String) = NamespacedConfigMapsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedConfigMapsOperations(protected val config: KubeConfig,
-                                                                    protected val namespace: String)(
+private[kubernetesclient] case class NamespacedConfigMapsOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[ConfigMap],
   protected val resourceDecoder: Decoder[ConfigMap],

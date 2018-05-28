@@ -19,8 +19,10 @@ private[kubernetesclient] case class SecretsOperations(protected val config: Kub
   def namespace(namespace: String) = NamespacedSecretsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedSecretsOperations(protected val config: KubeConfig,
-                                                                 protected val namespace: String)(
+private[kubernetesclient] case class NamespacedSecretsOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[Secret],
   protected val resourceDecoder: Decoder[Secret],

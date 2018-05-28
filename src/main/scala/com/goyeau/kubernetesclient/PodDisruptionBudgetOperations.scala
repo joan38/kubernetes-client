@@ -15,8 +15,10 @@ private[kubernetesclient] case class PodDisruptionBudgetsOperations(protected va
   def namespace(namespace: String) = NamespacedPodDisruptionBudgetOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedPodDisruptionBudgetOperations(protected val config: KubeConfig,
-                                                                             protected val namespace: String)(
+private[kubernetesclient] case class NamespacedPodDisruptionBudgetOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[PodDisruptionBudget],
   protected val resourceDecoder: Decoder[PodDisruptionBudget],

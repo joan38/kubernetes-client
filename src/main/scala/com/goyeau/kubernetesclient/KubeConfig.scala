@@ -4,15 +4,17 @@ import java.io.File
 
 import akka.http.scaladsl.model.Uri
 
-case class KubeConfig(server: Uri,
-                      oauthToken: Option[String] = None,
-                      caCertData: Option[String] = None,
-                      caCertFile: Option[File] = None,
-                      clientCertData: Option[String] = None,
-                      clientCertFile: Option[File] = None,
-                      clientKeyData: Option[String] = None,
-                      clientKeyFile: Option[File] = None,
-                      clientKeyPass: Option[String] = None) {
+case class KubeConfig(
+  server: Uri,
+  oauthToken: Option[String] = None,
+  caCertData: Option[String] = None,
+  caCertFile: Option[File] = None,
+  clientCertData: Option[String] = None,
+  clientCertFile: Option[File] = None,
+  clientKeyData: Option[String] = None,
+  clientKeyFile: Option[File] = None,
+  clientKeyPass: Option[String] = None
+) {
   require(caCertData.isEmpty || caCertFile.isEmpty, "caCertData and caCertFile can't be set at the same time")
   require(
     clientCertData.isEmpty || clientCertFile.isEmpty,

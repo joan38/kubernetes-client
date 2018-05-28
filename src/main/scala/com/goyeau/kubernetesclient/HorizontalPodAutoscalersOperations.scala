@@ -15,8 +15,10 @@ private[kubernetesclient] case class HorizontalPodAutoscalersOperations(protecte
   def namespace(namespace: String) = NamespacedHorizontalPodAutoscalersOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedHorizontalPodAutoscalersOperations(protected val config: KubeConfig,
-                                                                                  protected val namespace: String)(
+private[kubernetesclient] case class NamespacedHorizontalPodAutoscalersOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[HorizontalPodAutoscaler],
   protected val resourceDecoder: Decoder[HorizontalPodAutoscaler],

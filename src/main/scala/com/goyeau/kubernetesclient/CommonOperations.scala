@@ -49,10 +49,12 @@ trait Replaceable[Resource <: { def metadata: Option[ObjectMeta] }] {
 
   def replace(resource: Resource)(implicit ec: ExecutionContext): Future[Unit] =
     RequestUtils
-      .singleRequest(config,
-                     HttpMethods.PUT,
-                     s"$resourceUri/${resource.metadata.get.name.get}",
-                     data = Option(resource))
+      .singleRequest(
+        config,
+        HttpMethods.PUT,
+        s"$resourceUri/${resource.metadata.get.name.get}",
+        data = Option(resource)
+      )
       .map(_ => ())
 }
 
@@ -103,8 +105,9 @@ trait Deletable {
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None)(implicit ec: ExecutionContext): Future[Unit] =
     RequestUtils.singleRequest(config, HttpMethods.DELETE, s"$resourceUri/$name", data = deleteOptions).map(_ => ())
 
-  def deleteTerminated(name: String,
-                       deleteOptions: Option[DeleteOptions] = None)(implicit ec: ExecutionContext): Future[Unit] = {
+  def deleteTerminated(name: String, deleteOptions: Option[DeleteOptions] = None)(
+    implicit ec: ExecutionContext
+  ): Future[Unit] = {
     def retry() = {
       Thread.sleep(1.second.toMillis)
       deleteTerminated(name, deleteOptions)

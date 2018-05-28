@@ -15,8 +15,10 @@ private[kubernetesclient] case class StatefulSetsOperations(protected val config
   def namespace(namespace: String) = NamespacedStatefulSetsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedStatefulSetsOperations(protected val config: KubeConfig,
-                                                                      protected val namespace: String)(
+private[kubernetesclient] case class NamespacedStatefulSetsOperations(
+  protected val config: KubeConfig,
+  protected val namespace: String
+)(
   implicit protected val system: ActorSystem,
   protected val resourceEncoder: Encoder[StatefulSet],
   protected val resourceDecoder: Decoder[StatefulSet],
