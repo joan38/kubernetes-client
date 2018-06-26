@@ -43,19 +43,19 @@ lazy val circe = {
 }
 
 lazy val akkaHttp = {
-  val akkaHttpVersion = "10.1.1"
+  val akkaHttpVersion = "10.1.3"
   Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-    "com.typesafe.akka" %% "akka-stream" % "2.5.11",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.13",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
   )
 }
 
-lazy val circeYaml = Seq("io.circe" %% "circe-yaml" % "0.7.0")
+lazy val circeYaml = Seq("io.circe" %% "circe-yaml" % "0.8.0")
 
 lazy val bouncycastle = Seq("org.bouncycastle" % "bcpkix-jdk15on" % "1.59")
 
 lazy val logging = Seq(
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.8.0",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
