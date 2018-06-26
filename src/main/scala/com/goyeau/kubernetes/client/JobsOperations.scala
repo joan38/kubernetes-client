@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.batch.v1.{Job, JobList}
 
-private[kubernetesclient] case class JobsOperations(protected val config: KubeConfig)(
+private[client] case class JobsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[JobList],
   encoder: Encoder[Job],
@@ -15,7 +15,7 @@ private[kubernetesclient] case class JobsOperations(protected val config: KubeCo
   def namespace(namespace: String) = NamespacedJobsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedJobsOperations(
+private[client] case class NamespacedJobsOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

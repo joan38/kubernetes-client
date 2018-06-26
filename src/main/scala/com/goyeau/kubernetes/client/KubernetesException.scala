@@ -1,4 +1,4 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.http.scaladsl.model.Uri
 

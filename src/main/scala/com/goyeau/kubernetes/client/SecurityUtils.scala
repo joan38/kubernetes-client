@@ -1,4 +1,4 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import java.io._
 import java.security.{KeyStore, SecureRandom, Security}

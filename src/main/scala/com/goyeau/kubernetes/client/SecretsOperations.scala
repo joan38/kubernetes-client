@@ -1,4 +1,4 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import java.util.Base64
 
@@ -8,7 +8,7 @@ import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.core.v1.{Secret, SecretList}
 
-private[kubernetesclient] case class SecretsOperations(protected val config: KubeConfig)(
+private[client] case class SecretsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[SecretList],
   encoder: Encoder[Secret],
@@ -19,7 +19,7 @@ private[kubernetesclient] case class SecretsOperations(protected val config: Kub
   def namespace(namespace: String) = NamespacedSecretsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedSecretsOperations(
+private[client] case class NamespacedSecretsOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

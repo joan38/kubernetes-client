@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.policy.v1beta1.{PodDisruptionBudget, PodDisruptionBudgetList}
 
-private[kubernetesclient] case class PodDisruptionBudgetsOperations(protected val config: KubeConfig)(
+private[client] case class PodDisruptionBudgetsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[PodDisruptionBudgetList],
   encoder: Encoder[PodDisruptionBudget],
@@ -15,7 +15,7 @@ private[kubernetesclient] case class PodDisruptionBudgetsOperations(protected va
   def namespace(namespace: String) = NamespacedPodDisruptionBudgetOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedPodDisruptionBudgetOperations(
+private[client] case class NamespacedPodDisruptionBudgetOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

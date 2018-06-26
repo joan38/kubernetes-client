@@ -1,4 +1,4 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import java.net.URLEncoder
 
@@ -20,7 +20,7 @@ import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 
-private[kubernetesclient] case class PodsOperations(protected val config: KubeConfig)(
+private[client] case class PodsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[PodList],
   encoder: Encoder[Pod],
@@ -31,7 +31,7 @@ private[kubernetesclient] case class PodsOperations(protected val config: KubeCo
   def namespace(namespace: String) = NamespacedPodsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedPodsOperations(
+private[client] case class NamespacedPodsOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

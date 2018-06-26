@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.batch.v1beta1.{CronJob, CronJobList}
 
-private[kubernetesclient] case class CronJobsOperations(protected val config: KubeConfig)(
+private[client] case class CronJobsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[CronJobList],
   encoder: Encoder[CronJob],
@@ -15,7 +15,7 @@ private[kubernetesclient] case class CronJobsOperations(protected val config: Ku
   def namespace(namespace: String) = NamespacedCronJobsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedCronJobsOperations(
+private[client] case class NamespacedCronJobsOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.apps.v1beta2.{Deployment, DeploymentList}
 
-private[kubernetesclient] case class DeploymentsOperations(protected val config: KubeConfig)(
+private[client] case class DeploymentsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[DeploymentList],
   encoder: Encoder[Deployment],
@@ -15,7 +15,7 @@ private[kubernetesclient] case class DeploymentsOperations(protected val config:
   def namespace(namespace: String) = NamespacedDeploymentsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedDeploymentsOperations(
+private[client] case class NamespacedDeploymentsOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

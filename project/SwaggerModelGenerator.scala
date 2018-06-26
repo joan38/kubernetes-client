@@ -105,7 +105,7 @@ object SwaggerModelGenerator extends AutoPlugin {
 
   def sanitizeClassPath(classPath: String) =
     classPath.replace("#/definitions/", "").replace("-", "") match {
-      case "io.k8s.apimachinery.pkg.util.intstr.IntOrString" => "com.goyeau.kubernetesclient.IntOrString"
+      case "io.k8s.apimachinery.pkg.util.intstr.IntOrString" => "com.goyeau.kubernetes.client.IntOrString"
       case c                                                 => c
     }
 }

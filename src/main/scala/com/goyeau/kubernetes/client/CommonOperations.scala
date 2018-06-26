@@ -1,4 +1,4 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -11,7 +11,7 @@ import io.circe.generic.auto._
 import io.circe._
 import io.circe.parser._
 import io.k8s.apimachinery.pkg.apis.meta.v1.{DeleteOptions, ObjectMeta}
-import com.goyeau.kubernetesclient.RequestUtils.nothingEncoder
+import com.goyeau.kubernetes.client.RequestUtils.nothingEncoder
 
 trait Creatable[Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def config: KubeConfig

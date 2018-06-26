@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
 
-private[kubernetesclient] case class ConfigMapsOperations(protected val config: KubeConfig)(
+private[client] case class ConfigMapsOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[ConfigMapList],
   encoder: Encoder[ConfigMap],
@@ -15,7 +15,7 @@ private[kubernetesclient] case class ConfigMapsOperations(protected val config: 
   def namespace(namespace: String) = NamespacedConfigMapsOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedConfigMapsOperations(
+private[client] case class NamespacedConfigMapsOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

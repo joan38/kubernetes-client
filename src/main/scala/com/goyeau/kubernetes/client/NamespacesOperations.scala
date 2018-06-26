@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.core.v1.{Namespace, NamespaceList}
 
-private[kubernetesclient] case class NamespacesOperations(protected val config: KubeConfig)(
+private[client] case class NamespacesOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[NamespaceList],
   protected val resourceEncoder: Encoder[Namespace],

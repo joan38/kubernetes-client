@@ -1,10 +1,10 @@
-package com.goyeau.kubernetesclient
+package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
 import io.circe._
 import io.k8s.api.autoscaling.v1.{HorizontalPodAutoscaler, HorizontalPodAutoscalerList}
 
-private[kubernetesclient] case class HorizontalPodAutoscalersOperations(protected val config: KubeConfig)(
+private[client] case class HorizontalPodAutoscalersOperations(protected val config: KubeConfig)(
   implicit protected val system: ActorSystem,
   protected val listDecoder: Decoder[HorizontalPodAutoscalerList],
   encoder: Encoder[HorizontalPodAutoscaler],
@@ -15,7 +15,7 @@ private[kubernetesclient] case class HorizontalPodAutoscalersOperations(protecte
   def namespace(namespace: String) = NamespacedHorizontalPodAutoscalersOperations(config, namespace)
 }
 
-private[kubernetesclient] case class NamespacedHorizontalPodAutoscalersOperations(
+private[client] case class NamespacedHorizontalPodAutoscalersOperations(
   protected val config: KubeConfig,
   protected val namespace: String
 )(

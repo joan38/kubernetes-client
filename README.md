@@ -15,7 +15,7 @@ libraryDependencies += "com.goyeau" %% "kubernetes-client" % "<latest version>"
 ```scala
 import scala.io.Source
 import java.io.File
-import com.goyeau.kubernetesclient._
+import com.goyeau.kubernetes.client._
 
 val client = KubernetesClient(
   KubeConfig(
@@ -28,7 +28,7 @@ val client = KubernetesClient(
 
 ```scala
 import java.io.File
-import com.goyeau.kubernetesclient._
+import com.goyeau.kubernetes.client._
 
 val client = KubernetesClient(KubeConfig(new File("/opt/docker/secrets/kube/config")))
 ```
@@ -37,7 +37,7 @@ val client = KubernetesClient(KubeConfig(new File("/opt/docker/secrets/kube/conf
 
 ```scala
 import java.io.File
-import com.goyeau.kubernetesclient._
+import com.goyeau.kubernetes.client._
 import io.k8s.api.apps.v1beta1.{Deployment, DeploymentSpec, DeploymentStrategy, RollingUpdateDeployment}
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.api.resource.Quantity
