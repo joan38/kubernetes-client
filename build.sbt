@@ -26,8 +26,7 @@ scmInfo := Option(
     "https://github.com/joan38/kubernetes-client.git"
   )
 )
-developers += Developer(id = "joan38", name = "Joan Goyeau", email = "joan@goyeau.com", url = url("http://goyeau.com")
-)
+developers += Developer(id = "joan38", name = "Joan Goyeau", email = "joan@goyeau.com", url = url("http://goyeau.com"))
 publishTo := Option(
   if (isSnapshot.value) Opts.resolver.sonatypeSnapshots
   else Opts.resolver.sonatypeStaging
