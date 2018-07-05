@@ -24,13 +24,36 @@ object SwaggerModelGenerator extends AutoPlugin {
     swaggerFiles.flatMap(processSwaggerFile(_, (sourceManaged in Compile).value, streams.value.log))
   }
 
+  def classNameFilter(className: String): Boolean =  {
+    val allowedPrefixes = Seq("io.k8s.api.apps.v1",
+      "io.k8s.api.core.v1",
+      "io.k8s.api.rbac.v1",
+      "io.k8s.api.batch.v1",
+      "io.k8s.kubernetes.pkg.apis.policy.v1beta1",
+      "io.k8s.api.policy.v1beta1",
+      "io.k8s.apimachinery.pkg.runtime",
+      "io.k8s.api.storage.v1",
+      "io.k8s.api.autoscaling.v1",
+      "io.k8s.apimachinery.pkg.api",
+      "io.k8s.kubernetes.pkg.apis.storage.v1",
+      "io.k8s.apimachinery.pkg.apis.meta.v1",
+      "io.k8s.kubernetes.pkg.api.v1",
+      "io.k8s.kubernetes.pkg.apis.batch.v1",
+      "io.k8s.kubernetes.pkg.apis.networking.v1")
+    allowedPrefixes.exists(className.startsWith)
+  }
+
+
   def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger) = {
     val json = parse(IO.read(swaggerFile)).fold(throw _, identity)
     for {
       definitionsJson <- json.hcursor.downField("definitions").focus.toSeq
       definitionsObject <- definitionsJson.asObject.toSeq
-      classFile <- definitionsObject.toMap.map {
-        case (fullClassName, definition) => generateDefinition(fullClassName, definition, outputDir, log)
+
+      classFile <- definitionsObject.toMap.flatMap {
+        case (fullClassName, definition) if classNameFilter(fullClassName) =>
+          Some(generateDefinition(fullClassName, definition, outputDir, log))
+        case _: (String, Json) => None
       }
     } yield classFile
   }
