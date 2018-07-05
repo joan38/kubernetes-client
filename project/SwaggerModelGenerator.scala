@@ -49,7 +49,7 @@ object SwaggerModelGenerator extends AutoPlugin {
                            |  ${attributes.replace("\n", "\n  ")}
                            |)""".stripMargin
         s"$description$caseClass"
-      case Definition(None, None, None, Some(t)) =>
+      case Definition(_, None, None, Some(t)) =>
         val scalaType = swaggerToScalaType(t)
         s"""import io.circe._
            |
