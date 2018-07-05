@@ -45,9 +45,17 @@ object SwaggerModelGenerator extends AutoPlugin {
       case Definition(desc, required, properties, None) =>
         val description = generateDescription(desc)
         val attributes = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
-        val caseClass = s"""case class $className(
+        val caseClass = s"""import io.circe._
+                           |import io.circe.generic.semiauto._
+                           |
+                           |case class $className(
                            |  ${attributes.replace("\n", "\n  ")}
-                           |)""".stripMargin
+                           |)
+                           |object $className {
+                           |  implicit lazy val encode: ObjectEncoder[$className] = deriveEncoder
+                           |  implicit lazy val decode: Decoder[$className] = deriveDecoder
+                           |}
+                           |""".stripMargin
         s"$description$caseClass"
       case Definition(_, None, None, Some(t)) =>
         val scalaType = swaggerToScalaType(t)
