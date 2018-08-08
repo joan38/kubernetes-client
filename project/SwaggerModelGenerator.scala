@@ -24,8 +24,9 @@ object SwaggerModelGenerator extends AutoPlugin {
     swaggerFiles.flatMap(processSwaggerFile(_, (sourceManaged in Compile).value, streams.value.log))
   }
 
-  def classNameFilter(className: String): Boolean =  {
-    val allowedPrefixes = Seq("io.k8s.api.apps.v1",
+  def classNameFilter(className: String): Boolean = {
+    val allowedPrefixes = Seq(
+      "io.k8s.api.apps.v1",
       "io.k8s.api.core.v1",
       "io.k8s.api.rbac.v1",
       "io.k8s.api.batch.v1",
@@ -39,10 +40,10 @@ object SwaggerModelGenerator extends AutoPlugin {
       "io.k8s.apimachinery.pkg.apis.meta.v1",
       "io.k8s.kubernetes.pkg.api.v1",
       "io.k8s.kubernetes.pkg.apis.batch.v1",
-      "io.k8s.kubernetes.pkg.apis.networking.v1")
+      "io.k8s.kubernetes.pkg.apis.networking.v1"
+    )
     allowedPrefixes.exists(className.startsWith)
   }
-
 
   def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger) = {
     val json = parse(IO.read(swaggerFile)).fold(throw _, identity)
@@ -50,12 +51,9 @@ object SwaggerModelGenerator extends AutoPlugin {
       definitionsJson <- json.hcursor.downField("definitions").focus.toSeq
       definitionsObject <- definitionsJson.asObject.toSeq
 
-      classFile <- definitionsObject.toMap.flatMap {
-        case (fullClassName, definition) if classNameFilter(fullClassName) =>
-          Some(generateDefinition(fullClassName, definition, outputDir, log))
-        case _: (String, Json) => None
-      }
-    } yield classFile
+      (fullClassName, definition) <- definitionsObject.toMap
+      if classNameFilter(fullClassName)
+    } yield generateDefinition(fullClassName, definition, outputDir, log)
   }
 
   def generateDefinition(fullClassName: String, definitionJson: Json, outputDir: File, log: Logger) = {
@@ -74,12 +72,14 @@ object SwaggerModelGenerator extends AutoPlugin {
                            |case class $className(
                            |  ${attributes.replace("\n", "\n  ")}
                            |)
+                           |
                            |object $className {
-                           |  implicit lazy val encode: ObjectEncoder[$className] = deriveEncoder
-                           |  implicit lazy val decode: Decoder[$className] = deriveDecoder
+                           |  implicit lazy val encoder: ObjectEncoder[$className] = deriveEncoder
+                           |  implicit lazy val decoder: Decoder[$className] = deriveDecoder
                            |}
                            |""".stripMargin
         s"$description$caseClass"
+
       case Definition(_, None, None, Some(t)) =>
         val scalaType = swaggerToScalaType(t)
         s"""import io.circe._
@@ -87,10 +87,11 @@ object SwaggerModelGenerator extends AutoPlugin {
            |case class $className(value: $scalaType) extends AnyVal
            |
            |object $className {
-           |  implicit val encode: Encoder[$className] = obj => Json.from$scalaType(obj.value)
-           |  implicit val decode: Decoder[$className] = _.as[$scalaType].map($className(_))
+           |  implicit val encoder: Encoder[$className] = obj => Json.from$scalaType(obj.value)
+           |  implicit val decoder: Decoder[$className] = _.as[$scalaType].map($className(_))
            |}""".stripMargin
     }
+
     IO.write(file, s"""package $packageName
                       |
                       |$generatedClass""".stripMargin)

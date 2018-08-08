@@ -72,23 +72,22 @@ object YamlUtils extends LazyLogging {
       identity
     )
 
-  implicit lazy val ConfigDecoder: Decoder[Config] = deriveDecoder
-  implicit lazy val ConfigEncoder: ObjectEncoder[Config] = deriveEncoder
+  implicit lazy val configDecoder: Decoder[Config] = deriveDecoder
+  implicit lazy val configEncoder: ObjectEncoder[Config] = deriveEncoder
 
-  implicit lazy val ClusterDecoder: Decoder[Cluster] = deriveDecoder
-  implicit lazy val ClusterEncoder: ObjectEncoder[Cluster] = deriveEncoder
-  implicit lazy val NamedClusterDecoder: Decoder[NamedCluster] = deriveDecoder
-  implicit lazy val NamedClusterEncoder: ObjectEncoder[NamedCluster] = deriveEncoder
+  implicit lazy val clusterDecoder: Decoder[Cluster] = deriveDecoder
+  implicit lazy val clusterEncoder: ObjectEncoder[Cluster] = deriveEncoder
+  implicit lazy val namedClusterDecoder: Decoder[NamedCluster] = deriveDecoder
+  implicit lazy val namedClusterEncoder: ObjectEncoder[NamedCluster] = deriveEncoder
 
-  implicit lazy val ContextDecoder: Decoder[Context] = deriveDecoder
-  implicit lazy val ContextEncoder: ObjectEncoder[Context] = deriveEncoder
-  implicit lazy val NamedContextDecoder: Decoder[NamedContext] = deriveDecoder
-  implicit lazy val NamedContextEncoder: ObjectEncoder[NamedContext] = deriveEncoder
+  implicit lazy val contextDecoder: Decoder[Context] = deriveDecoder
+  implicit lazy val contextEncoder: ObjectEncoder[Context] = deriveEncoder
+  implicit lazy val namedContextDecoder: Decoder[NamedContext] = deriveDecoder
+  implicit lazy val namedContextEncoder: ObjectEncoder[NamedContext] = deriveEncoder
 
-  implicit lazy val AuthInfoDecoder: Decoder[AuthInfo] = deriveDecoder
-  implicit lazy val AuthInfoEncoder: ObjectEncoder[AuthInfo] = deriveEncoder
-  implicit lazy val NamedAuthInfoDecoder: Decoder[NamedAuthInfo] = deriveDecoder
-  implicit lazy val NamedAuthInfoEncoder: ObjectEncoder[NamedAuthInfo] = deriveEncoder
-
+  implicit lazy val authInfoDecoder: Decoder[AuthInfo] = deriveDecoder
+  implicit lazy val authInfoEncoder: ObjectEncoder[AuthInfo] = deriveEncoder
+  implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo] = deriveDecoder
+  implicit lazy val namedAuthInfoEncoder: ObjectEncoder[NamedAuthInfo] = deriveEncoder
 
 }
