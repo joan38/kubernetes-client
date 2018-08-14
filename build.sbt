@@ -1,7 +1,6 @@
 name := "Kubernetes Client"
 organization := "com.goyeau"
 scalaVersion := "2.12.4"
-ThisBuild / dynverSonatypeSnapshots := true
 scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
@@ -27,10 +26,8 @@ scmInfo := Option(
   )
 )
 developers += Developer(id = "joan38", name = "Joan Goyeau", email = "joan@goyeau.com", url = url("http://goyeau.com"))
-publishTo := Option(
-  if (isSnapshot.value) Opts.resolver.sonatypeSnapshots
-  else Opts.resolver.sonatypeStaging
-)
+Global / releaseEarlyWith := SonatypePublisher
+Global / releaseEarlyEnableLocalReleases := true
 
 lazy val circe = {
   val circeVersion = "0.9.3"
