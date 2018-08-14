@@ -3,9 +3,9 @@ package com.goyeau.kubernetes.client
 import java.io.File
 
 import scala.io.Source
-
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.generic.auto._
+import io.circe.{Decoder, ObjectEncoder}
+import io.circe.generic.semiauto._
 import io.circe.yaml.parser
 
 case class Config(
@@ -71,4 +71,23 @@ object YamlUtils extends LazyLogging {
       error => throw new IllegalArgumentException(s"Parsing config file $kubeconfig failed: ${error.getMessage}"),
       identity
     )
+
+  implicit lazy val configDecoder: Decoder[Config] = deriveDecoder
+  implicit lazy val configEncoder: ObjectEncoder[Config] = deriveEncoder
+
+  implicit lazy val clusterDecoder: Decoder[Cluster] = deriveDecoder
+  implicit lazy val clusterEncoder: ObjectEncoder[Cluster] = deriveEncoder
+  implicit lazy val namedClusterDecoder: Decoder[NamedCluster] = deriveDecoder
+  implicit lazy val namedClusterEncoder: ObjectEncoder[NamedCluster] = deriveEncoder
+
+  implicit lazy val contextDecoder: Decoder[Context] = deriveDecoder
+  implicit lazy val contextEncoder: ObjectEncoder[Context] = deriveEncoder
+  implicit lazy val namedContextDecoder: Decoder[NamedContext] = deriveDecoder
+  implicit lazy val namedContextEncoder: ObjectEncoder[NamedContext] = deriveEncoder
+
+  implicit lazy val authInfoDecoder: Decoder[AuthInfo] = deriveDecoder
+  implicit lazy val authInfoEncoder: ObjectEncoder[AuthInfo] = deriveEncoder
+  implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo] = deriveDecoder
+  implicit lazy val namedAuthInfoEncoder: ObjectEncoder[NamedAuthInfo] = deriveEncoder
+
 }

@@ -1,7 +1,6 @@
 package com.goyeau.kubernetes.client
 
 import akka.actor.ActorSystem
-import io.circe.generic.auto._
 
 case class KubernetesClient(config: KubeConfig)(implicit system: ActorSystem) {
   lazy val namespaces = NamespacesOperations(config)

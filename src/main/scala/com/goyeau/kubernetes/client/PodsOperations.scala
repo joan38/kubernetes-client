@@ -15,7 +15,6 @@ import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import io.circe._
-import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status

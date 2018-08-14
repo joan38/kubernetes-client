@@ -24,15 +24,36 @@ object SwaggerModelGenerator extends AutoPlugin {
     swaggerFiles.flatMap(processSwaggerFile(_, (sourceManaged in Compile).value, streams.value.log))
   }
 
+  def classNameFilter(className: String): Boolean = {
+    val allowedPrefixes = Seq(
+      "io.k8s.api.apps.v1",
+      "io.k8s.api.core.v1",
+      "io.k8s.api.rbac.v1",
+      "io.k8s.api.batch.v1",
+      "io.k8s.kubernetes.pkg.apis.policy.v1beta1",
+      "io.k8s.api.policy.v1beta1",
+      "io.k8s.apimachinery.pkg.runtime",
+      "io.k8s.api.storage.v1",
+      "io.k8s.api.autoscaling.v1",
+      "io.k8s.apimachinery.pkg.api",
+      "io.k8s.kubernetes.pkg.apis.storage.v1",
+      "io.k8s.apimachinery.pkg.apis.meta.v1",
+      "io.k8s.kubernetes.pkg.api.v1",
+      "io.k8s.kubernetes.pkg.apis.batch.v1",
+      "io.k8s.kubernetes.pkg.apis.networking.v1"
+    )
+    allowedPrefixes.exists(className.startsWith)
+  }
+
   def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger) = {
     val json = parse(IO.read(swaggerFile)).fold(throw _, identity)
     for {
       definitionsJson <- json.hcursor.downField("definitions").focus.toSeq
       definitionsObject <- definitionsJson.asObject.toSeq
-      classFile <- definitionsObject.toMap.map {
-        case (fullClassName, definition) => generateDefinition(fullClassName, definition, outputDir, log)
-      }
-    } yield classFile
+
+      (fullClassName, definition) <- definitionsObject.toMap
+      if classNameFilter(fullClassName)
+    } yield generateDefinition(fullClassName, definition, outputDir, log)
   }
 
   def generateDefinition(fullClassName: String, definitionJson: Json, outputDir: File, log: Logger) = {
@@ -45,21 +66,32 @@ object SwaggerModelGenerator extends AutoPlugin {
       case Definition(desc, required, properties, None) =>
         val description = generateDescription(desc)
         val attributes = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
-        val caseClass = s"""case class $className(
+        val caseClass = s"""import io.circe._
+                           |import io.circe.generic.semiauto._
+                           |
+                           |case class $className(
                            |  ${attributes.replace("\n", "\n  ")}
-                           |)""".stripMargin
+                           |)
+                           |
+                           |object $className {
+                           |  implicit lazy val encoder: ObjectEncoder[$className] = deriveEncoder
+                           |  implicit lazy val decoder: Decoder[$className] = deriveDecoder
+                           |}
+                           |""".stripMargin
         s"$description$caseClass"
-      case Definition(None, None, None, Some(t)) =>
+
+      case Definition(_, None, None, Some(t)) =>
         val scalaType = swaggerToScalaType(t)
         s"""import io.circe._
            |
            |case class $className(value: $scalaType) extends AnyVal
            |
            |object $className {
-           |  implicit val encode: Encoder[$className] = obj => Json.from$scalaType(obj.value)
-           |  implicit val decode: Decoder[$className] = _.as[$scalaType].map($className(_))
+           |  implicit val encoder: Encoder[$className] = obj => Json.from$scalaType(obj.value)
+           |  implicit val decoder: Decoder[$className] = _.as[$scalaType].map($className(_))
            |}""".stripMargin
     }
+
     IO.write(file, s"""package $packageName
                       |
                       |$generatedClass""".stripMargin)

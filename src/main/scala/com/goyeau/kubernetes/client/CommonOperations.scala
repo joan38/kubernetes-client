@@ -7,7 +7,6 @@ import scala.util.{Failure, Success}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
-import io.circe.generic.auto._
 import io.circe._
 import io.circe.parser._
 import io.k8s.apimachinery.pkg.apis.meta.v1.{DeleteOptions, ObjectMeta}
