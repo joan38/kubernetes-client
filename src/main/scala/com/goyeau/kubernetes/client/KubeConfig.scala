@@ -2,11 +2,15 @@ package com.goyeau.kubernetes.client
 
 import java.io.File
 
-import akka.http.scaladsl.model.Uri
+import cats.effect.Sync
+import com.goyeau.kubernetes.client.util.Yamls
+import io.chrisdavenport.log4cats.Logger
+import org.http4s.Uri
+import org.http4s.headers.Authorization
 
 case class KubeConfig(
   server: Uri,
-  oauthToken: Option[String] = None,
+  authorization: Option[Authorization] = None,
   caCertData: Option[String] = None,
   caCertFile: Option[File] = None,
   clientCertData: Option[String] = None,
@@ -24,8 +28,8 @@ case class KubeConfig(
 
 object KubeConfig {
 
-  def apply(kubeconfig: File): KubeConfig = YamlUtils.fromKubeConfigFile(kubeconfig, None)
+  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig] = Yamls.fromKubeConfigFile(kubeconfig, None)
 
-  def apply(kubeconfig: File, contextName: String): KubeConfig =
-    YamlUtils.fromKubeConfigFile(kubeconfig, Option(contextName))
+  def apply[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig] =
+    Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 }

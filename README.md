@@ -2,6 +2,7 @@
 
 [![Latest version](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client/latest.svg?color=blue)](https://index.scala-lang.org/joan38/kubernetes-client/kubernetes-client)
 
+A pure functional client for Kubernetes.
 
 ## Installation
 ```scala
@@ -13,43 +14,78 @@ libraryDependencies += "com.goyeau" %% "kubernetes-client" % "<latest version>"
 
 ### Client configuration
 ```scala
-import scala.io.Source
-import java.io.File
+import cats.effect._
 import com.goyeau.kubernetes.client._
+import io.chrisdavenport.log4cats.Logger
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import java.io.File
+import org.http4s.AuthScheme
+import org.http4s.Credentials.Token
+import org.http4s.Uri._
+import org.http4s.headers.Authorization
+import scala.concurrent.ExecutionContext
+import scala.io.Source
 
-val client = KubernetesClient(
-  KubeConfig(
-    server = "https://k8s.goyeau.com",
-    oauthToken = Option(Source.fromFile("/var/run/secrets/kubernetes.io/serviceaccount/token").mkString),
-    caCertFile = Option(new File("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"))
+implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+implicit val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+
+val kubernetesClient =
+  KubernetesClient[IO](
+    KubeConfig(
+      server = uri("https://k8s.goyeau.com"),
+      authorization = Option(Authorization(Token(AuthScheme.Bearer, Source.fromFile("/var/run/secrets/kubernetes.io/serviceaccount/token").mkString))),
+      caCertFile = Option(new File("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"))
+    )
   )
-)
 ```
 
 ```scala
-import java.io.File
+import cats.effect._
 import com.goyeau.kubernetes.client._
+import io.chrisdavenport.log4cats.Logger
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import io.k8s.api.apps.v1._
+import io.k8s.api.core.v1._
+import io.k8s.apimachinery.pkg.api.resource.Quantity
+import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+import java.io.File
+import scala.concurrent.ExecutionContext
 
-val client = KubernetesClient(KubeConfig(new File("/opt/docker/secrets/kube/config")))
+implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+implicit val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+
+val kubernetesClient =
+  KubernetesClient[IO](KubeConfig(new File(s"${System.getProperty("user.home")}/.kube/config")))
 ```
 
 ### Requests
 
 ```scala
-import java.io.File
+import cats.effect._
 import com.goyeau.kubernetes.client._
-import io.k8s.api.apps.v1beta1.{Deployment, DeploymentSpec, DeploymentStrategy, RollingUpdateDeployment}
+import io.chrisdavenport.log4cats.Logger
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import io.k8s.api.apps.v1._
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.api.resource.Quantity
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import io.k8s.apimachinery.pkg.util.intstr.IntOrString
+import java.io.File
+import scala.concurrent.ExecutionContext
 
-val client = KubernetesClient(KubeConfig(new File("/opt/docker/secrets/kube/config")))
+implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+implicit val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+
+val kubernetesClient =
+  KubernetesClient[IO](KubeConfig(new File(s"${System.getProperty("user.home")}/.kube/config")))
 
 val deployment = Deployment(
   metadata = Option(ObjectMeta(name = Option("web-backend"), namespace = Option("my-namespace"))),
   spec = Option(
     DeploymentSpec(
+      selector = null,
       strategy = Option(
         DeploymentStrategy(
           `type` = Option("RollingUpdate"),
@@ -67,7 +103,7 @@ val deployment = Deployment(
             containers = Seq(
               Container(
                 name = "nginx",
-                image = "nginx",
+                image = Option("nginx"),
                 resources = Option(
                   ResourceRequirements(
                     Option(Map("cpu" -> Quantity("100m"), "memory" -> Quantity("128Mi"))),
@@ -93,7 +129,9 @@ val deployment = Deployment(
   )
 )
 
-client.deployments.namespace("my-namespace").create(deployment)
+  kubernetesClient.use { client =>
+    client.deployments.namespace("my-namespace").create(deployment)
+  }
 ```
 
 

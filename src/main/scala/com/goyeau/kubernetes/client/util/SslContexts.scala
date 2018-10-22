@@ -1,27 +1,26 @@
-package com.goyeau.kubernetes.client
-
-import java.io._
-import java.security.{KeyStore, SecureRandom, Security}
+package com.goyeau.kubernetes.client.util
+import java.io.{ByteArrayInputStream, File, FileInputStream, InputStreamReader}
 import java.security.cert.{CertificateFactory, X509Certificate}
+import java.security.{KeyStore, SecureRandom, Security}
 import java.util.Base64
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
-import akka.http.scaladsl.ConnectionContext
+import com.goyeau.kubernetes.client.KubeConfig
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 
-object SecurityUtils {
+object SslContexts {
 
   private val TrustStoreSystemProperty = "javax.net.ssl.trustStore"
   private val TrustStorePasswordSystemProperty = "javax.net.ssl.trustStorePassword"
   private val KeyStoreSystemProperty = "javax.net.ssl.keyStore"
   private val KeyStorePasswordSystemProperty = "javax.net.ssl.keyStorePassword"
 
-  def httpsConnectionContext(config: KubeConfig) = {
+  def fromConfig(config: KubeConfig): SSLContext = {
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagers(config), trustManagers(config), new SecureRandom)
-    ConnectionContext.https(sslContext)
+    sslContext
   }
 
   private def keyManagers(config: KubeConfig) = {
@@ -38,11 +37,11 @@ object SecurityUtils {
       certStream <- certDataStream.orElse(certFileStream)
     } yield {
       Security.addProvider(new BouncyCastleProvider())
-      val pemKeyPair = new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair]
+      val pemKeyPair = new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair] // scalafix:ok
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
+      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
 
       defaultKeyStore.setKeyEntry(
         certificate.getSubjectX500Principal.getName,
@@ -75,7 +74,7 @@ object SecurityUtils {
 
     certDataStream.orElse(certFileStream).foreach { certStream =>
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
+      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
       defaultTrustStore.setCertificateEntry(certificate.getSubjectX500Principal.getName, certificate)
     }
 
