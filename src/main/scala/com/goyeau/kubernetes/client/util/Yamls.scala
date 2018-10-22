@@ -1,12 +1,17 @@
-package com.goyeau.kubernetes.client
+package com.goyeau.kubernetes.client.util
 
 import java.io.File
 
+import cats.effect.Sync
+import cats.implicits._
+import com.goyeau.kubernetes.client.KubeConfig
+
 import scala.io.Source
-import com.typesafe.scalalogging.LazyLogging
+import io.chrisdavenport.log4cats.Logger
 import io.circe.{Decoder, ObjectEncoder}
 import io.circe.generic.semiauto._
-import io.circe.yaml.parser
+import io.circe.yaml.parser._
+import org.http4s.Uri
 
 case class Config(
   apiVersion: String,
@@ -34,43 +39,40 @@ case class AuthInfo(
   `client-key-data`: Option[String] = None
 )
 
-object YamlUtils extends LazyLogging {
+private[client] object Yamls {
 
-  def fromKubeConfigFile(kubeconfig: File, contextMaybe: Option[String]): KubeConfig =
-    (
-      for {
-        configJson <- parser.parse(Source.fromFile(kubeconfig).mkString)
-        config <- configJson.as[Config]
-        contextName = contextMaybe.getOrElse(config.`current-context`)
-        namedContext = config.contexts
-          .find(_.name == contextName)
-          .getOrElse(throw new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
-        _ = logger.debug(s"KubeConfig with context ${namedContext.name}")
-        context = namedContext.context
+  def fromKubeConfigFile[F[_]: Sync: Logger](kubeconfig: File, contextMaybe: Option[String]): F[KubeConfig] =
+    for {
+      configJson <- Sync[F].fromEither(parse(Source.fromFile(kubeconfig).mkString))
+      config <- Sync[F].fromEither(configJson.as[Config])
+      contextName = contextMaybe.getOrElse(config.`current-context`)
+      namedContext <- config.contexts
+        .find(_.name == contextName)
+        .liftTo[F](new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
+      _ <- Logger[F].debug(s"KubeConfig with context ${namedContext.name}")
+      context = namedContext.context
 
-        cluster = config.clusters
-          .find(_.name == context.cluster)
-          .getOrElse(throw new IllegalArgumentException(s"Can't find cluster named ${context.cluster} in $kubeconfig"))
-          .cluster
+      namedCluster <- config.clusters
+        .find(_.name == context.cluster)
+        .liftTo[F](new IllegalArgumentException(s"Can't find cluster named ${context.cluster} in $kubeconfig"))
+      cluster = namedCluster.cluster
 
-        user = config.users
-          .find(_.name == context.user)
-          .getOrElse(throw new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
-          .user
-      } yield
-        KubeConfig(
-          server = cluster.server,
-          caCertData = cluster.`certificate-authority-data`,
-          caCertFile = cluster.`certificate-authority`.map(new File(_)),
-          clientCertData = user.`client-certificate-data`,
-          clientCertFile = user.`client-certificate`.map(new File(_)),
-          clientKeyData = user.`client-key-data`,
-          clientKeyFile = user.`client-key`.map(new File(_))
-        )
-    ).fold(
-      error => throw new IllegalArgumentException(s"Parsing config file $kubeconfig failed: ${error.getMessage}"),
-      identity
-    )
+      namedAuthInfo <- config.users
+        .find(_.name == context.user)
+        .liftTo[F](new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
+      user = namedAuthInfo.user
+
+      server <- Sync[F].fromEither(Uri.fromString(cluster.server))
+    } yield
+      KubeConfig(
+        server = server,
+        caCertData = cluster.`certificate-authority-data`,
+        caCertFile = cluster.`certificate-authority`.map(new File(_)),
+        clientCertData = user.`client-certificate-data`,
+        clientCertFile = user.`client-certificate`.map(new File(_)),
+        clientKeyData = user.`client-key-data`,
+        clientKeyFile = user.`client-key`.map(new File(_))
+      )
 
   implicit lazy val configDecoder: Decoder[Config] = deriveDecoder
   implicit lazy val configEncoder: ObjectEncoder[Config] = deriveEncoder
@@ -89,5 +91,4 @@ object YamlUtils extends LazyLogging {
   implicit lazy val authInfoEncoder: ObjectEncoder[AuthInfo] = deriveEncoder
   implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo] = deriveDecoder
   implicit lazy val namedAuthInfoEncoder: ObjectEncoder[NamedAuthInfo] = deriveEncoder
-
 }
