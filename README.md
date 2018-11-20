@@ -129,9 +129,9 @@ val deployment = Deployment(
   )
 )
 
-  kubernetesClient.use { client =>
-    client.deployments.namespace("my-namespace").create(deployment)
-  }
+kubernetesClient.use { client =>
+  client.deployments.namespace("my-namespace").create(deployment)
+}
 ```
 
 
