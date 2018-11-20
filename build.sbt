@@ -37,7 +37,7 @@ Global / releaseEarlyWith := SonatypePublisher
 Global / releaseEarlyEnableLocalReleases := true
 
 lazy val circe = {
-  val circeVersion = "0.10.0"
+  val circeVersion = "0.10.1"
   Seq(
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
