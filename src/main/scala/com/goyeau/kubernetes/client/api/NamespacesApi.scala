@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Sync, Timer}
+import cats.effect.Sync
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe.{Decoder, Encoder}
@@ -11,7 +11,6 @@ import org.http4s.client.Client
 private[client] case class NamespacesApi[F[_]](httpClient: Client[F], config: KubeConfig)(
   implicit
   val F: Sync[F],
-  val timer: Timer[F],
   val listDecoder: Decoder[NamespaceList],
   val resourceEncoder: Encoder[Namespace],
   val resourceDecoder: Decoder[Namespace]

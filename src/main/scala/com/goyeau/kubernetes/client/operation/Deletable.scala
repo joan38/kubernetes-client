@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.effect.{Sync, Timer}
+import cats.effect.Sync
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec._
 import com.goyeau.kubernetes.client.util.EnrichedStatus
@@ -13,7 +13,6 @@ import org.http4s.Method._
 private[client] trait Deletable[F[_]] extends Http4sClientDsl[F] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
-  implicit protected val timer: Timer[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
 

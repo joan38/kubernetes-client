@@ -13,7 +13,7 @@ import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
-import cats.effect.{Async, IO, Timer}
+import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesException}
@@ -30,7 +30,6 @@ import org.http4s.Uri.uri
 private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
   implicit
   val F: Async[F],
-  timer: Timer[F],
   val listDecoder: Decoder[PodList],
   encoder: Encoder[Pod],
   decoder: Decoder[Pod]
@@ -47,7 +46,6 @@ private[client] case class NamespacedPodsApi[F[_]](
 )(
   implicit
   val F: Async[F],
-  val timer: Timer[F],
   val resourceEncoder: Encoder[Pod],
   val resourceDecoder: Decoder[Pod],
   val listDecoder: Decoder[PodList]

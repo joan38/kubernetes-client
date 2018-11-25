@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Sync, Timer}
+import cats.effect.Sync
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
@@ -11,7 +11,6 @@ import org.http4s.Uri.uri
 private[client] case class ConfigMapsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
   implicit
   val F: Sync[F],
-  timer: Timer[F],
   val listDecoder: Decoder[ConfigMapList],
   encoder: Encoder[ConfigMap],
   decoder: Decoder[ConfigMap]
@@ -28,7 +27,6 @@ private[client] case class NamespacedConfigMapsApi[F[_]](
 )(
   implicit
   val F: Sync[F],
-  val timer: Timer[F],
   val resourceEncoder: Encoder[ConfigMap],
   val resourceDecoder: Decoder[ConfigMap],
   val listDecoder: Decoder[ConfigMapList]

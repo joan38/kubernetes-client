@@ -1,6 +1,5 @@
 package com.goyeau.kubernetes.client
 
-import cats.effect.Timer
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
 import cats.effect._
@@ -10,7 +9,7 @@ import com.goyeau.kubernetes.client.util.SslContexts
 
 import scala.concurrent.ExecutionContext
 
-case class KubernetesClient[F[_]: ConcurrentEffect: Timer](httpClient: Client[F], config: KubeConfig) {
+case class KubernetesClient[F[_]: ConcurrentEffect](httpClient: Client[F], config: KubeConfig) {
   lazy val namespaces = NamespacesApi(httpClient, config)
   lazy val pods = PodsApi(httpClient, config)
   lazy val jobs = JobsApi(httpClient, config)
@@ -27,10 +26,10 @@ case class KubernetesClient[F[_]: ConcurrentEffect: Timer](httpClient: Client[F]
 }
 
 object KubernetesClient {
-  def apply[F[_]: ConcurrentEffect: Timer](config: KubeConfig): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: ConcurrentEffect](config: KubeConfig): Resource[F, KubernetesClient[F]] =
     BlazeClientBuilder[F](ExecutionContext.global, Option(SslContexts.fromConfig(config))).resource
       .map(httpClient => apply(httpClient, config))
 
-  def apply[F[_]: ConcurrentEffect: Timer](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: ConcurrentEffect](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
     Resource.liftF(config).flatMap(apply(_))
 }
