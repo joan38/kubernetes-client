@@ -7,12 +7,14 @@ import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.ExecutionContext
 
 class ConfigMapsApiTest
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with OptionValues
     with CreatableTests[IO, ConfigMap]
@@ -24,7 +26,7 @@ class ConfigMapsApiTest
   implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName = classOf[ConfigMap].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.configMaps

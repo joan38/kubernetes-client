@@ -6,12 +6,14 @@ import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.client.UnexpectedStatus
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
 
 import scala.language.reflectiveCalls
 
 trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with OptionValues
     with MinikubeClientProvider[F] {

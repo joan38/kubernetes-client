@@ -28,7 +28,7 @@ import scala.io.Source
 
 implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-implicit val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
 val kubernetesClient =
   KubernetesClient[IO](
@@ -54,7 +54,7 @@ import scala.concurrent.ExecutionContext
 
 implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-implicit val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
 val kubernetesClient =
   KubernetesClient[IO](KubeConfig(new File(s"${System.getProperty("user.home")}/.kube/config")))
@@ -76,7 +76,7 @@ import scala.concurrent.ExecutionContext
 
 implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-implicit val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
 val kubernetesClient =
   KubernetesClient[IO](KubeConfig(new File(s"${System.getProperty("user.home")}/.kube/config")))

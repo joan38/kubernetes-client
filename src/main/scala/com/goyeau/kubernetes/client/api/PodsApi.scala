@@ -9,11 +9,10 @@ import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
-import cats.effect.{Async, IO}
+import cats.effect.{Async, ContextShift, IO}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesException}
@@ -32,7 +31,8 @@ private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConf
   val F: Async[F],
   val listDecoder: Decoder[PodList],
   encoder: Encoder[Pod],
-  decoder: Decoder[Pod]
+  decoder: Decoder[Pod],
+  contextShift: ContextShift[IO]
 ) extends Listable[F, PodList] {
   val resourceUri = uri("/api") / "v1" / "pods"
 
@@ -48,7 +48,8 @@ private[client] case class NamespacedPodsApi[F[_]](
   val F: Async[F],
   val resourceEncoder: Encoder[Pod],
   val resourceDecoder: Decoder[Pod],
-  val listDecoder: Decoder[PodList]
+  val listDecoder: Decoder[PodList],
+  val contextShift: ContextShift[IO]
 ) extends Creatable[F, Pod]
     with Replaceable[F, Pod]
     with Gettable[F, Pod]
@@ -69,7 +70,6 @@ private[client] case class NamespacedPodsApi[F[_]](
     stderr: Boolean = true,
     tty: Boolean = false
   )(implicit actorSystem: ActorSystem): F[Result] = {
-    implicit val materializer: Materializer = ActorMaterializer()
     import actorSystem.dispatcher
 
     IO.fromFuture(IO {

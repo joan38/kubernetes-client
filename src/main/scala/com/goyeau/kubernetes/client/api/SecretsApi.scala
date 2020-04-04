@@ -47,5 +47,5 @@ private[client] case class NamespacedSecretsApi[F[_]](
     createOrUpdate(encode(resource))
 
   private def encode(resource: Secret) =
-    resource.copy(data = resource.data.map(_.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes))))
+    resource.copy(data = resource.data.map(_.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap))
 }

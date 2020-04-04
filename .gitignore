@@ -12,3 +12,6 @@
 bin
 target
 secrets
+.bloop
+.metals
+metals.sbt

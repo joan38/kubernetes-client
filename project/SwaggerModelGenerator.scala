@@ -74,7 +74,7 @@ object SwaggerModelGenerator extends AutoPlugin {
                            |)
                            |
                            |object $className {
-                           |  implicit lazy val encoder: ObjectEncoder[$className] = deriveEncoder
+                           |  implicit lazy val encoder: Encoder.AsObject[$className] = deriveEncoder
                            |  implicit lazy val decoder: Decoder[$className] = deriveDecoder
                            |}
                            |""".stripMargin

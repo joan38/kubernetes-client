@@ -1,6 +1,6 @@
 name := "Kubernetes Client"
 organization := "com.goyeau"
-scalaVersion := "2.12.7"
+scalaVersion := "2.13.1"
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
 addCommandAlias("fix", "; compile:scalafix; test:scalafix")
@@ -11,14 +11,12 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-language:higherKinds",
-  "-Xlint:unsound-match",
-  "-Ywarn-inaccessible",
-  "-Ywarn-infer-any",
+  "-Xlint:inaccessible",
+  "-Xlint:infer-any",
   "-Ywarn-unused:imports",
   "-Ywarn-unused:locals",
   "-Ywarn-unused:patvars",
   "-Ywarn-unused:privates",
-  "-Ypartial-unification",
   "-Ywarn-dead-code"
 )
 enablePlugins(SwaggerModelGenerator)
@@ -37,7 +35,7 @@ Global / releaseEarlyWith := SonatypePublisher
 Global / releaseEarlyEnableLocalReleases := true
 
 lazy val circe = {
-  val circeVersion = "0.10.1"
+  val circeVersion = "0.13.0"
   Seq(
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
@@ -46,7 +44,7 @@ lazy val circe = {
 }
 
 lazy val http4s = {
-  val version = "0.20.0-M3"
+  val version = "0.21.2"
   Seq(
     "org.http4s" %% "http4s-dsl" % version,
     "org.http4s" %% "http4s-circe" % version,
@@ -56,25 +54,25 @@ lazy val http4s = {
 }
 
 lazy val akkaHttp = {
-  val akkaHttpVersion = "10.1.5"
+  val akkaHttpVersion = "10.1.11"
   Seq(
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-    "com.typesafe.akka" %% "akka-stream" % "2.5.17",
+    "com.typesafe.akka" %% "akka-stream" % "2.6.4",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % Test
   )
 }
 
-lazy val circeYaml = Seq("io.circe" %% "circe-yaml" % "0.9.0")
+lazy val circeYaml = Seq("io.circe" %% "circe-yaml" % "0.12.0")
 
 lazy val bouncycastle = Seq("org.bouncycastle" % "bcpkix-jdk15on" % "1.60")
 
 lazy val logging = Seq(
-  "io.chrisdavenport" %% "log4cats-slf4j" % "0.2.0",
+  "io.chrisdavenport" %% "log4cats-slf4j" % "1.0.1",
   "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
 
 lazy val tests = Seq(
-  "org.scalactic" %% "scalactic" % "3.0.5",
-  "org.scalatest" %% "scalatest" % "3.0.5" % Test,
-  "com.github.julien-truffaut" %% "monocle-core" % "1.5.0-cats" % Test
+  "org.scalactic" %% "scalactic" % "3.1.1",
+  "org.scalatest" %% "scalatest" % "3.1.1" % Test,
+  "com.github.julien-truffaut" %% "monocle-core" % "2.0.4" % Test
 )

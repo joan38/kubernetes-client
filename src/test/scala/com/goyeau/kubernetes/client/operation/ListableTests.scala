@@ -4,12 +4,14 @@ import cats.Applicative
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
 
 import scala.language.reflectiveCalls
 
 trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, ResourceList <: { def items: Seq[Resource] }]
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with OptionValues
     with MinikubeClientProvider[F] {
