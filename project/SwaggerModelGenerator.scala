@@ -63,7 +63,7 @@ object SwaggerModelGenerator extends AutoPlugin {
     val file        = outputDir / sanitizeClassPath(split.init.mkString("/")) / s"$className.scala"
 
     val generatedClass = definitionJson.as[Definition].fold(throw _, identity) match {
-      case Definition(desc, required, properties, None) =>
+      case Definition(desc, required, properties, Some("object"), _) =>
         val description = generateDescription(desc)
         val attributes  = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
         val caseClass   = s"""import io.circe._
@@ -80,7 +80,7 @@ object SwaggerModelGenerator extends AutoPlugin {
                            |""".stripMargin
         s"$description$caseClass"
 
-      case Definition(_, None, None, Some(t)) =>
+      case Definition(_, None, None, Some(t), _) =>
         val scalaType = swaggerToScalaType(t)
         s"""import io.circe._
            |
@@ -90,6 +90,8 @@ object SwaggerModelGenerator extends AutoPlugin {
            |  implicit val encoder: Encoder[$className] = obj => Json.from$scalaType(obj.value)
            |  implicit val decoder: Decoder[$className] = _.as[$scalaType].map($className(_))
            |}""".stripMargin
+
+      case d => sys.error(s"Unsupported definition: $d")
     }
 
     IO.write(file, s"""package $packageName
