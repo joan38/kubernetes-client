@@ -30,8 +30,6 @@ object KubernetesClient {
     BlazeClientBuilder[F](ExecutionContext.global, Option(SslContexts.fromConfig(config))).resource
       .map(httpClient => apply(httpClient, config))
 
-  def apply[F[_]: ConcurrentEffect](
-    config: F[KubeConfig]
-  )(implicit cs: ContextShift[IO]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: ConcurrentEffect](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
     Resource.liftF(config).flatMap(apply(_))
 }

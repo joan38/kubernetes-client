@@ -12,7 +12,6 @@ trait MinikubeClientProvider[F[_]] extends BeforeAndAfter { this: Suite =>
 
   implicit def F: ConcurrentEffect[F]
   implicit def timer: Timer[F]
-  implicit def contextShift: ContextShift[IO]
   implicit def logger: Logger[F]
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
