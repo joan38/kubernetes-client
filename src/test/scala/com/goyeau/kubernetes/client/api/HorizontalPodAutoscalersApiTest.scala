@@ -5,7 +5,12 @@ import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.autoscaling.v1.{CrossVersionObjectReference, HorizontalPodAutoscaler, HorizontalPodAutoscalerList, HorizontalPodAutoscalerSpec}
+import io.k8s.api.autoscaling.v1.{
+  CrossVersionObjectReference,
+  HorizontalPodAutoscaler,
+  HorizontalPodAutoscalerList,
+  HorizontalPodAutoscalerSpec
+}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues

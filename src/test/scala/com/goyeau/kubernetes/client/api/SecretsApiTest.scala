@@ -104,7 +104,9 @@ class SecretsApiTest
         )
       _ = status shouldBe Status.Ok
       updatedSecret <- getChecked(namespaceName, secretName)
-      _ = updatedSecret.data shouldBe data.map(_.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap)
+      _ = updatedSecret.data shouldBe data.map(
+        _.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap
+      )
     } yield ()
   }
 }

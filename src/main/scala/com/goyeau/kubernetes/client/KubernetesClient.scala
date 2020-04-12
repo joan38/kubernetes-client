@@ -9,7 +9,9 @@ import com.goyeau.kubernetes.client.util.SslContexts
 
 import scala.concurrent.ExecutionContext
 
-case class KubernetesClient[F[_]: ConcurrentEffect](httpClient: Client[F], config: KubeConfig)(implicit cs: ContextShift[IO]) {
+case class KubernetesClient[F[_]: ConcurrentEffect](httpClient: Client[F], config: KubeConfig)(
+  implicit cs: ContextShift[IO]
+) {
   lazy val namespaces = NamespacesApi(httpClient, config)
   lazy val pods = PodsApi(httpClient, config)
   lazy val jobs = JobsApi(httpClient, config)
@@ -26,10 +28,14 @@ case class KubernetesClient[F[_]: ConcurrentEffect](httpClient: Client[F], confi
 }
 
 object KubernetesClient {
-  def apply[F[_]: ConcurrentEffect](config: KubeConfig)(implicit cs: ContextShift[IO]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: ConcurrentEffect](
+    config: KubeConfig
+  )(implicit cs: ContextShift[IO]): Resource[F, KubernetesClient[F]] =
     BlazeClientBuilder[F](ExecutionContext.global, Option(SslContexts.fromConfig(config))).resource
       .map(httpClient => apply(httpClient, config))
 
-  def apply[F[_]: ConcurrentEffect](config: F[KubeConfig])(implicit cs: ContextShift[IO]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: ConcurrentEffect](
+    config: F[KubeConfig]
+  )(implicit cs: ContextShift[IO]): Resource[F, KubernetesClient[F]] =
     Resource.liftF(config).flatMap(apply(_))
 }
