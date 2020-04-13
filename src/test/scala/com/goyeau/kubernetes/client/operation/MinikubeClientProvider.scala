@@ -8,7 +8,8 @@ import io.chrisdavenport.log4cats.Logger
 import java.io.File
 import org.scalatest.{BeforeAndAfterAll, ParallelTestExecution, Suite}
 
-trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestExecution { this: Suite =>
+trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestExecution {
+  this: Suite =>
 
   implicit def F: ConcurrentEffect[F]
   implicit def timer: Timer[F]

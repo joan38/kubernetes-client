@@ -1,6 +1,7 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.implicits._
+import cats.implicits._
 import cats.effect.{ConcurrentEffect, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
