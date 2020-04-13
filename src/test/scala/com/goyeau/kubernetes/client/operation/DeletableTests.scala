@@ -3,7 +3,6 @@ package com.goyeau.kubernetes.client.operation
 import cats.Applicative
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.scalatest.flatspec.AnyFlatSpec
@@ -29,11 +28,10 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
 
     for {
       namespaceName  <- Applicative[F].pure(resourceName.toLowerCase)
-      deploymentName <- Applicative[F].pure("some-resource")
+      deploymentName <- Applicative[F].pure("delete-resource")
       _              <- createChecked(namespaceName, deploymentName)
-
-      _ <- namespacedApi(namespaceName).delete(deploymentName)
-      _ <- checkEventuallyDeleted(namespaceName, deploymentName)
+      _              <- namespacedApi(namespaceName).delete(deploymentName)
+      _              <- checkEventuallyDeleted(namespaceName, deploymentName)
     } yield ()
   }
 
@@ -47,9 +45,7 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
   it should s"fail on non existing $resourceName" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      _             <- NamespacesApiTest.createChecked(namespaceName)
-
-      status <- namespacedApi(namespaceName).delete("non-existing")
+      status        <- namespacedApi(namespaceName).delete("non-existing")
       _ = status shouldBe Status.NotFound
     } yield ()
   }

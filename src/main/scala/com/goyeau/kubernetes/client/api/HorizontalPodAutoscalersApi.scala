@@ -35,6 +35,7 @@ private[client] case class NamespacedHorizontalPodAutoscalersApi[F[_]](
     with Gettable[F, HorizontalPodAutoscaler]
     with Listable[F, HorizontalPodAutoscalerList]
     with Deletable[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, HorizontalPodAutoscaler] {
   val resourceUri = uri"/apis" / "autoscaling" / "v1" / "namespaces" / namespace / "horizontalpodautoscalers"
 }

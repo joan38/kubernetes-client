@@ -55,7 +55,8 @@ private[client] case class NamespacedPodsApi[F[_]](
     with Proxy[F]
     with Deletable[F]
     with DeletableTerminated[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, Pod] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
   def exec[Result](

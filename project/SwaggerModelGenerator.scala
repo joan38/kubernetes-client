@@ -24,6 +24,9 @@ object SwaggerModelGenerator extends AutoPlugin {
     swaggerFiles.flatMap(processSwaggerFile(_, (Compile / sourceManaged).value, streams.value.log))
   }
 
+  val skipClasses =
+    Set("io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent")
+
   def classNameFilter(className: String): Boolean = {
     val allowedPrefixes = Seq(
       "io.k8s.api.apps.v1",
@@ -42,7 +45,7 @@ object SwaggerModelGenerator extends AutoPlugin {
       "io.k8s.kubernetes.pkg.apis.batch.v1",
       "io.k8s.kubernetes.pkg.apis.networking.v1"
     )
-    allowedPrefixes.exists(className.startsWith)
+    allowedPrefixes.exists(className.startsWith) && !skipClasses.contains(className)
   }
 
   def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger): Seq[File] = {

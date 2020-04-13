@@ -2,6 +2,7 @@ package com.goyeau.kubernetes.client.api
 
 import java.util.Base64
 
+import cats.implicits._
 import cats.effect.{ConcurrentEffect, ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
@@ -14,8 +15,6 @@ import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 class SecretsApiTest
     extends AnyFlatSpec
     with Matchers
@@ -24,13 +23,13 @@ class SecretsApiTest
     with GettableTests[IO, Secret]
     with ListableTests[IO, Secret, SecretList]
     with ReplaceableTests[IO, Secret]
-    with DeletableTests[IO, Secret, SecretList] {
+    with DeletableTests[IO, Secret, SecretList]
+    with WatchableTests[IO, Secret]
+    with ContextProvider {
 
-  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
-  implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                            = classOf[Secret].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                     = classOf[Secret].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.secrets
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -65,13 +64,14 @@ class SecretsApiTest
     } yield secret
 
   "createEncode" should "create a secret" in usingMinikube { implicit client =>
-    createEncodeChecked(resourceName.toLowerCase, "some-secret")
+    val namespaceName = resourceName.toLowerCase + "-create-encode"
+    createEncodeChecked(namespaceName, "some-secret").guarantee(client.namespaces.delete(namespaceName).void)
   }
 
   "createOrUpdateEncode" should "create a secret" in usingMinikube { implicit client =>
-    for {
-      namespaceName <- IO.pure(resourceName.toLowerCase)
-      _             <- NamespacesApiTest.createChecked(namespaceName)
+    val namespaceName = resourceName.toLowerCase + "-create-update-encode"
+    (for {
+      _ <- NamespacesApiTest.createChecked(namespaceName)
 
       secretName = "some-secret"
       status <- client.secrets
@@ -84,14 +84,14 @@ class SecretsApiTest
         )
       _ = status shouldBe Status.Created
       _ <- getChecked(namespaceName, secretName)
-    } yield ()
+    } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
   }
 
   it should "update a secret already created" in usingMinikube { implicit client =>
-    for {
-      namespaceName <- IO.pure(resourceName.toLowerCase)
-      secretName    <- IO.pure("some-secret")
-      secret        <- createEncodeChecked(namespaceName, secretName)
+    val namespaceName = resourceName.toLowerCase + "-update-encode"
+    (for {
+      secretName <- IO.pure("some-secret")
+      secret     <- createEncodeChecked(namespaceName, secretName)
 
       data = Option(Map("test" -> "updated-data"))
       status <- client.secrets
@@ -107,6 +107,12 @@ class SecretsApiTest
       _ = updatedSecret.data shouldBe data.map(
         _.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap
       )
-    } yield ()
+    } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
   }
+
+  override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
+    client.secrets.namespace(namespaceName)
+
+  override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Secret] =
+    client.secrets.namespace(namespaceName)
 }

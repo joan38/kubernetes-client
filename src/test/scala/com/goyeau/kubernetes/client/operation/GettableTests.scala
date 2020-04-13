@@ -3,7 +3,6 @@ package com.goyeau.kubernetes.client.operation
 import cats.Applicative
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.client.UnexpectedStatus
 import org.scalatest.flatspec.AnyFlatSpec
@@ -31,10 +30,9 @@ trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   "get" should s"get a $resourceName" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName  <- Applicative[F].pure("some-resource")
+      resourceName  <- Applicative[F].pure("some-resource-get")
       _             <- createChecked(namespaceName, resourceName)
-
-      _ <- getChecked(namespaceName, resourceName)
+      _             <- getChecked(namespaceName, resourceName)
     } yield ()
   }
 
@@ -46,9 +44,7 @@ trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     usingMinikube { implicit client =>
       for {
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-        _             <- NamespacesApiTest.createChecked(namespaceName)
-
-        _ <- getChecked(namespaceName, "non-existing")
+        _             <- getChecked(namespaceName, "non-existing")
       } yield ()
     }
   }

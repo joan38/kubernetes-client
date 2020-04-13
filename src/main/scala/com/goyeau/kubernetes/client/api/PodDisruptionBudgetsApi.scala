@@ -35,6 +35,7 @@ private[client] case class NamespacedPodDisruptionBudgetApi[F[_]](
     with Gettable[F, PodDisruptionBudget]
     with Listable[F, PodDisruptionBudgetList]
     with Deletable[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, PodDisruptionBudget] {
   val resourceUri = uri"/apis" / "policy" / "v1beta1" / "namespaces" / namespace / "poddisruptionbudgets"
 }

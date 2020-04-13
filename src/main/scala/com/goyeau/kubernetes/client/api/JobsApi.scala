@@ -36,6 +36,7 @@ private[client] case class NamespacedJobsApi[F[_]](
     with Listable[F, JobList]
     with Deletable[F]
     with DeletableTerminated[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, Job] {
   val resourceUri = uri"/apis" / "batch" / "v1" / "namespaces" / namespace / "jobs"
 }

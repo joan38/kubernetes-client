@@ -36,6 +36,7 @@ private[client] case class NamespacedReplicaSetsApi[F[_]](
     with Listable[F, ReplicaSetList]
     with Deletable[F]
     with DeletableTerminated[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, ReplicaSet] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "replicasets"
 }

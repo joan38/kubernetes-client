@@ -12,8 +12,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 class DeploymentsApiTest
     extends AnyFlatSpec
     with Matchers
@@ -23,13 +21,13 @@ class DeploymentsApiTest
     with ListableTests[IO, Deployment, DeploymentList]
     with ReplaceableTests[IO, Deployment]
     with DeletableTests[IO, Deployment, DeploymentList]
-    with DeletableTerminatedTests[IO, Deployment, DeploymentList] {
+    with DeletableTerminatedTests[IO, Deployment, DeploymentList]
+    with WatchableTests[IO, Deployment]
+    with ContextProvider {
 
-  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
-  implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                            = classOf[Deployment].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                     = classOf[Deployment].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.deployments
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -63,4 +61,10 @@ class DeploymentsApiTest
   )
   override def checkUpdated(updatedResource: Deployment) =
     updatedResource.spec.value.strategy shouldBe strategy
+
+  override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
+    client.deployments.namespace(namespaceName)
+
+  override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Deployment] =
+    client.deployments.namespace(namespaceName)
 }

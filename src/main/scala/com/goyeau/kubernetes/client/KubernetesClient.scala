@@ -1,11 +1,10 @@
 package com.goyeau.kubernetes.client
 
-import org.http4s.client.Client
-import org.http4s.client.blaze.BlazeClientBuilder
 import cats.effect._
-import cats.implicits._
 import com.goyeau.kubernetes.client.api._
 import com.goyeau.kubernetes.client.util.SslContexts
+import org.http4s.client.Client
+import org.http4s.client.blaze.BlazeClientBuilder
 
 import scala.concurrent.ExecutionContext
 
