@@ -23,11 +23,11 @@ class ServicesApiTest
     with ReplaceableTests[IO, Service]
     with DeletableTests[IO, Service, ServiceList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[Service].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[Service].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.services
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

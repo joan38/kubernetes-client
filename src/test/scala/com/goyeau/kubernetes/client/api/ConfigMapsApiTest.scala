@@ -23,11 +23,11 @@ class ConfigMapsApiTest
     with ReplaceableTests[IO, ConfigMap]
     with DeletableTests[IO, ConfigMap, ConfigMapList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[ConfigMap].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[ConfigMap].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.configMaps
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

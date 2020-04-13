@@ -6,30 +6,30 @@ import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.apps.v1.{Deployment, DeploymentList}
 import org.http4s.client.Client
-import org.http4s.Uri.uri
+import org.http4s.implicits._
 
 private[client] case class DeploymentsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-  implicit
-  val F: Sync[F],
-  val listDecoder: Decoder[DeploymentList],
-  encoder: Encoder[Deployment],
-  decoder: Decoder[Deployment]
+    implicit
+    val F: Sync[F],
+    val listDecoder: Decoder[DeploymentList],
+    encoder: Encoder[Deployment],
+    decoder: Decoder[Deployment]
 ) extends Listable[F, DeploymentList] {
-  val resourceUri = uri("/apis") / "apps" / "v1" / "deployments"
+  val resourceUri = uri"/apis" / "apps" / "v1" / "deployments"
 
   def namespace(namespace: String) = NamespacedDeploymentsApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedDeploymentsApi[F[_]](
-  httpClient: Client[F],
-  config: KubeConfig,
-  namespace: String
+    httpClient: Client[F],
+    config: KubeConfig,
+    namespace: String
 )(
-  implicit
-  val F: Sync[F],
-  val resourceEncoder: Encoder[Deployment],
-  val resourceDecoder: Decoder[Deployment],
-  val listDecoder: Decoder[DeploymentList]
+    implicit
+    val F: Sync[F],
+    val resourceEncoder: Encoder[Deployment],
+    val resourceDecoder: Decoder[Deployment],
+    val listDecoder: Decoder[DeploymentList]
 ) extends Creatable[F, Deployment]
     with Replaceable[F, Deployment]
     with Gettable[F, Deployment]
@@ -37,5 +37,5 @@ private[client] case class NamespacedDeploymentsApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F] {
-  val resourceUri = uri("/apis") / "apps" / "v1" / "namespaces" / namespace / "deployments"
+  val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
 }

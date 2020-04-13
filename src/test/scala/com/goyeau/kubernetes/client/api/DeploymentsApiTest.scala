@@ -25,11 +25,11 @@ class DeploymentsApiTest
     with DeletableTests[IO, Deployment, DeploymentList]
     with DeletableTerminatedTests[IO, Deployment, DeploymentList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[Deployment].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[Deployment].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.deployments
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

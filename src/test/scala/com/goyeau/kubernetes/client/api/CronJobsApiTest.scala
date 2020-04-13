@@ -26,11 +26,11 @@ class CronJobsApiTest
     with DeletableTests[IO, CronJob, CronJobList]
     with DeletableTerminatedTests[IO, CronJob, CronJobList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[CronJob].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[CronJob].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.cronJobs
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

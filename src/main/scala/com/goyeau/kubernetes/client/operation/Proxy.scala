@@ -15,11 +15,11 @@ private[client] trait Proxy[F[_]] {
   protected def resourceUri: Uri
 
   def proxy(
-    name: String,
-    method: Method,
-    path: Path,
-    contentType: `Content-Type` = `Content-Type`(MediaType.text.plain),
-    data: Option[String] = None
+      name: String,
+      method: Method,
+      path: Path,
+      contentType: `Content-Type` = `Content-Type`(MediaType.text.plain),
+      data: Option[String] = None
   ): F[String] =
     httpClient.expect[String](
       Request(

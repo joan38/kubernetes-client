@@ -9,15 +9,15 @@ import org.http4s.Uri
 import org.http4s.headers.Authorization
 
 case class KubeConfig(
-  server: Uri,
-  authorization: Option[Authorization] = None,
-  caCertData: Option[String] = None,
-  caCertFile: Option[File] = None,
-  clientCertData: Option[String] = None,
-  clientCertFile: Option[File] = None,
-  clientKeyData: Option[String] = None,
-  clientKeyFile: Option[File] = None,
-  clientKeyPass: Option[String] = None
+    server: Uri,
+    authorization: Option[Authorization] = None,
+    caCertData: Option[String] = None,
+    caCertFile: Option[File] = None,
+    clientCertData: Option[String] = None,
+    clientCertFile: Option[File] = None,
+    clientKeyData: Option[String] = None,
+    clientKeyFile: Option[File] = None,
+    clientKeyPass: Option[String] = None
 ) {
   require(caCertData.isEmpty || caCertFile.isEmpty, "caCertData and caCertFile can't be set at the same time")
   require(
