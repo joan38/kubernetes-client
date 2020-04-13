@@ -21,7 +21,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
 
   def listContains(namespaceName: String, resourceNames: Seq[String])(
-    implicit client: KubernetesClient[F]
+      implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
       resourceList <- namespacedApi(namespaceName).list
@@ -29,7 +29,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
     } yield resourceList
 
   def listAllContains(resourceNames: Seq[String])(
-    implicit client: KubernetesClient[F]
+      implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
       resourceList <- api.list
@@ -37,7 +37,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
     } yield resourceList
 
   def listNotContains(namespaceName: String, resourceNames: Seq[String])(
-    implicit client: KubernetesClient[F]
+      implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
       resourceList <- namespacedApi(namespaceName).list
@@ -47,10 +47,10 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   "list" should s"list ${resourceName}s" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName <- Applicative[F].pure("some-resource")
-      _ <- listNotContains(namespaceName, Seq(resourceName))
-      _ <- createChecked(namespaceName, resourceName)
-      _ <- listContains(namespaceName, Seq(resourceName))
+      resourceName  <- Applicative[F].pure("some-resource")
+      _             <- listNotContains(namespaceName, Seq(resourceName))
+      _             <- createChecked(namespaceName, resourceName)
+      _             <- listContains(namespaceName, Seq(resourceName))
     } yield ()
   }
 

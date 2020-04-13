@@ -26,11 +26,11 @@ class SecretsApiTest
     with ReplaceableTests[IO, Secret]
     with DeletableTests[IO, Secret, SecretList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[Secret].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[Secret].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.secrets
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -46,7 +46,7 @@ class SecretsApiTest
   override def checkUpdated(updatedResource: Secret) = updatedResource.data shouldBe data
 
   def createEncodeChecked(namespaceName: String, secretName: String)(
-    implicit client: KubernetesClient[IO]
+      implicit client: KubernetesClient[IO]
   ): IO[Secret] =
     for {
       _ <- NamespacesApiTest.createChecked[IO](namespaceName)
@@ -71,7 +71,7 @@ class SecretsApiTest
   "createOrUpdateEncode" should "create a secret" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      _ <- NamespacesApiTest.createChecked(namespaceName)
+      _             <- NamespacesApiTest.createChecked(namespaceName)
 
       secretName = "some-secret"
       status <- client.secrets
@@ -90,8 +90,8 @@ class SecretsApiTest
   it should "update a secret already created" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      secretName <- IO.pure("some-secret")
-      secret <- createEncodeChecked(namespaceName, secretName)
+      secretName    <- IO.pure("some-secret")
+      secret        <- createEncodeChecked(namespaceName, secretName)
 
       data = Option(Map("test" -> "updated-data"))
       status <- client.secrets

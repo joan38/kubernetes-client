@@ -21,7 +21,7 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import java.io.File
 import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
-import org.http4s.Uri._
+import org.http4s.implicits._
 import org.http4s.headers.Authorization
 import scala.concurrent.ExecutionContext
 import scala.io.Source
@@ -33,7 +33,7 @@ implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 val kubernetesClient =
   KubernetesClient[IO](
     KubeConfig(
-      server = uri("https://k8s.goyeau.com"),
+      server = uri"https://k8s.goyeau.com",
       authorization = Option(Authorization(Token(AuthScheme.Bearer, Source.fromFile("/var/run/secrets/kubernetes.io/serviceaccount/token").mkString))),
       caCertFile = Option(new File("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"))
     )

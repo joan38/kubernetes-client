@@ -19,7 +19,7 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
   def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Deletable[F]
   def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
   def listNotContains(namespaceName: String, resourceNames: Seq[String])(
-    implicit client: KubernetesClient[F]
+      implicit client: KubernetesClient[F]
   ): F[ResourceList]
 
   "delete" should s"delete a $resourceName" in usingMinikube { implicit client =>
@@ -28,9 +28,9 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
         .handleErrorWith(_ => checkEventuallyDeleted(namespaceName, resourceName))
 
     for {
-      namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+      namespaceName  <- Applicative[F].pure(resourceName.toLowerCase)
       deploymentName <- Applicative[F].pure("some-resource")
-      _ <- createChecked(namespaceName, deploymentName)
+      _              <- createChecked(namespaceName, deploymentName)
 
       _ <- namespacedApi(namespaceName).delete(deploymentName)
       _ <- checkEventuallyDeleted(namespaceName, deploymentName)
@@ -47,7 +47,7 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
   it should s"fail on non existing $resourceName" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      _ <- NamespacesApiTest.createChecked(namespaceName)
+      _             <- NamespacesApiTest.createChecked(namespaceName)
 
       status <- namespacedApi(namespaceName).delete("non-existing")
       _ = status shouldBe Status.NotFound

@@ -13,7 +13,8 @@ private[client] object EnrichedStatus {
     else
       for {
         reasonDecoded <- EntityDecoder[F, v1.Status].decode(response, strict = false).value
-        reason <- Sync[F].fromEither(reasonDecoded)
-      } yield
-        response.status.withReason(s"${response.status.reason}${reason.message.map(message => s": $message").mkString}")
+        reason        <- Sync[F].fromEither(reasonDecoded)
+      } yield response.status.withReason(
+        s"${response.status.reason}${reason.message.map(message => s": $message").mkString}"
+      )
 }

@@ -1,7 +1,5 @@
 package com.goyeau.kubernetes.client.api
 
-import java.net.URLEncoder
-
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -21,34 +19,35 @@ import io.circe._
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
+import java.net.URLEncoder
 import org.http4s
 import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
 import org.http4s.client.Client
-import org.http4s.Uri.uri
+import org.http4s.implicits._
 
 private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-  implicit
-  val F: Async[F],
-  val listDecoder: Decoder[PodList],
-  encoder: Encoder[Pod],
-  decoder: Decoder[Pod]
+    implicit
+    val F: Async[F],
+    val listDecoder: Decoder[PodList],
+    encoder: Encoder[Pod],
+    decoder: Decoder[Pod]
 ) extends Listable[F, PodList] {
-  val resourceUri = uri("/api") / "v1" / "pods"
+  val resourceUri = uri"/api" / "v1" / "pods"
 
   def namespace(namespace: String) = NamespacedPodsApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedPodsApi[F[_]](
-  httpClient: Client[F],
-  config: KubeConfig,
-  namespace: String
+    httpClient: Client[F],
+    config: KubeConfig,
+    namespace: String
 )(
-  implicit
-  val F: Async[F],
-  val resourceEncoder: Encoder[Pod],
-  val resourceDecoder: Decoder[Pod],
-  val listDecoder: Decoder[PodList]
+    implicit
+    val F: Async[F],
+    val resourceEncoder: Encoder[Pod],
+    val resourceDecoder: Decoder[Pod],
+    val listDecoder: Decoder[PodList]
 ) extends Creatable[F, Pod]
     with Replaceable[F, Pod]
     with Gettable[F, Pod]
@@ -57,25 +56,25 @@ private[client] case class NamespacedPodsApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F] {
-  val resourceUri = uri("/api") / "v1" / "namespaces" / namespace / "pods"
+  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
   def exec[Result](
-    podName: String,
-    flow: Flow[Either[Status, String], Message, Future[Result]],
-    container: Option[String] = None,
-    command: Seq[String] = Seq.empty,
-    stdin: Boolean = false,
-    stdout: Boolean = true,
-    stderr: Boolean = true,
-    tty: Boolean = false
+      podName: String,
+      flow: Flow[Either[Status, String], Message, Future[Result]],
+      container: Option[String] = None,
+      command: Seq[String] = Seq.empty,
+      stdin: Boolean = false,
+      stdout: Boolean = true,
+      stderr: Boolean = true,
+      tty: Boolean = false
   )(implicit actorSystem: ActorSystem): F[Result] = {
     import actorSystem.dispatcher
 
     F.async { cb =>
       val containerParam = container.fold("")(containerName => s"&container=$containerName")
-      val commandParam = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
-      val params = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
-      val uri = s"${config.server.toString.replaceFirst("http", "ws")}/$resourceUri/$podName/exec?$params"
+      val commandParam   = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
+      val params         = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
+      val uri            = s"${config.server.toString.replaceFirst("http", "ws")}/$resourceUri/$podName/exec?$params"
 
       val mapFlow = BidiFlow.fromFlows(
         Flow.fromFunction[Message, Message](identity),

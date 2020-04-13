@@ -1,5 +1,8 @@
-libraryDependencies ++= Seq(
-  "io.circe" %% "circe-core",
-  "io.circe" %% "circe-generic",
-  "io.circe" %% "circe-parser"
-).map(_ % "0.8.0")
+libraryDependencies ++= {
+  val circeVersion = "0.13.0"
+  Seq(
+    "io.circe" %% "circe-core"    % circeVersion,
+    "io.circe" %% "circe-generic" % circeVersion,
+    "io.circe" %% "circe-parser"  % circeVersion
+  )
+}
