@@ -36,6 +36,7 @@ private[client] case class NamespacedDeploymentsApi[F[_]](
     with Listable[F, DeploymentList]
     with Deletable[F]
     with DeletableTerminated[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, Deployment] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
 }

@@ -3,6 +3,7 @@ package com.goyeau.kubernetes.client.operation
 import cats.Applicative
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
@@ -47,7 +48,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   "list" should s"list ${resourceName}s" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName  <- Applicative[F].pure("some-resource")
+      resourceName  <- Applicative[F].pure("list-resource")
       _             <- listNotContains(namespaceName, Seq(resourceName))
       _             <- createChecked(namespaceName, resourceName)
       _             <- listContains(namespaceName, Seq(resourceName))
@@ -57,12 +58,16 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   it should s"list ${resourceName}s in all namespaces" in usingMinikube { implicit client =>
     for {
       namespaceResourceNames <- Applicative[F].pure(
-        (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i", s"some-${resourceName.toLowerCase}-$i"))
+        (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i", s"list-all-${resourceName.toLowerCase}-$i"))
       )
       _ <- namespaceResourceNames.toList.traverse {
-        case (namespaceName, resourceName) => createChecked(namespaceName, resourceName)
+        case (namespaceName, resourceName) =>
+          NamespacesApiTest.createChecked[F](namespaceName) *> createChecked(namespaceName, resourceName)
       }
       _ <- listAllContains(namespaceResourceNames.map(_._2))
+      _ <- namespaceResourceNames.toList.traverse {
+        case (namespaceName, _) => client.namespaces.delete(namespaceName)
+      }
     } yield ()
   }
 }

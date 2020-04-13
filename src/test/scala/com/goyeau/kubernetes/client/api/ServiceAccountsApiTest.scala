@@ -11,8 +11,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 class ServiceAccountsApiTest
     extends AnyFlatSpec
     with Matchers
@@ -21,13 +19,13 @@ class ServiceAccountsApiTest
     with GettableTests[IO, ServiceAccount]
     with ListableTests[IO, ServiceAccount, ServiceAccountList]
     with ReplaceableTests[IO, ServiceAccount]
-    with DeletableTests[IO, ServiceAccount, ServiceAccountList] {
+    with DeletableTests[IO, ServiceAccount, ServiceAccountList]
+    with WatchableTests[IO, ServiceAccount]
+    with ContextProvider {
 
-  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
-  implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                            = classOf[ServiceAccount].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                     = classOf[ServiceAccount].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.serviceAccounts
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -40,4 +38,10 @@ class ServiceAccountsApiTest
   override def modifyResource(resource: ServiceAccount) =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name), labels = labels)))
   override def checkUpdated(updatedResource: ServiceAccount) = updatedResource.metadata.value.labels shouldBe labels
+
+  override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
+    client.serviceAccounts.namespace(namespaceName)
+
+  override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, ServiceAccount] =
+    client.serviceAccounts.namespace(namespaceName)
 }

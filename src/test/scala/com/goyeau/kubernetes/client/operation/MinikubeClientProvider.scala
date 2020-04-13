@@ -5,10 +5,13 @@ import java.io.File
 import cats.effect._
 import cats.implicits._
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
+import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.chrisdavenport.log4cats.Logger
-import org.scalatest.{BeforeAndAfter, Suite}
+import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatest.ParallelTestExecution
 
-trait MinikubeClientProvider[F[_]] extends BeforeAndAfter { this: Suite =>
+trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestExecution {
+  this: Suite =>
 
   implicit def F: ConcurrentEffect[F]
   implicit def timer: Timer[F]
@@ -20,24 +23,27 @@ trait MinikubeClientProvider[F[_]] extends BeforeAndAfter { this: Suite =>
   }
 
   def resourceName: String
-  private val clean = kubernetesClient
-    .use { client =>
+
+  private val createNamespace = kubernetesClient
+    .use { implicit client =>
       for {
-        namespaceList <- client.namespaces.list
-        namespacesToDelete = namespaceList.items
-          .map(_.metadata.get.name.get)
-          .filter(_.startsWith(resourceName.toLowerCase))
-        _ <- namespacesToDelete.toList.traverse(client.namespaces.deleteTerminated(_))
+        _ <- client.namespaces.deleteTerminated(resourceName.toLowerCase)
+        _ <- NamespacesApiTest.createChecked[F](resourceName.toLowerCase)
       } yield ()
     }
 
-  before {
-    ConcurrentEffect[F].toIO(clean).unsafeRunSync()
-  }
+  private val deleteNamespace = kubernetesClient
+    .use { client =>
+      for {
+        _ <- client.namespaces.delete(resourceName.toLowerCase)
+      } yield ()
+    }
 
-  after {
-    ConcurrentEffect[F].toIO(clean).unsafeRunSync()
-  }
+  override def beforeAll(): Unit =
+    ConcurrentEffect[F].toIO(createNamespace).unsafeRunSync()
+
+  override def afterAll(): Unit =
+    ConcurrentEffect[F].toIO(deleteNamespace).unsafeRunSync()
 
   def usingMinikube[T](body: KubernetesClient[F] => F[T]): T =
     ConcurrentEffect[F].toIO(kubernetesClient.use(body)).unsafeRunSync()

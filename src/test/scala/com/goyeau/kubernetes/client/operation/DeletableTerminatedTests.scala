@@ -3,7 +3,6 @@ package com.goyeau.kubernetes.client.operation
 import cats.Applicative
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.scalatest.flatspec.AnyFlatSpec
@@ -25,8 +24,7 @@ trait DeletableTerminatedTests[F[_], Resource <: { def metadata: Option[ObjectMe
   "deleteTerminated" should s"delete $resourceName and block until fully deleted" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName  <- Applicative[F].pure("some-resource")
-      _             <- createChecked(namespaceName, resourceName)
+      resourceName  <- Applicative[F].pure("delete-terminated-resource")
       _             <- namespacedApi(namespaceName).deleteTerminated(resourceName)
       _             <- listNotContains(namespaceName, Seq(resourceName))
     } yield ()
@@ -42,7 +40,6 @@ trait DeletableTerminatedTests[F[_], Resource <: { def metadata: Option[ObjectMe
   it should s"fail on non existing $resourceName" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      _             <- NamespacesApiTest.createChecked(namespaceName)
       status        <- namespacedApi(namespaceName).deleteTerminated("non-existing")
       _ = status shouldBe Status.NotFound
     } yield ()

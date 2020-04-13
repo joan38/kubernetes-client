@@ -11,8 +11,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 class ServicesApiTest
     extends AnyFlatSpec
     with Matchers
@@ -21,13 +19,13 @@ class ServicesApiTest
     with GettableTests[IO, Service]
     with ListableTests[IO, Service, ServiceList]
     with ReplaceableTests[IO, Service]
-    with DeletableTests[IO, Service, ServiceList] {
+    with DeletableTests[IO, Service, ServiceList]
+    with WatchableTests[IO, Service]
+    with ContextProvider {
 
-  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
-  implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                            = classOf[Service].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                     = classOf[Service].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.services
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -41,4 +39,10 @@ class ServicesApiTest
   override def modifyResource(resource: Service) =
     resource.copy(metadata = resource.metadata.map(_.copy(labels = labels)))
   override def checkUpdated(updatedResource: Service) = updatedResource.metadata.value.labels shouldBe labels
+
+  override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
+    client.services.namespace(namespaceName)
+
+  override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Service] =
+    client.services.namespace(namespaceName)
 }

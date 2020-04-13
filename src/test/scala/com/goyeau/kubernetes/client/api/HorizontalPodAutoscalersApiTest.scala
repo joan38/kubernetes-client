@@ -16,8 +16,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 class HorizontalPodAutoscalersApiTest
     extends AnyFlatSpec
     with Matchers
@@ -26,13 +24,13 @@ class HorizontalPodAutoscalersApiTest
     with GettableTests[IO, HorizontalPodAutoscaler]
     with ListableTests[IO, HorizontalPodAutoscaler, HorizontalPodAutoscalerList]
     with ReplaceableTests[IO, HorizontalPodAutoscaler]
-    with DeletableTests[IO, HorizontalPodAutoscaler, HorizontalPodAutoscalerList] {
+    with DeletableTests[IO, HorizontalPodAutoscaler, HorizontalPodAutoscalerList]
+    with WatchableTests[IO, HorizontalPodAutoscaler]
+    with ContextProvider {
 
-  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
-  implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                            = classOf[HorizontalPodAutoscaler].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                     = classOf[HorizontalPodAutoscaler].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.horizontalPodAutoscalers
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -43,7 +41,7 @@ class HorizontalPodAutoscalersApiTest
     spec =
       Option(HorizontalPodAutoscalerSpec(scaleTargetRef = CrossVersionObjectReference("kind", "name"), maxReplicas = 2))
   )
-  val maxReplicas = 2
+  val maxReplicas = 3
   override def modifyResource(resource: HorizontalPodAutoscaler) =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
@@ -51,4 +49,12 @@ class HorizontalPodAutoscalersApiTest
     )
   override def checkUpdated(updatedResource: HorizontalPodAutoscaler) =
     updatedResource.spec.get.maxReplicas shouldBe maxReplicas
+
+  override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
+    client.horizontalPodAutoscalers.namespace(namespaceName)
+
+  override def watchApi(
+      namespaceName: String
+  )(implicit client: KubernetesClient[IO]): Watchable[IO, HorizontalPodAutoscaler] =
+    client.horizontalPodAutoscalers.namespace(namespaceName)
 }

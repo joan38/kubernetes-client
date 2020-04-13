@@ -35,6 +35,7 @@ private[client] case class NamespacedConfigMapsApi[F[_]](
     with Gettable[F, ConfigMap]
     with Listable[F, ConfigMapList]
     with Deletable[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, ConfigMap] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "configmaps"
 }

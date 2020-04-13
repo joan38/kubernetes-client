@@ -39,7 +39,8 @@ private[client] case class NamespacedSecretsApi[F[_]](
     with Gettable[F, Secret]
     with Listable[F, SecretList]
     with Deletable[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, Secret] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "secrets"
 
   def createEncode(resource: Secret): F[Status] = create(encode(resource))

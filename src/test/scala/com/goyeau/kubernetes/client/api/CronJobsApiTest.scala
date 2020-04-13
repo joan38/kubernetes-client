@@ -13,8 +13,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 class CronJobsApiTest
     extends AnyFlatSpec
     with Matchers
@@ -24,13 +22,13 @@ class CronJobsApiTest
     with ListableTests[IO, CronJob, CronJobList]
     with ReplaceableTests[IO, CronJob]
     with DeletableTests[IO, CronJob, CronJobList]
-    with DeletableTerminatedTests[IO, CronJob, CronJobList] {
+    with DeletableTerminatedTests[IO, CronJob, CronJobList]
+    with WatchableTests[IO, CronJob]
+    with ContextProvider {
 
-  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
-  implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                            = classOf[CronJob].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                     = classOf[CronJob].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.cronJobs
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -67,4 +65,10 @@ class CronJobsApiTest
   )
   override def checkUpdated(updatedResource: CronJob) =
     updatedResource.spec.value.schedule shouldBe schedule
+
+  override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
+    client.cronJobs.namespace(namespaceName)
+
+  override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, CronJob] =
+    client.cronJobs.namespace(namespaceName)
 }
