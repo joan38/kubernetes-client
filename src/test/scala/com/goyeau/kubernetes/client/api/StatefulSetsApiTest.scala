@@ -8,12 +8,14 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.apps.v1._
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.ExecutionContext
 
 class StatefulSetsApiTest
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with OptionValues
     with CreatableTests[IO, StatefulSet]
@@ -26,7 +28,7 @@ class StatefulSetsApiTest
   implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName = classOf[StatefulSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.statefulSets

@@ -11,17 +11,19 @@ import io.k8s.api.core.v1.{Namespace, NamespaceList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.http4s.client.UnexpectedStatus
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.ExecutionContext
 
-class NamespacesApiTest extends FlatSpec with Matchers with OptionValues with MinikubeClientProvider[IO] {
+class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with MinikubeClientProvider[IO] {
   import NamespacesApiTest._
 
   implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName = classOf[Namespace].getSimpleName
 
   "create" should "create a namespace" in usingMinikube { implicit client =>

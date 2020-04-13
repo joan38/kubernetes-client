@@ -10,12 +10,14 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{Secret, SecretList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
+import org.scalatest.OptionValues
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.ExecutionContext
 
 class SecretsApiTest
-    extends FlatSpec
+    extends AnyFlatSpec
     with Matchers
     with OptionValues
     with CreatableTests[IO, Secret]
@@ -27,7 +29,7 @@ class SecretsApiTest
   implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.unsafeCreate[IO]
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName = classOf[Secret].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.secrets
@@ -102,7 +104,9 @@ class SecretsApiTest
         )
       _ = status shouldBe Status.Ok
       updatedSecret <- getChecked(namespaceName, secretName)
-      _ = updatedSecret.data shouldBe data.map(_.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)))
+      _ = updatedSecret.data shouldBe data.map(
+        _.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap
+      )
     } yield ()
   }
 }

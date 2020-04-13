@@ -8,7 +8,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 
 import scala.io.Source
 import io.chrisdavenport.log4cats.Logger
-import io.circe.{Decoder, ObjectEncoder}
+import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto._
 import io.circe.yaml.parser._
 import org.http4s.Uri
@@ -75,20 +75,20 @@ private[client] object Yamls {
       )
 
   implicit lazy val configDecoder: Decoder[Config] = deriveDecoder
-  implicit lazy val configEncoder: ObjectEncoder[Config] = deriveEncoder
+  implicit lazy val configEncoder: Encoder.AsObject[Config] = deriveEncoder
 
   implicit lazy val clusterDecoder: Decoder[Cluster] = deriveDecoder
-  implicit lazy val clusterEncoder: ObjectEncoder[Cluster] = deriveEncoder
+  implicit lazy val clusterEncoder: Encoder.AsObject[Cluster] = deriveEncoder
   implicit lazy val namedClusterDecoder: Decoder[NamedCluster] = deriveDecoder
-  implicit lazy val namedClusterEncoder: ObjectEncoder[NamedCluster] = deriveEncoder
+  implicit lazy val namedClusterEncoder: Encoder.AsObject[NamedCluster] = deriveEncoder
 
   implicit lazy val contextDecoder: Decoder[Context] = deriveDecoder
-  implicit lazy val contextEncoder: ObjectEncoder[Context] = deriveEncoder
+  implicit lazy val contextEncoder: Encoder.AsObject[Context] = deriveEncoder
   implicit lazy val namedContextDecoder: Decoder[NamedContext] = deriveDecoder
-  implicit lazy val namedContextEncoder: ObjectEncoder[NamedContext] = deriveEncoder
+  implicit lazy val namedContextEncoder: Encoder.AsObject[NamedContext] = deriveEncoder
 
   implicit lazy val authInfoDecoder: Decoder[AuthInfo] = deriveDecoder
-  implicit lazy val authInfoEncoder: ObjectEncoder[AuthInfo] = deriveEncoder
+  implicit lazy val authInfoEncoder: Encoder.AsObject[AuthInfo] = deriveEncoder
   implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo] = deriveDecoder
-  implicit lazy val namedAuthInfoEncoder: ObjectEncoder[NamedAuthInfo] = deriveEncoder
+  implicit lazy val namedAuthInfoEncoder: Encoder.AsObject[NamedAuthInfo] = deriveEncoder
 }
