@@ -12,10 +12,10 @@ import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 
 object SslContexts {
 
-  private val TrustStoreSystemProperty = "javax.net.ssl.trustStore"
+  private val TrustStoreSystemProperty         = "javax.net.ssl.trustStore"
   private val TrustStorePasswordSystemProperty = "javax.net.ssl.trustStorePassword"
-  private val KeyStoreSystemProperty = "javax.net.ssl.keyStore"
-  private val KeyStorePasswordSystemProperty = "javax.net.ssl.keyStorePassword"
+  private val KeyStoreSystemProperty           = "javax.net.ssl.keyStore"
+  private val KeyStorePasswordSystemProperty   = "javax.net.ssl.keyStorePassword"
 
   def fromConfig(config: KubeConfig): SSLContext = {
     val sslContext = SSLContext.getInstance("TLS")
@@ -33,7 +33,7 @@ object SslContexts {
     val keyFileStream = config.clientKeyFile.map(new FileInputStream(_))
 
     for {
-      keyStream <- keyDataStream.orElse(keyFileStream)
+      keyStream  <- keyDataStream.orElse(keyFileStream)
       certStream <- certDataStream.orElse(certFileStream)
     } yield {
       Security.addProvider(new BouncyCastleProvider())
@@ -41,7 +41,7 @@ object SslContexts {
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
+      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
 
       defaultKeyStore.setKeyEntry(
         certificate.getSubjectX500Principal.getName,
@@ -74,7 +74,7 @@ object SslContexts {
 
     certDataStream.orElse(certFileStream).foreach { certStream =>
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
+      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
       defaultTrustStore.setCertificateEntry(certificate.getSubjectX500Principal.getName, certificate)
     }
 
@@ -89,7 +89,7 @@ object SslContexts {
     val propertyTrustStoreFile =
       Option(System.getProperty(TrustStoreSystemProperty, "")).filter(_.nonEmpty).map(new File(_))
     val jssecacertsFile = Option(new File(s"$securityDirectory/jssecacerts")).filter(f => f.exists && f.isFile)
-    val cacertsFile = new File(s"$securityDirectory/cacerts")
+    val cacertsFile     = new File(s"$securityDirectory/cacerts")
 
     val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
     keyStore.load(

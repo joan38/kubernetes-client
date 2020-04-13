@@ -25,11 +25,11 @@ class StatefulSetsApiTest
     with DeletableTests[IO, StatefulSet, StatefulSetList]
     with DeletableTerminatedTests[IO, StatefulSet, StatefulSetList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[StatefulSet].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[StatefulSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.statefulSets
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

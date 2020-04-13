@@ -7,21 +7,21 @@ import sbt._
 object SwaggerModelGenerator extends AutoPlugin {
 
   object autoImport extends scala.AnyRef {
-    lazy val swaggerModel = taskKey[Unit]("Generate Scala case class for the given Swagger model")
+    lazy val swaggerModel  = taskKey[Unit]("Generate Scala case class for the given Swagger model")
     lazy val swaggerSource = settingKey[File]("Swagger resource files")
   }
   import autoImport._
 
   override val projectSettings = Seq(
     swaggerModel := swaggerModelTask.value,
-    sourceGenerators in Compile += swaggerModelTask.taskValue,
-    swaggerSource in Compile := (sourceDirectory in Compile).value / "swagger"
+    Compile / sourceGenerators += swaggerModelTask.taskValue,
+    Compile / swaggerSource := (Compile / sourceDirectory).value / "swagger"
   )
 
   lazy val swaggerModelTask = Def.task {
     val swaggerFiles =
-      Option((swaggerSource in Compile).value.listFiles(FileFilter.globFilter("*.json"))).toSeq.flatten
-    swaggerFiles.flatMap(processSwaggerFile(_, (sourceManaged in Compile).value, streams.value.log))
+      Option((Compile / swaggerSource).value.listFiles(FileFilter.globFilter("*.json"))).toSeq.flatten
+    swaggerFiles.flatMap(processSwaggerFile(_, (Compile / sourceManaged).value, streams.value.log))
   }
 
   def classNameFilter(className: String): Boolean = {
@@ -45,10 +45,10 @@ object SwaggerModelGenerator extends AutoPlugin {
     allowedPrefixes.exists(className.startsWith)
   }
 
-  def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger) = {
+  def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger): Seq[File] = {
     val json = parse(IO.read(swaggerFile)).fold(throw _, identity)
     for {
-      definitionsJson <- json.hcursor.downField("definitions").focus.toSeq
+      definitionsJson   <- json.hcursor.downField("definitions").focus.toSeq
       definitionsObject <- definitionsJson.asObject.toSeq
 
       (fullClassName, definition) <- definitionsObject.toMap
@@ -56,17 +56,17 @@ object SwaggerModelGenerator extends AutoPlugin {
     } yield generateDefinition(fullClassName, definition, outputDir, log)
   }
 
-  def generateDefinition(fullClassName: String, definitionJson: Json, outputDir: File, log: Logger) = {
-    val split = fullClassName.split("\\.")
+  def generateDefinition(fullClassName: String, definitionJson: Json, outputDir: File, log: Logger): File = {
+    val split       = fullClassName.split("\\.")
     val packageName = sanitizeClassPath(split.init.mkString("."))
-    val className = split.last
-    val file = outputDir / sanitizeClassPath(split.init.mkString("/")) / s"$className.scala"
+    val className   = split.last
+    val file        = outputDir / sanitizeClassPath(split.init.mkString("/")) / s"$className.scala"
 
     val generatedClass = definitionJson.as[Definition].fold(throw _, identity) match {
       case Definition(desc, required, properties, None) =>
         val description = generateDescription(desc)
-        val attributes = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
-        val caseClass = s"""import io.circe._
+        val attributes  = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
+        val caseClass   = s"""import io.circe._
                            |import io.circe.generic.semiauto._
                            |
                            |case class $className(
@@ -99,7 +99,7 @@ object SwaggerModelGenerator extends AutoPlugin {
     file
   }
 
-  def generateAttributes(properties: Iterable[(String, Property)], required: Seq[String]) =
+  def generateAttributes(properties: Iterable[(String, Property)], required: Seq[String]): String =
     properties.toSeq
       .sortBy {
         case (name, _) =>
@@ -117,7 +117,7 @@ object SwaggerModelGenerator extends AutoPlugin {
       }
       .mkString(",\n")
 
-  def generateDescription(description: Option[String]) =
+  def generateDescription(description: Option[String]): String =
     description.fold("")(d => s"/** ${d.replace("*/", "*&#47;").replace("/*", "&#47;*")} */\n")
 
   def generateType(property: Property): String =

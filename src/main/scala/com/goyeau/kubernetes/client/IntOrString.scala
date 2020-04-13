@@ -4,7 +4,7 @@ import io.circe.{Decoder, Encoder, Json}
 import cats.implicits._
 
 trait IntOrString
-case class IntValue(value: Int) extends IntOrString
+case class IntValue(value: Int)       extends IntOrString
 case class StringValue(value: String) extends IntOrString
 
 object IntOrString {
@@ -14,7 +14,7 @@ object IntOrString {
   }
 
   implicit val decode: Decoder[IntOrString] = cursor => {
-    val decodeInt = cursor.as[Int].map(IntValue)
+    val decodeInt    = cursor.as[Int].map(IntValue)
     val decodeString = cursor.as[String].map(StringValue)
     decodeInt.leftFlatMap(_ => decodeString)
   }

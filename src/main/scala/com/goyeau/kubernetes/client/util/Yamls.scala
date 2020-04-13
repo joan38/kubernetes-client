@@ -14,18 +14,18 @@ import io.circe.yaml.parser._
 import org.http4s.Uri
 
 case class Config(
-  apiVersion: String,
-  clusters: Seq[NamedCluster],
-  contexts: Seq[NamedContext],
-  `current-context`: String,
-  users: Seq[NamedAuthInfo]
+    apiVersion: String,
+    clusters: Seq[NamedCluster],
+    contexts: Seq[NamedContext],
+    `current-context`: String,
+    users: Seq[NamedAuthInfo]
 )
 
 case class NamedCluster(name: String, cluster: Cluster)
 case class Cluster(
-  server: String,
-  `certificate-authority`: Option[String] = None,
-  `certificate-authority-data`: Option[String] = None
+    server: String,
+    `certificate-authority`: Option[String] = None,
+    `certificate-authority-data`: Option[String] = None
 )
 
 case class NamedContext(name: String, context: Context)
@@ -33,10 +33,10 @@ case class Context(cluster: String, user: String, namespace: Option[String] = No
 
 case class NamedAuthInfo(name: String, user: AuthInfo)
 case class AuthInfo(
-  `client-certificate`: Option[String] = None,
-  `client-certificate-data`: Option[String] = None,
-  `client-key`: Option[String] = None,
-  `client-key-data`: Option[String] = None
+    `client-certificate`: Option[String] = None,
+    `client-certificate-data`: Option[String] = None,
+    `client-key`: Option[String] = None,
+    `client-key-data`: Option[String] = None
 )
 
 private[client] object Yamls {
@@ -44,7 +44,7 @@ private[client] object Yamls {
   def fromKubeConfigFile[F[_]: Sync: Logger](kubeconfig: File, contextMaybe: Option[String]): F[KubeConfig] =
     for {
       configJson <- Sync[F].fromEither(parse(Source.fromFile(kubeconfig).mkString))
-      config <- Sync[F].fromEither(configJson.as[Config])
+      config     <- Sync[F].fromEither(configJson.as[Config])
       contextName = contextMaybe.getOrElse(config.`current-context`)
       namedContext <- config.contexts
         .find(_.name == contextName)
@@ -63,32 +63,31 @@ private[client] object Yamls {
       user = namedAuthInfo.user
 
       server <- Sync[F].fromEither(Uri.fromString(cluster.server))
-    } yield
-      KubeConfig(
-        server = server,
-        caCertData = cluster.`certificate-authority-data`,
-        caCertFile = cluster.`certificate-authority`.map(new File(_)),
-        clientCertData = user.`client-certificate-data`,
-        clientCertFile = user.`client-certificate`.map(new File(_)),
-        clientKeyData = user.`client-key-data`,
-        clientKeyFile = user.`client-key`.map(new File(_))
-      )
+    } yield KubeConfig(
+      server = server,
+      caCertData = cluster.`certificate-authority-data`,
+      caCertFile = cluster.`certificate-authority`.map(new File(_)),
+      clientCertData = user.`client-certificate-data`,
+      clientCertFile = user.`client-certificate`.map(new File(_)),
+      clientKeyData = user.`client-key-data`,
+      clientKeyFile = user.`client-key`.map(new File(_))
+    )
 
-  implicit lazy val configDecoder: Decoder[Config] = deriveDecoder
+  implicit lazy val configDecoder: Decoder[Config]          = deriveDecoder
   implicit lazy val configEncoder: Encoder.AsObject[Config] = deriveEncoder
 
-  implicit lazy val clusterDecoder: Decoder[Cluster] = deriveDecoder
-  implicit lazy val clusterEncoder: Encoder.AsObject[Cluster] = deriveEncoder
-  implicit lazy val namedClusterDecoder: Decoder[NamedCluster] = deriveDecoder
+  implicit lazy val clusterDecoder: Decoder[Cluster]                    = deriveDecoder
+  implicit lazy val clusterEncoder: Encoder.AsObject[Cluster]           = deriveEncoder
+  implicit lazy val namedClusterDecoder: Decoder[NamedCluster]          = deriveDecoder
   implicit lazy val namedClusterEncoder: Encoder.AsObject[NamedCluster] = deriveEncoder
 
-  implicit lazy val contextDecoder: Decoder[Context] = deriveDecoder
-  implicit lazy val contextEncoder: Encoder.AsObject[Context] = deriveEncoder
-  implicit lazy val namedContextDecoder: Decoder[NamedContext] = deriveDecoder
+  implicit lazy val contextDecoder: Decoder[Context]                    = deriveDecoder
+  implicit lazy val contextEncoder: Encoder.AsObject[Context]           = deriveEncoder
+  implicit lazy val namedContextDecoder: Decoder[NamedContext]          = deriveDecoder
   implicit lazy val namedContextEncoder: Encoder.AsObject[NamedContext] = deriveEncoder
 
-  implicit lazy val authInfoDecoder: Decoder[AuthInfo] = deriveDecoder
-  implicit lazy val authInfoEncoder: Encoder.AsObject[AuthInfo] = deriveEncoder
-  implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo] = deriveDecoder
+  implicit lazy val authInfoDecoder: Decoder[AuthInfo]                    = deriveDecoder
+  implicit lazy val authInfoEncoder: Encoder.AsObject[AuthInfo]           = deriveEncoder
+  implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo]          = deriveDecoder
   implicit lazy val namedAuthInfoEncoder: Encoder.AsObject[NamedAuthInfo] = deriveEncoder
 }

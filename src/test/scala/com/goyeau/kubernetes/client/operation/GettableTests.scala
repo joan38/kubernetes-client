@@ -31,24 +31,22 @@ trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   "get" should s"get a $resourceName" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName <- Applicative[F].pure("some-resource")
-      _ <- createChecked(namespaceName, resourceName)
+      resourceName  <- Applicative[F].pure("some-resource")
+      _             <- createChecked(namespaceName, resourceName)
 
       _ <- getChecked(namespaceName, resourceName)
     } yield ()
   }
 
   it should "fail on non existing namespace" in intercept[UnexpectedStatus] {
-    usingMinikube { implicit client =>
-      getChecked("non-existing", "non-existing")
-    }
+    usingMinikube(implicit client => getChecked("non-existing", "non-existing"))
   }
 
   it should s"fail on non existing $resourceName" in intercept[UnexpectedStatus] {
     usingMinikube { implicit client =>
       for {
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-        _ <- NamespacesApiTest.createChecked(namespaceName)
+        _             <- NamespacesApiTest.createChecked(namespaceName)
 
         _ <- getChecked(namespaceName, "non-existing")
       } yield ()

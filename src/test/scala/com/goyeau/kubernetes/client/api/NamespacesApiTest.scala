@@ -20,11 +20,11 @@ import scala.concurrent.ExecutionContext
 class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with MinikubeClientProvider[IO] {
   import NamespacesApiTest._
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[Namespace].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[Namespace].getSimpleName
 
   "create" should "create a namespace" in usingMinikube { implicit client =>
     createChecked[IO](resourceName.toLowerCase)
@@ -33,7 +33,7 @@ class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with
   "createOrUpdate" should "create a namespace" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      status <- client.namespaces.createOrUpdate(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
+      status        <- client.namespaces.createOrUpdate(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
       _ = status shouldBe Status.Created
       _ <- getChecked(namespaceName)
     } yield ()
@@ -42,7 +42,7 @@ class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with
   it should "update a namespace already created" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      namespace <- createChecked(namespaceName)
+      namespace     <- createChecked(namespaceName)
 
       labels = Option(Map("some-label" -> "some-value"))
       status <- client.namespaces.createOrUpdate(
@@ -57,23 +57,21 @@ class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with
   "list" should "list namespaces" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      _ <- createChecked(namespaceName)
-      _ <- listChecked(Seq(namespaceName))
+      _             <- createChecked(namespaceName)
+      _             <- listChecked(Seq(namespaceName))
     } yield ()
   }
 
   "get" should "get a namespace" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      _ <- createChecked(namespaceName)
-      _ <- getChecked(namespaceName)
+      _             <- createChecked(namespaceName)
+      _             <- getChecked(namespaceName)
     } yield ()
   }
 
   it should "fail on non existing namespace" in intercept[UnexpectedStatus] {
-    usingMinikube { implicit client =>
-      getChecked[IO]("non-existing")
-    }
+    usingMinikube(implicit client => getChecked[IO]("non-existing"))
   }
 
   "delete" should "delete a namespace" in usingMinikube { implicit client =>
@@ -86,9 +84,9 @@ class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with
 
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      _ <- createChecked(namespaceName)
-      _ <- client.namespaces.delete(namespaceName)
-      _ <- checkEventuallyDeleted(namespaceName)
+      _             <- createChecked(namespaceName)
+      _             <- client.namespaces.delete(namespaceName)
+      _             <- checkEventuallyDeleted(namespaceName)
     } yield ()
   }
 
@@ -102,9 +100,9 @@ class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with
   "deleteTerminated" should "delete namespace and block until fully deleted" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      _ <- createChecked(namespaceName)
-      _ <- client.namespaces.deleteTerminated(namespaceName)
-      namespaces <- client.namespaces.list
+      _             <- createChecked(namespaceName)
+      _             <- client.namespaces.deleteTerminated(namespaceName)
+      namespaces    <- client.namespaces.list
       _ = namespaces.items.map(_.metadata.value.name.value) should not contain namespaceName
     } yield ()
   }
@@ -119,7 +117,7 @@ class NamespacesApiTest extends AnyFlatSpec with Matchers with OptionValues with
   "replace" should "replace a namespace" in usingMinikube { implicit client =>
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase)
-      _ <- createChecked(namespaceName)
+      _             <- createChecked(namespaceName)
       labels = Option(Map("some-label" -> "some-value"))
       status <- client.namespaces.replace(
         Namespace(
@@ -146,7 +144,7 @@ object NamespacesApiTest extends Matchers with OptionValues {
     def checkDefaultServiceAccountEventuallyCreated(namespaceName: String): F[Unit] = {
       for {
         serviceAccountName <- Applicative[F].pure("default")
-        serviceAccount <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
+        serviceAccount     <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
         _ = serviceAccount.metadata.get.name.get shouldBe serviceAccountName
         _ = serviceAccount.secrets.toSeq.flatten should not be empty
       } yield ()
@@ -156,7 +154,7 @@ object NamespacesApiTest extends Matchers with OptionValues {
       status <- client.namespaces.create(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
       _ = status shouldBe Status.Created
       namespace <- getChecked(namespaceName)
-      _ <- checkDefaultServiceAccountEventuallyCreated(namespaceName)
+      _         <- checkDefaultServiceAccountEventuallyCreated(namespaceName)
     } yield namespace
   }
 

@@ -28,11 +28,11 @@ class HorizontalPodAutoscalersApiTest
     with ReplaceableTests[IO, HorizontalPodAutoscaler]
     with DeletableTests[IO, HorizontalPodAutoscaler, HorizontalPodAutoscalerList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[HorizontalPodAutoscaler].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[HorizontalPodAutoscaler].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.horizontalPodAutoscalers
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

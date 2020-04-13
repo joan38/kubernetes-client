@@ -25,11 +25,11 @@ class ReplicaSetsApiTest
     with DeletableTests[IO, ReplicaSet, ReplicaSetList]
     with DeletableTerminatedTests[IO, ReplicaSet, ReplicaSetList] {
 
-  implicit lazy val timer: Timer[IO] = IO.timer(ExecutionContext.global)
+  implicit lazy val timer: Timer[IO]               = IO.timer(ExecutionContext.global)
   implicit lazy val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName = classOf[ReplicaSet].getSimpleName
+  implicit lazy val F: ConcurrentEffect[IO]        = IO.ioConcurrentEffect
+  implicit lazy val logger: Logger[IO]             = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                            = classOf[ReplicaSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.replicaSets
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

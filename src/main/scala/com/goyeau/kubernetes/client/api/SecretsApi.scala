@@ -9,37 +9,38 @@ import io.circe._
 import io.k8s.api.core.v1.{Secret, SecretList}
 import org.http4s.Status
 import org.http4s.client.Client
-import org.http4s.Uri.uri
+import org.http4s.implicits._
+import scala.collection.compat._
 
 private[client] case class SecretsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-  implicit
-  val F: Sync[F],
-  val listDecoder: Decoder[SecretList],
-  encoder: Encoder[Secret],
-  decoder: Decoder[Secret]
+    implicit
+    val F: Sync[F],
+    val listDecoder: Decoder[SecretList],
+    encoder: Encoder[Secret],
+    decoder: Decoder[Secret]
 ) extends Listable[F, SecretList] {
-  val resourceUri = uri("/api") / "v1" / "secrets"
+  val resourceUri = uri"/api" / "v1" / "secrets"
 
   def namespace(namespace: String) = NamespacedSecretsApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedSecretsApi[F[_]](
-  httpClient: Client[F],
-  config: KubeConfig,
-  namespace: String
+    httpClient: Client[F],
+    config: KubeConfig,
+    namespace: String
 )(
-  implicit
-  val F: Sync[F],
-  val resourceEncoder: Encoder[Secret],
-  val resourceDecoder: Decoder[Secret],
-  val listDecoder: Decoder[SecretList]
+    implicit
+    val F: Sync[F],
+    val resourceEncoder: Encoder[Secret],
+    val resourceDecoder: Decoder[Secret],
+    val listDecoder: Decoder[SecretList]
 ) extends Creatable[F, Secret]
     with Replaceable[F, Secret]
     with Gettable[F, Secret]
     with Listable[F, SecretList]
     with Deletable[F]
     with GroupDeletable[F] {
-  val resourceUri = uri("/api") / "v1" / "namespaces" / namespace / "secrets"
+  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "secrets"
 
   def createEncode(resource: Secret): F[Status] = create(encode(resource))
 
