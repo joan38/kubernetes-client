@@ -14,6 +14,7 @@ import org.http4s.client.UnexpectedStatus
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.concurrent.duration._
 
 class NamespacesApiTest
@@ -147,7 +148,7 @@ object NamespacesApiTest extends Matchers with OptionValues {
 
   def createChecked[F[_]: Sync](
       namespaceName: String
-  )(implicit client: KubernetesClient[F], T: Timer[F]): F[Namespace] = {
+  )(implicit client: KubernetesClient[F], timer: Timer[F]): F[Namespace] = {
     def checkDefaultServiceAccountEventuallyCreated(namespaceName: String): F[Unit] = {
       for {
         serviceAccountName <- Applicative[F].pure("default")
@@ -155,7 +156,7 @@ object NamespacesApiTest extends Matchers with OptionValues {
         _ = serviceAccount.metadata.get.name.get shouldBe serviceAccountName
         _ = serviceAccount.secrets.toSeq.flatten should not be empty
       } yield ()
-    }.handleErrorWith(_ => T.sleep(500.millis) *> checkDefaultServiceAccountEventuallyCreated(namespaceName))
+    }.handleErrorWith(_ => timer.sleep(500.millis) *> checkDefaultServiceAccountEventuallyCreated(namespaceName))
 
     for {
       status <- client.namespaces.create(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))

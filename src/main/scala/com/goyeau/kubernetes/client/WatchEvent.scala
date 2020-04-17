@@ -13,7 +13,7 @@ object EventType {
   case object MODIFIED extends EventType
   case object ERROR    extends EventType
 
-  implicit val encodeEventType: Encoder[EventType] = Encoder.instance {
+  implicit val encodeEventType: Encoder[EventType] = {
     case ADDED    => "ADDED".asJson
     case DELETED  => "DELETED".asJson
     case MODIFIED => "MODIFIED".asJson

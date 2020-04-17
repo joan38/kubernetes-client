@@ -5,9 +5,9 @@ import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
-import org.scalatest.{Assertion, OptionValues}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{Assertion, OptionValues}
 
 trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     extends AnyFlatSpec
@@ -31,7 +31,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     } yield resource
 
   "create" should s"create a $resourceName" in usingMinikube { implicit client =>
-    createChecked(resourceName.toLowerCase, "create--resource")
+    createChecked(resourceName.toLowerCase, "create-resource")
   }
 
   "createOrUpdate" should s"create a $resourceName" in usingMinikube { implicit client =>
@@ -49,8 +49,8 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
       resourceName  <- Applicative[F].pure("update-resource")
       _             <- createChecked(namespaceName, resourceName)
-      r             <- getChecked(namespaceName, resourceName)
-      status        <- namespacedApi(namespaceName).createOrUpdate(modifyResource(r))
+      resource      <- getChecked(namespaceName, resourceName)
+      status        <- namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
       _ = status shouldBe Status.Ok
       updatedResource <- getChecked(namespaceName, resourceName)
       _ = checkUpdated(updatedResource)
