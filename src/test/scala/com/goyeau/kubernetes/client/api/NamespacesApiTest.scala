@@ -15,6 +15,7 @@ import org.http4s.client.UnexpectedStatus
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.concurrent.duration._
 
 class NamespacesApiTest

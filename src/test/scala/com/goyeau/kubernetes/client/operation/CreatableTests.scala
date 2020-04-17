@@ -31,7 +31,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     } yield resource
 
   "create" should s"create a $resourceName" in usingMinikube { implicit client =>
-    createChecked(resourceName.toLowerCase, "create--resource")
+    createChecked(resourceName.toLowerCase, "create-resource")
   }
 
   "createOrUpdate" should s"create a $resourceName" in usingMinikube { implicit client =>
