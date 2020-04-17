@@ -4,11 +4,10 @@ import java.io.File
 
 import cats.effect._
 import cats.implicits._
-import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
+import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
 import io.chrisdavenport.log4cats.Logger
-import org.scalatest.{BeforeAndAfterAll, Suite}
-import org.scalatest.ParallelTestExecution
+import org.scalatest.{BeforeAndAfterAll, ParallelTestExecution, Suite}
 
 trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestExecution {
   this: Suite =>
@@ -18,7 +17,10 @@ trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestEx
   implicit def logger: Logger[F]
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
-    val kubeConfig = KubeConfig[F](new File(s"${System.getProperty("user.home")}/.kube/config"), "minikube")
+    val kubeConfig = KubeConfig[F](
+      new File(s"${System.getProperty("user.home")}/.kube/config"),
+      sys.env.getOrElse("KUBE_CONTEXT_NAME", "minikube")
+    )
     KubernetesClient(kubeConfig)
   }
 
