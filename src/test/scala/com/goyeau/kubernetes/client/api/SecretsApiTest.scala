@@ -1,19 +1,19 @@
 package com.goyeau.kubernetes.client.api
 
-import java.util.Base64
-
 import cats.implicits._
-import cats.effect.{ConcurrentEffect, ContextShift, IO, Timer}
+import cats.effect.{ConcurrentEffect, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{Secret, SecretList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+import java.util.Base64
 import org.http4s.Status
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import scala.collection.compat._
 
 class SecretsApiTest
     extends AnyFlatSpec

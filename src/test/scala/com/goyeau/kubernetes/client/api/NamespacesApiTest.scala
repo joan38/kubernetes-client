@@ -1,9 +1,10 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.Applicative
-import cats.effect.{IO, _}
+import cats.effect.{ConcurrentEffect, IO, Sync, Timer}
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.Utils._
 import com.goyeau.kubernetes.client.operation.MinikubeClientProvider
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
@@ -14,8 +15,6 @@ import org.http4s.client.UnexpectedStatus
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.concurrent.duration._
 
 class NamespacesApiTest
     extends AnyFlatSpec
@@ -81,18 +80,14 @@ class NamespacesApiTest
   }
 
   "delete" should "delete a namespace" in usingMinikube { implicit client =>
-    def checkEventuallyDeleted(namespaceName: String): IO[Unit] = {
-      for {
-        namespaces <- client.namespaces.list
-        _ = namespaces.items.map(_.metadata.get.name.get) should not contain namespaceName
-      } yield ()
-    }.handleErrorWith(_ => timer.sleep(500.millis) *> checkEventuallyDeleted(namespaceName))
-
     for {
       namespaceName <- IO.pure(resourceName.toLowerCase + "-delete")
       _             <- createChecked(namespaceName)
       _             <- client.namespaces.delete(namespaceName)
-      _             <- checkEventuallyDeleted(namespaceName)
+      _ <- retry(for {
+        namespaces <- client.namespaces.list
+        _ = namespaces.items.map(_.metadata.get.name.get) should not contain namespaceName
+      } yield ())
     } yield ()
   }
 
@@ -148,23 +143,18 @@ object NamespacesApiTest extends Matchers with OptionValues {
 
   def createChecked[F[_]: Sync](
       namespaceName: String
-  )(implicit client: KubernetesClient[F], timer: Timer[F]): F[Namespace] = {
-    def checkDefaultServiceAccountEventuallyCreated(namespaceName: String): F[Unit] = {
-      for {
-        serviceAccountName <- Applicative[F].pure("default")
-        serviceAccount     <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
-        _ = serviceAccount.metadata.get.name.get shouldBe serviceAccountName
-        _ = serviceAccount.secrets.toSeq.flatten should not be empty
-      } yield ()
-    }.handleErrorWith(_ => timer.sleep(500.millis) *> checkDefaultServiceAccountEventuallyCreated(namespaceName))
-
+  )(implicit client: KubernetesClient[F], timer: Timer[F]): F[Namespace] =
     for {
       status <- client.namespaces.create(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
       _ = status shouldBe Status.Created
-      namespace <- getChecked(namespaceName)
-      _         <- checkDefaultServiceAccountEventuallyCreated(namespaceName)
+      namespace          <- getChecked(namespaceName)
+      serviceAccountName <- Applicative[F].pure("default")
+      _ <- retry(for {
+        serviceAccount <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
+        _ = serviceAccount.metadata.get.name.get shouldBe serviceAccountName
+        _ = serviceAccount.secrets.toSeq.flatten should not be empty
+      } yield ())
     } yield namespace
-  }
 
   def listChecked[F[_]: Sync](namespaceNames: Seq[String])(implicit client: KubernetesClient[F]): F[NamespaceList] =
     for {

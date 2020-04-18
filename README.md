@@ -138,13 +138,13 @@ kubernetesClient.use { client =>
 ## Related projects
 
 * [Skuber](https://github.com/doriordan/skuber)
-* [Kubernetes Client for Java](https://github.com/fabric8io/kubernetes-client)
+* [Kubernetes Client for Java](https://github.com/kubernetes-client/java)
 
 
 ## Why Kubernetes Client for Scala?
 
 You might wonder why using this library instead of Skuber for example? Kubernetes Client is a pure functional based on
-Cats and Http4s.
-Another benefit of Kubernetes Client is that it has been designed so that we can just create all the payload case
-classes by just ingesting the swagger api provided by Kubernetes' main repo, just like Kubernetes Client for Java is
-doing. So we will always be up to date with the latest Kubernetes API.
+Cats and Http4s.  
+Another benefit of Kubernetes Client is that (like the [Kubernetes Client for Java](https://github.com/kubernetes-client/java/#update-the-generated-code))
+it is generating all the payload case classes by just ingesting the swagger api provided by Kubernetes' main repo. That
+means this project will always remain up to date with the latest Kubernetes API.

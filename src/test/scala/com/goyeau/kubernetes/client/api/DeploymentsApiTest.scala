@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{ConcurrentEffect, ContextShift, IO, Timer}
+import cats.effect.{ConcurrentEffect, IO}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.{IntValue, KubernetesClient, StringValue}
 import io.chrisdavenport.log4cats.Logger
