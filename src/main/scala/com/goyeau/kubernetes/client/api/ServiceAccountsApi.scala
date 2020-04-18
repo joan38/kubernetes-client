@@ -35,6 +35,7 @@ private[client] case class NamespacedServiceAccountsApi[F[_]](
     with Gettable[F, ServiceAccount]
     with Listable[F, ServiceAccountList]
     with Deletable[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, ServiceAccount] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "serviceaccounts"
 }

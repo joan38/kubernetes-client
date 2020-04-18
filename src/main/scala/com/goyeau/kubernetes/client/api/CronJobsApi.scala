@@ -36,6 +36,7 @@ private[client] case class NamespacedCronJobsApi[F[_]](
     with Listable[F, CronJobList]
     with Deletable[F]
     with DeletableTerminated[F]
-    with GroupDeletable[F] {
+    with GroupDeletable[F]
+    with Watchable[F, CronJob] {
   val resourceUri = uri"/apis" / "batch" / "v1beta1" / "namespaces" / namespace / "cronjobs"
 }

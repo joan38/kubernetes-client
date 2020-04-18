@@ -19,6 +19,7 @@ private[client] case class NamespacesApi[F[_]](httpClient: Client[F], config: Ku
     with Gettable[F, Namespace]
     with Listable[F, NamespaceList]
     with Deletable[F]
-    with DeletableTerminated[F] {
+    with DeletableTerminated[F]
+    with Watchable[F, Namespace] {
   protected val resourceUri = uri"/api" / "v1" / "namespaces"
 }
