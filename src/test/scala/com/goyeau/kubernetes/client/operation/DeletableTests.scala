@@ -3,6 +3,7 @@ package com.goyeau.kubernetes.client.operation
 import cats.Applicative
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.Utils._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.scalatest.flatspec.AnyFlatSpec
@@ -22,16 +23,12 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
   ): F[ResourceList]
 
   "delete" should s"delete a $resourceName" in usingMinikube { implicit client =>
-    def checkEventuallyDeleted(namespaceName: String, resourceName: String): F[ResourceList] =
-      listNotContains(namespaceName, Seq(resourceName))
-        .handleErrorWith(_ => checkEventuallyDeleted(namespaceName, resourceName))
-
     for {
       namespaceName  <- Applicative[F].pure(resourceName.toLowerCase)
       deploymentName <- Applicative[F].pure("delete-resource")
       _              <- createChecked(namespaceName, deploymentName)
       _              <- namespacedApi(namespaceName).delete(deploymentName)
-      _              <- checkEventuallyDeleted(namespaceName, deploymentName)
+      _              <- retry(listNotContains(namespaceName, Seq(deploymentName)))
     } yield ()
   }
 

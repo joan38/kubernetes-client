@@ -7,12 +7,48 @@ on:
   pull_request:
 
 jobs:
-  check:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup SBT
+        uses: olafurpg/setup-scala@v7
+      - name: Style checks
+        run: sbt styleCheck
+
+  integration-kubernetes-v1-17:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v7
-      - name: Style checks
-        run: sbt styleCheck
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup SBT
+        uses: olafurpg/setup-scala@v7
+      - name: Setup Minikube and start Kubernetes v1.17.5
+        uses: manusa/actions-setup-minikube@v1.0.1
+        with:
+          minikube version: v1.9.2
+          kubernetes version: v1.17.5
+          github token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test against Kubernetes v1.17.5
+        run: sbt +test
+
+  integration-kubernetes-v1-16:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup SBT
+        uses: olafurpg/setup-scala@v7
+      - name: Setup Minikube and start Kubernetes v1.16.8
+        uses: manusa/actions-setup-minikube@v1.0.1
+        with:
+          minikube version: v1.9.2
+          kubernetes version: v1.16.8
+          github token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test against Kubernetes v1.16.8
+        run: sbt +test

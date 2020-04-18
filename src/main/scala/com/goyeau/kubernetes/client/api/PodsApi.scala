@@ -110,8 +110,7 @@ private[client] case class NamespacedPodsApi[F[_]](
         upgrade <- upgradeResponse
         response = upgrade.response
         entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
-        _ = if (response.status.isFailure)
-          throw KubernetesException(response.status.intValue, uri, entity.utf8String)
+        _ = if (response.status.isFailure) throw KubernetesException(response.status.intValue, uri, entity.utf8String)
         result <- eventualResult
       } yield result
 
