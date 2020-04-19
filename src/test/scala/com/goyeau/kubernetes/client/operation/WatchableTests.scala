@@ -34,6 +34,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   def watchApi(namespaceName: String)(implicit client: KubernetesClient[F]): Watchable[F, Resource]
 
+  def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
+    deleteApi(namespaceName).delete(resourceName)
+
   "watch" should s"watch a $resourceName events" in usingMinikube { implicit client =>
     val namespaceName = s"$resourceName".toLowerCase
     val name          = resourceName.toLowerCase
@@ -41,10 +44,10 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     val sendEvents = for {
       status <- namespacedApi(namespaceName).create(sampleResource(name))
       _ = status shouldBe Status.Created
-      resource <- getChecked(namespaceName, name)
-      status   <- namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
+      resource <- timer.sleep(1.second) *> getChecked(namespaceName, name)
+      status   <- createOrUpdate(namespaceName, resource)
       _ = status shouldBe Status.Ok
-      status <- deleteApi(namespaceName).delete(name)
+      status <- deleteResource(namespaceName, name)
       _ = status shouldBe Status.Ok
     } yield ()
 
@@ -86,4 +89,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       timer.sleep(100.millis) *> sendEvents
     ).parSequence
   }
+
+  private def createOrUpdate(namespaceName: String, resource: Resource)(
+      implicit client: KubernetesClient[F]
+  ): F[Status] =
+    namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
 }

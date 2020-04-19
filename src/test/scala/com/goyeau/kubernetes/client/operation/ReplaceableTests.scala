@@ -26,12 +26,12 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
       resourceName  <- Applicative[F].pure("some-resource")
-      resource      <- createChecked(namespaceName, resourceName)
+      resource      <- createChecked(namespaceName, resourceName) *> getChecked(namespaceName, resourceName)
 
       status <- namespacedApi(namespaceName).replace(modifyResource(resource))
       _ = status shouldBe Status.Ok
-      replacedConfigMap <- getChecked(namespaceName, resourceName)
-      _ = checkUpdated(replacedConfigMap)
+      replaced <- getChecked(namespaceName, resourceName)
+      _ = checkUpdated(replaced)
     } yield ()
   }
 

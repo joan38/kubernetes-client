@@ -7,12 +7,12 @@ import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaProps
 
 trait JSONSchemaPropsOrBool
 case class SchemaNotBoolValue(value: JSONSchemaProps) extends JSONSchemaPropsOrBool
-case class BoolValue(value: Boolean)                    extends JSONSchemaPropsOrBool
+case class BoolValue(value: Boolean)                  extends JSONSchemaPropsOrBool
 
 object JSONSchemaPropsOrBool {
   implicit val encode: Encoder[JSONSchemaPropsOrBool] = {
     case SchemaNotBoolValue(schema) => schema.asJson
-    case BoolValue(bool)              => Json.fromBoolean(bool)
+    case BoolValue(bool)            => Json.fromBoolean(bool)
   }
 
   implicit val decode: Decoder[JSONSchemaPropsOrBool] = cursor => {

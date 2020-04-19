@@ -20,6 +20,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   def api(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
   def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
   def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
+  val resourceIsNamespaced = true
 
   def listContains(namespaceName: String, resourceNames: Seq[String])(
       implicit client: KubernetesClient[F]
@@ -56,6 +57,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   }
 
   it should s"list ${resourceName}s in all namespaces" in usingMinikube { implicit client =>
+    assume(resourceIsNamespaced)
     for {
       namespaceResourceNames <- Applicative[F].pure(
         (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i", s"list-all-${resourceName.toLowerCase}-$i"))

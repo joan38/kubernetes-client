@@ -30,7 +30,8 @@ object SwaggerModelGenerator extends AutoPlugin {
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrBool",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrStringArray",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrArray",
-      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSON"
+      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSON",
+      "io.k8s.apimachinery.pkg.runtime.RawExtension"
     )
 
   val existingClassesPrefix = "com.goyeau.kubernetes.client"
@@ -111,10 +112,9 @@ object SwaggerModelGenerator extends AutoPlugin {
       case d => sys.error(s"Unsupported definition for $fullClassName: $d")
     }
 
-    IO.write(file,
-             s"""package $packageName
-                |
-                |$generatedClass""".stripMargin)
+    IO.write(file, s"""package $packageName
+                      |
+                      |$generatedClass""".stripMargin)
     log.info(s"Generated $file")
     file
   }
@@ -139,26 +139,42 @@ object SwaggerModelGenerator extends AutoPlugin {
 
   def escapeAttributeName(name: String): String =
     if (name.contains("x-")) s"`$name`"
-    else name
-      .replace("type", "`type`")
-      .replace("class", "`class`")
-      .replace("object", "`object`")
+    else
+      name
+        .replace("type", "`type`")
+        .replace("class", "`class`")
+        .replace("object", "`object`")
 
   def generateDescription(description: Option[String]): String =
     description.fold("")(d => s"/** ${d.replace("*/", "*&#47;").replace("/*", "&#47;*")} */\n")
 
   def generateType(property: Property): String =
     (property.`type`, property.$ref) match {
-      case (Some(t), None)   => swaggerToScalaType(t, property.items.orElse(property.additionalProperties))
+      case (Some(t), None) =>
+        swaggerToScalaType(t, property.items.orElse(property.additionalProperties), property.format)
       case (None, Some(ref)) => sanitizeClassPath(ref)
     }
 
-  def swaggerToScalaType(swaggerType: String, subProperty: Option[Property] = None): String =
+  def swaggerToScalaType(
+      swaggerType: String,
+      subProperty: Option[Property] = None,
+      format: Option[String] = None
+  ): String =
     (swaggerType, subProperty) match {
-      case ("integer", None)             => "Int"
+      case ("integer", None) =>
+        format match {
+          case Some("int32") => "Int"
+          case Some("int64") => "Long"
+          case f             => sys.error(s"Unsupported format '$f' for swaggerType '$swaggerType'")
+        }
       case ("object", Some(subProperty)) => s"Map[String, ${generateType(subProperty)}]"
       case ("array", Some(subProperty))  => s"Seq[${generateType(subProperty)}]"
-      case (swaggerType, _)              => swaggerType.take(1).toUpperCase + swaggerType.drop(1)
+      case ("number", None) if format.isDefined =>
+        format match {
+          case Some("double") => "Double"
+          case f              => sys.error(s"Unsupported format '$f' for swaggerType '$swaggerType'")
+        }
+      case (swaggerType, _) => swaggerType.take(1).toUpperCase + swaggerType.drop(1)
     }
 
   def sanitizeClassPath(classPath: String): String =
@@ -172,6 +188,8 @@ object SwaggerModelGenerator extends AutoPlugin {
         s"$existingClassesPrefix.JSONSchemaPropsOrArray"
       case "io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSON" =>
         s"$existingClassesPrefix.JSON"
+      case "io.k8s.apimachinery.pkg.runtime.RawExtension" =>
+        s"$existingClassesPrefix.RawExtension"
       case c => c
     }
 }
