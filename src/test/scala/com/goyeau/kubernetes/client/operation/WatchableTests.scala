@@ -3,7 +3,8 @@ package com.goyeau.kubernetes.client.operation
 import cats.{Applicative, Parallel}
 import cats.effect.concurrent.Ref
 import cats.implicits._
-import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
+import com.goyeau.kubernetes.client.Utils.retry
+import com.goyeau.kubernetes.client.{EventType, KubernetesClient, Utils, WatchEvent}
 import fs2.{Pipe, Stream}
 import fs2.concurrent.SignallingRef
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
@@ -11,6 +12,7 @@ import org.http4s.Status
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
@@ -41,12 +43,17 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     val namespaceName = s"$resourceName".toLowerCase
     val name          = resourceName.toLowerCase
 
+    def update(namespaceName: String, resourceName: String) =
+      for {
+        resource <- getChecked(namespaceName, resourceName)
+        status   <- createOrUpdate(namespaceName, resource)
+        _ = status shouldBe Status.Ok
+      } yield ()
+
     val sendEvents = for {
       status <- namespacedApi(namespaceName).create(sampleResource(name))
       _ = status shouldBe Status.Created
-      resource <- timer.sleep(1.second) *> getChecked(namespaceName, name)
-      status   <- createOrUpdate(namespaceName, resource)
-      _ = status shouldBe Status.Ok
+      _      <- retry(update(namespaceName, name))
       status <- deleteResource(namespaceName, name)
       _ = status shouldBe Status.Ok
     } yield ()

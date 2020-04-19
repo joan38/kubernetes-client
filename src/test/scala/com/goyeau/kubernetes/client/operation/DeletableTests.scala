@@ -26,11 +26,11 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
 
   "delete" should s"delete a $resourceName" in usingMinikube { implicit client =>
     for {
-      namespaceName  <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName <- Applicative[F].pure("delete-resource")
-      _              <- createChecked(namespaceName, resourceName)
-      _              <- delete(namespaceName, resourceName)
-      _              <- retry(listNotContains(namespaceName, Seq(resourceName)))
+      namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+      resourceName  <- Applicative[F].pure("delete-resource")
+      _             <- createChecked(namespaceName, resourceName)
+      _             <- delete(namespaceName, resourceName)
+      _             <- retry(listNotContains(namespaceName, Seq(resourceName)))
     } yield ()
   }
 

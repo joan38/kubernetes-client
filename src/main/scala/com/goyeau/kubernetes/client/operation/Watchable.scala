@@ -18,12 +18,13 @@ private[client] trait Watchable[F[_], Resource] extends Http4sClientDsl[F] {
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
+  protected def watchResourceUri: Uri = resourceUri
   implicit protected def resourceDecoder: Decoder[Resource]
 
   implicit val parserFacade: Facade[Json] = new CirceSupportParser(None, false).facade
 
   def watch: Stream[F, Either[String, WatchEvent[Resource]]] = {
-    val req = GET(config.server.resolve(resourceUri).+?("watch", "1"), config.authorization.toSeq: _*)
+    val req = GET(config.server.resolve(watchResourceUri).+?("watch", "1"), config.authorization.toSeq: _*)
     jsonStream(req).map(_.as[WatchEvent[Resource]].leftMap(_.getMessage))
   }
 

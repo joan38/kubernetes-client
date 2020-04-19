@@ -22,6 +22,7 @@ private[client] case class CustomResourceDefinitionsApi[F[_]](httpClient: Client
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, CustomResourceDefinition] {
-  val resourceUri = uri"/apis" / "apiextensions.k8s.io" / "v1" / "customresourcedefinitions"
+  val resourceUri               = uri"/apis" / "apiextensions.k8s.io" / "v1" / "customresourcedefinitions"
+  override val watchResourceUri = uri"/apis" / "apiextensions.k8s.io" / "v1" / "watch" / "customresourcedefinitions"
 
 }
