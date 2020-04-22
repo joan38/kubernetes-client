@@ -181,15 +181,15 @@ object SwaggerModelGenerator extends AutoPlugin {
     classPath.replace("#/definitions/", "").replace("-", "") match {
       case "io.k8s.apimachinery.pkg.util.intstr.IntOrString" => s"$existingClassesPrefix.IntOrString"
       case "io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrBool" =>
-        s"$existingClassesPrefix.JSONSchemaPropsOrBool"
+        s"$existingClassesPrefix.crd.JSONSchemaPropsOrBool"
       case "io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrStringArray" =>
-        s"$existingClassesPrefix.JSONSchemaPropsOrStringArray"
+        s"$existingClassesPrefix.crd.JSONSchemaPropsOrStringArray"
       case "io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrArray" =>
-        s"$existingClassesPrefix.JSONSchemaPropsOrArray"
+        s"$existingClassesPrefix.crd.JSONSchemaPropsOrArray"
       case "io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSON" =>
-        s"$existingClassesPrefix.JSON"
+        s"$existingClassesPrefix.crd.JSON"
       case "io.k8s.apimachinery.pkg.runtime.RawExtension" =>
-        s"$existingClassesPrefix.RawExtension"
+        s"$existingClassesPrefix.crd.RawExtension"
       case c => c
     }
 }

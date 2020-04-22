@@ -1,4 +1,4 @@
-package com.goyeau.kubernetes.client
+package com.goyeau.kubernetes.client.crd
 
 import cats.syntax.either._
 import io.circe.syntax._
