@@ -43,20 +43,15 @@ class CustomResourceDefinitionsApiTest
   override def deleteTerminated(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     namespacedApi(namespaceName).deleteTerminated(crdName(resourceName))
 
-  def listNotContains(resourceNames: Seq[String])(
+  def listNotContains(resourceNames: Seq[String], labels: Map[String, String])(
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
-      resourceList <- client.customResourceDefinitions.list
+      resourceList <- client.customResourceDefinitions.withLabels(labels).list
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).noElementsOf(resourceNames.map(crdName))
     } yield resourceList
 
-  override def listNotContains(namespaceName: String, resourceNames: Seq[String])(
-      implicit client: KubernetesClient[IO]
-  ): IO[CustomResourceDefinitionList] =
-    listNotContains(resourceNames)
-
-  override def listContains(namespaceName: String, resourceNames: Seq[String])(
+  override def listContains(namespaceName: String, resourceNames: Seq[String], labels: Map[String, String])(
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] = listContains(resourceNames)
 
@@ -83,7 +78,7 @@ class CustomResourceDefinitionsApiTest
   def plural(resourceName: String): String  = s"${resourceName}s"
   def crdName(resourceName: String): String = s"${plural(resourceName)}.$group"
 
-  def sampleResource(resourceName: String): CustomResourceDefinition =
+  def sampleResource(resourceName: String, labels: Map[String, String]): CustomResourceDefinition =
     CustomResourceDefinition(
       spec = CustomResourceDefinitionSpec(
         group = group,
@@ -97,7 +92,7 @@ class CustomResourceDefinitionsApiTest
       apiVersion = "apiextensions.k8s.io/v1".some,
       metadata = ObjectMeta(
         name = crdName(resourceName).some,
-        labels = crdLabel.some
+        labels = (labels ++ crdLabel).some
       ).some
     )
 
@@ -133,14 +128,16 @@ class CustomResourceDefinitionsApiTest
   override def afterAll(): Unit = {
     super.afterAll()
     val status = kubernetesClient
-      .use(implicit client => client.customResourceDefinitions.deleteWithLabels(crdLabel))
+      .use(implicit client => client.customResourceDefinitions.withLabels(crdLabel).delete)
       .unsafeRunSync()
     status shouldBe Status.Ok
     ()
   }
 
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
-    client.customResourceDefinitions
+  override def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
+      implicit client: KubernetesClient[IO]
+  ) =
+    client.customResourceDefinitions.withLabels(labels)
 
   def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.customResourceDefinitions

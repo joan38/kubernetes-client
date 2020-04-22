@@ -2,6 +2,7 @@ package com.goyeau.kubernetes.client.operation
 
 import cats.effect.Sync
 import cats.syntax.either._
+import com.goyeau.kubernetes.client.util.Uris.addLabels
 import com.goyeau.kubernetes.client.{KubeConfig, WatchEvent}
 import fs2.Stream
 import io.circe.jawn.CirceSupportParser
@@ -19,12 +20,14 @@ private[client] trait Watchable[F[_], Resource] extends Http4sClientDsl[F] {
   protected def config: KubeConfig
   protected def resourceUri: Uri
   protected def watchResourceUri: Uri = resourceUri
+  protected val labels: Map[String, String]
   implicit protected def resourceDecoder: Decoder[Resource]
 
   implicit val parserFacade: Facade[Json] = new CirceSupportParser(None, false).facade
 
   def watch: Stream[F, Either[String, WatchEvent[Resource]]] = {
-    val req = GET(config.server.resolve(watchResourceUri).+?("watch", "1"), config.authorization.toSeq: _*)
+    val uri = addLabels(labels, config.server.resolve(watchResourceUri))
+    val req = GET(uri.+?("watch", "1"), config.authorization.toSeq: _*)
     jsonStream(req).map(_.as[WatchEvent[Resource]].leftMap(_.getMessage))
   }
 

@@ -1,15 +1,13 @@
 package com.goyeau.kubernetes.client.api
 
-import scala.concurrent.duration._
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import java.net.URLEncoder
+
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.stream.scaladsl.BidiFlow
-import akka.stream.scaladsl.Flow
+import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.stream.scaladsl.{BidiFlow, Flow}
 import akka.util.ByteString
 import cats.effect.Async
 import com.goyeau.kubernetes.client.operation._
@@ -19,29 +17,41 @@ import io.circe._
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
-import java.net.URLEncoder
 import org.http4s
 import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
+
+private[client] case class PodsApi[F[_]](
+    httpClient: Client[F],
+    config: KubeConfig,
+    labels: Map[String, String] = Map.empty
+)(
     implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
-) extends Listable[F, PodList] {
+) extends Listable[F, PodList]
+    with LabelSelector[PodsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "pods"
 
   def namespace(namespace: String) = NamespacedPodsApi(httpClient, config, namespace)
+
+  override def withLabels(labels: Map[String, String]): PodsApi[F] =
+    PodsApi(httpClient, config, labels)
 }
 
 private[client] case class NamespacedPodsApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
-    namespace: String
+    namespace: String,
+    labels: Map[String, String] = Map.empty
 )(
     implicit
     val F: Async[F],
@@ -56,8 +66,12 @@ private[client] case class NamespacedPodsApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F]
-    with Watchable[F, Pod] {
+    with Watchable[F, Pod]
+    with LabelSelector[NamespacedPodsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
+
+  override def withLabels(labels: Map[String, String]): NamespacedPodsApi[F] =
+    NamespacedPodsApi(httpClient, config, namespace, labels)
 
   def exec[Result](
       podName: String,

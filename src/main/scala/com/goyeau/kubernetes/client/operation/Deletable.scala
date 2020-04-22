@@ -1,11 +1,10 @@
 package com.goyeau.kubernetes.client.operation
 
-import java.net.URLEncoder
-
 import cats.effect.Sync
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec._
 import com.goyeau.kubernetes.client.util.EnrichedStatus
+import com.goyeau.kubernetes.client.util.Uris.addLabels
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s.Method._
 import org.http4s._
@@ -17,18 +16,13 @@ private[client] trait Deletable[F[_]] extends Http4sClientDsl[F] {
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
+  protected val labels: Map[String, String]
 
   def delete(
       name: String,
       deleteOptions: Option[DeleteOptions] = None
-  ): F[Status] =
-    sendDelete(deleteOptions, config.server.resolve(resourceUri) / name)
-
-  def deleteWithLabels(labels: Map[String, String], deleteOptions: Option[DeleteOptions] = None): F[Status] = {
-    val uri = (config.server
-      .resolve(resourceUri))
-      .+?("labelSelector", labels.map { case (k, v) => s"$k=$v" }.mkString(","))
-
+  ): F[Status] = {
+    val uri = addLabels(labels, config.server.resolve(resourceUri) / name)
     sendDelete(deleteOptions, uri)
   }
 

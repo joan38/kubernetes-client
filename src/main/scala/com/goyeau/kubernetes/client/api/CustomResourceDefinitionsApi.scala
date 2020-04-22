@@ -8,7 +8,11 @@ import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.{CustomResourceDe
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class CustomResourceDefinitionsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
+private[client] case class CustomResourceDefinitionsApi[F[_]](
+    httpClient: Client[F],
+    config: KubeConfig,
+    labels: Map[String, String] = Map.empty
+)(
     implicit
     val F: Sync[F],
     val listDecoder: Decoder[CustomResourceDefinitionList],
@@ -21,8 +25,11 @@ private[client] case class CustomResourceDefinitionsApi[F[_]](httpClient: Client
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F]
-    with Watchable[F, CustomResourceDefinition] {
+    with Watchable[F, CustomResourceDefinition]
+    with LabelSelector[CustomResourceDefinitionsApi[F]] { self =>
   val resourceUri               = uri"/apis" / "apiextensions.k8s.io" / "v1" / "customresourcedefinitions"
   override val watchResourceUri = uri"/apis" / "apiextensions.k8s.io" / "v1" / "watch" / "customresourcedefinitions"
 
+  def withLabels(labels: Map[String, String]): CustomResourceDefinitionsApi[F] =
+    CustomResourceDefinitionsApi(httpClient, config, labels)
 }

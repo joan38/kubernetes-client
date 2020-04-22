@@ -1,12 +1,12 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.{Applicative, Parallel}
 import cats.effect.concurrent.Ref
 import cats.implicits._
+import cats.{Applicative, Parallel}
 import com.goyeau.kubernetes.client.Utils.retry
-import com.goyeau.kubernetes.client.{EventType, KubernetesClient, Utils, WatchEvent}
-import fs2.{Pipe, Stream}
+import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
+import fs2.{Pipe, Stream}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.scalatest.OptionValues
@@ -24,9 +24,11 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     with MinikubeClientProvider[F] {
   implicit def parallel: Parallel[F]
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
+  def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
+      implicit client: KubernetesClient[F]
+  ): Creatable[F, Resource]
 
-  def sampleResource(resourceName: String): Resource
+  def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): Resource
 
   def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
 

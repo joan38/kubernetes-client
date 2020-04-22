@@ -15,9 +15,11 @@ trait DeletableTerminatedTests[F[_], Resource <: { def metadata: Option[ObjectMe
     with OptionValues
     with MinikubeClientProvider[F] {
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): DeletableTerminated[F]
+  def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
+      implicit client: KubernetesClient[F]
+  ): DeletableTerminated[F]
   def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
-  def listNotContains(namespaceName: String, resourceNames: Seq[String])(
+  def listNotContains(namespaceName: String, resourceNames: Seq[String], labels: Map[String, String] = Map.empty)(
       implicit client: KubernetesClient[F]
   ): F[ResourceList]
   def deleteTerminated(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =

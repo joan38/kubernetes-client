@@ -28,11 +28,13 @@ class ServicesApiTest
   lazy val resourceName                     = classOf[Service].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.services
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
-    client.services.namespace(namespaceName)
+  override def namespacedApi(namespaceName: String, labels: Map[String, String])(
+      implicit client: KubernetesClient[IO]
+  ) =
+    client.services.namespace(namespaceName).withLabels(labels)
 
-  override def sampleResource(resourceName: String) = Service(
-    metadata = Option(ObjectMeta(name = Option(resourceName))),
+  override def sampleResource(resourceName: String, labels: Map[String, String]) = Service(
+    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     spec = Option(ServiceSpec(ports = Option(Seq(ServicePort(2000)))))
   )
   val labels = Option(Map("test" -> "updated-label"))

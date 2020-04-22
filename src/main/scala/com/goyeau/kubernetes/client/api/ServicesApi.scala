@@ -8,22 +8,31 @@ import io.k8s.api.core.v1.{Service, ServiceList}
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class ServicesApi[F[_]](httpClient: Client[F], config: KubeConfig)(
+private[client] case class ServicesApi[F[_]](
+    httpClient: Client[F],
+    config: KubeConfig,
+    labels: Map[String, String] = Map.empty
+)(
     implicit
     val F: Sync[F],
     val listDecoder: Decoder[ServiceList],
     encoder: Encoder[Service],
     decoder: Decoder[Service]
-) extends Listable[F, ServiceList] {
+) extends Listable[F, ServiceList]
+    with LabelSelector[ServicesApi[F]] {
   val resourceUri = uri"/api" / "v1" / "services"
 
   def namespace(namespace: String) = NamespacedServicesApi(httpClient, config, namespace)
+
+  override def withLabels(labels: Map[String, String]): ServicesApi[F] =
+    ServicesApi(httpClient, config, labels)
 }
 
 private[client] case class NamespacedServicesApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
-    namespace: String
+    namespace: String,
+    labels: Map[String, String] = Map.empty
 )(
     implicit
     val F: Sync[F],
@@ -37,6 +46,10 @@ private[client] case class NamespacedServicesApi[F[_]](
     with Proxy[F]
     with Deletable[F]
     with GroupDeletable[F]
-    with Watchable[F, Service] {
+    with Watchable[F, Service]
+    with LabelSelector[NamespacedServicesApi[F]] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "services"
+
+  override def withLabels(labels: Map[String, String]): NamespacedServicesApi[F] =
+    NamespacedServicesApi(httpClient, config, namespace, labels)
 }

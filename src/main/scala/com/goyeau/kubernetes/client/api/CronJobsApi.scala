@@ -8,22 +8,31 @@ import io.k8s.api.batch.v1beta1.{CronJob, CronJobList}
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class CronJobsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
+private[client] case class CronJobsApi[F[_]](
+    httpClient: Client[F],
+    config: KubeConfig,
+    labels: Map[String, String] = Map.empty
+)(
     implicit
     val F: Sync[F],
     val listDecoder: Decoder[CronJobList],
     encoder: Encoder[CronJob],
     decoder: Decoder[CronJob]
-) extends Listable[F, CronJobList] {
+) extends Listable[F, CronJobList]
+    with LabelSelector[CronJobsApi[F]] {
   val resourceUri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
 
   def namespace(namespace: String) = NamespacedCronJobsApi(httpClient, config, namespace)
+
+  override def withLabels(labels: Map[String, String]): CronJobsApi[F] =
+    CronJobsApi(httpClient, config, labels)
 }
 
 private[client] case class NamespacedCronJobsApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
-    namespace: String
+    namespace: String,
+    labels: Map[String, String] = Map.empty
 )(
     implicit
     val F: Sync[F],
@@ -37,6 +46,10 @@ private[client] case class NamespacedCronJobsApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F]
-    with Watchable[F, CronJob] {
+    with Watchable[F, CronJob]
+    with LabelSelector[NamespacedCronJobsApi[F]] {
   val resourceUri = uri"/apis" / "batch" / "v1beta1" / "namespaces" / namespace / "cronjobs"
+
+  override def withLabels(labels: Map[String, String]): NamespacedCronJobsApi[F] =
+    NamespacedCronJobsApi(httpClient, config, namespace, labels)
 }

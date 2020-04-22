@@ -29,11 +29,13 @@ class PodsApiTest
   lazy val resourceName                     = classOf[Pod].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.pods
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
-    client.pods.namespace(namespaceName)
+  override def namespacedApi(namespaceName: String, labels: Map[String, String])(
+      implicit client: KubernetesClient[IO]
+  ) =
+    client.pods.namespace(namespaceName).withLabels(labels)
 
-  override def sampleResource(resourceName: String) = Pod(
-    metadata = Option(ObjectMeta(name = Option(resourceName))),
+  override def sampleResource(resourceName: String, labels: Map[String, String]) = Pod(
+    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     spec = Option(PodSpec(nodeName = Some("minikube"), containers = Seq(Container("test", image = Option("docker")))))
   )
   val activeDeadlineSeconds = Option(5L)

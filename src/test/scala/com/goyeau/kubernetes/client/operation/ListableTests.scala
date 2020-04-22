@@ -5,8 +5,8 @@ import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.OptionValues
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.language.reflectiveCalls
@@ -17,16 +17,21 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
     with OptionValues
     with MinikubeClientProvider[F] {
 
-  def api(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
-  def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
   val resourceIsNamespaced = true
 
-  def listContains(namespaceName: String, resourceNames: Seq[String])(
+  def api(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
+  def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
+      implicit client: KubernetesClient[F]
+  ): Listable[F, ResourceList]
+  def createChecked(namespaceName: String, resourceName: String, labels: Map[String, String] = Map.empty)(
+      implicit client: KubernetesClient[F]
+  ): F[Resource]
+
+  def listContains(namespaceName: String, resourceNames: Seq[String], labels: Map[String, String] = Map.empty)(
       implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
-      resourceList <- namespacedApi(namespaceName).list
+      resourceList <- namespacedApi(namespaceName, labels).list
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).allElementsOf(resourceNames)
     } yield resourceList
 
@@ -38,11 +43,11 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).allElementsOf(resourceNames)
     } yield resourceList
 
-  def listNotContains(namespaceName: String, resourceNames: Seq[String])(
+  def listNotContains(namespaceName: String, resourceNames: Seq[String], labels: Map[String, String] = Map.empty)(
       implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
-      resourceList <- namespacedApi(namespaceName).list
+      resourceList <- namespacedApi(namespaceName, labels).list
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).noElementsOf(resourceNames)
     } yield resourceList
 
@@ -53,6 +58,19 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
       _             <- listNotContains(namespaceName, Seq(resourceName))
       _             <- createChecked(namespaceName, resourceName)
       _             <- listContains(namespaceName, Seq(resourceName))
+    } yield ()
+  }
+
+  "list" should s"list ${resourceName}s with a label" in usingMinikube { implicit client =>
+    for {
+      namespaceName         <- Applicative[F].pure(resourceName.toLowerCase)
+      noLabelResourceName   <- Applicative[F].pure("no-label-resource")
+      _                     <- createChecked(namespaceName, noLabelResourceName)
+      withLabelResourceName <- Applicative[F].pure("label-resource")
+      labels = Map("test" -> "1")
+      _ <- createChecked(namespaceName, withLabelResourceName, labels)
+      _ <- listNotContains(namespaceName, Seq(noLabelResourceName), labels)
+      _ <- listContains(namespaceName, Seq(withLabelResourceName), labels)
     } yield ()
   }
 
