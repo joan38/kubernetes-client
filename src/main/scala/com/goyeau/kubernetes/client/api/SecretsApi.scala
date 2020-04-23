@@ -10,6 +10,7 @@ import io.k8s.api.core.v1.{Secret, SecretList}
 import org.http4s.Status
 import org.http4s.client.Client
 import org.http4s.implicits._
+import scala.collection.compat._
 
 private[client] case class SecretsApi[F[_]](
     httpClient: Client[F],
