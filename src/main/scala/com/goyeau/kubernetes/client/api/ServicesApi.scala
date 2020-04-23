@@ -19,7 +19,7 @@ private[client] case class ServicesApi[F[_]](
     encoder: Encoder[Service],
     decoder: Decoder[Service]
 ) extends Listable[F, ServiceList]
-    with LabelSelector[ServicesApi[F]] {
+    with Filterable[ServicesApi[F]] {
   val resourceUri = uri"/api" / "v1" / "services"
 
   def namespace(namespace: String) = NamespacedServicesApi(httpClient, config, namespace)
@@ -47,7 +47,7 @@ private[client] case class NamespacedServicesApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, Service]
-    with LabelSelector[NamespacedServicesApi[F]] {
+    with Filterable[NamespacedServicesApi[F]] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "services"
 
   override def withLabels(labels: Map[String, String]): NamespacedServicesApi[F] =

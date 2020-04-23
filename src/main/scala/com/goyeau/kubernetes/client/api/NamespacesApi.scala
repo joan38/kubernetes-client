@@ -25,7 +25,7 @@ private[client] case class NamespacesApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with Watchable[F, Namespace]
-    with LabelSelector[NamespacesApi[F]] {
+    with Filterable[NamespacesApi[F]] {
   protected val resourceUri = uri"/api" / "v1" / "namespaces"
 
   override def withLabels(labels: Map[String, String]): NamespacesApi[F] =

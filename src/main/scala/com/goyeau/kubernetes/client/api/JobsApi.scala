@@ -19,7 +19,7 @@ private[client] case class JobsApi[F[_]](
     encoder: Encoder[Job],
     decoder: Decoder[Job]
 ) extends Listable[F, JobList]
-    with LabelSelector[JobsApi[F]] {
+    with Filterable[JobsApi[F]] {
   val resourceUri = uri"/apis" / "batch" / "v1" / "jobs"
 
   def namespace(namespace: String) = NamespacedJobsApi(httpClient, config, namespace)
@@ -46,7 +46,7 @@ private[client] case class NamespacedJobsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, Job]
-    with LabelSelector[NamespacedJobsApi[F]] {
+    with Filterable[NamespacedJobsApi[F]] {
   val resourceUri = uri"/apis" / "batch" / "v1" / "namespaces" / namespace / "jobs"
 
   override def withLabels(labels: Map[String, String]): NamespacedJobsApi[F] =

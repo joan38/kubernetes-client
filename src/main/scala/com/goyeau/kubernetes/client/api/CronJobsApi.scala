@@ -19,7 +19,7 @@ private[client] case class CronJobsApi[F[_]](
     encoder: Encoder[CronJob],
     decoder: Decoder[CronJob]
 ) extends Listable[F, CronJobList]
-    with LabelSelector[CronJobsApi[F]] {
+    with Filterable[CronJobsApi[F]] {
   val resourceUri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
 
   def namespace(namespace: String) = NamespacedCronJobsApi(httpClient, config, namespace)
@@ -47,7 +47,7 @@ private[client] case class NamespacedCronJobsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, CronJob]
-    with LabelSelector[NamespacedCronJobsApi[F]] {
+    with Filterable[NamespacedCronJobsApi[F]] {
   val resourceUri = uri"/apis" / "batch" / "v1beta1" / "namespaces" / namespace / "cronjobs"
 
   override def withLabels(labels: Map[String, String]): NamespacedCronJobsApi[F] =

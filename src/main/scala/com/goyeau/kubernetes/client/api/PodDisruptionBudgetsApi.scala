@@ -19,7 +19,7 @@ private[client] case class PodDisruptionBudgetsApi[F[_]](
     encoder: Encoder[PodDisruptionBudget],
     decoder: Decoder[PodDisruptionBudget]
 ) extends Listable[F, PodDisruptionBudgetList]
-    with LabelSelector[PodDisruptionBudgetsApi[F]] {
+    with Filterable[PodDisruptionBudgetsApi[F]] {
   val resourceUri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
 
   def namespace(namespace: String) = NamespacedPodDisruptionBudgetApi(httpClient, config, namespace)
@@ -46,7 +46,7 @@ private[client] case class NamespacedPodDisruptionBudgetApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, PodDisruptionBudget]
-    with LabelSelector[NamespacedPodDisruptionBudgetApi[F]] {
+    with Filterable[NamespacedPodDisruptionBudgetApi[F]] {
   val resourceUri = uri"/apis" / "policy" / "v1beta1" / "namespaces" / namespace / "poddisruptionbudgets"
 
   override def withLabels(labels: Map[String, String]): NamespacedPodDisruptionBudgetApi[F] =

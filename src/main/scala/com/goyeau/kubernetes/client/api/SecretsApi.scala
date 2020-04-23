@@ -23,7 +23,7 @@ private[client] case class SecretsApi[F[_]](
     encoder: Encoder[Secret],
     decoder: Decoder[Secret]
 ) extends Listable[F, SecretList]
-    with LabelSelector[SecretsApi[F]] {
+    with Filterable[SecretsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "secrets"
 
   def namespace(namespace: String) = NamespacedSecretsApi(httpClient, config, namespace)
@@ -50,7 +50,7 @@ private[client] case class NamespacedSecretsApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, Secret]
-    with LabelSelector[NamespacedSecretsApi[F]] {
+    with Filterable[NamespacedSecretsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "secrets"
 
   def createEncode(resource: Secret): F[Status] = create(encode(resource))

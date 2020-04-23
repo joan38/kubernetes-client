@@ -19,7 +19,7 @@ private[client] case class ReplicaSetsApi[F[_]](
     encoder: Encoder[ReplicaSet],
     decoder: Decoder[ReplicaSet]
 ) extends Listable[F, ReplicaSetList]
-    with LabelSelector[ReplicaSetsApi[F]] {
+    with Filterable[ReplicaSetsApi[F]] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "replicasets"
 
   def namespace(namespace: String) =
@@ -48,7 +48,7 @@ private[client] case class NamespacedReplicaSetsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, ReplicaSet]
-    with LabelSelector[NamespacedReplicaSetsApi[F]] {
+    with Filterable[NamespacedReplicaSetsApi[F]] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "replicasets"
 
   override def withLabels(labels: Map[String, String]): NamespacedReplicaSetsApi[F] =

@@ -38,7 +38,7 @@ private[client] case class PodsApi[F[_]](
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
 ) extends Listable[F, PodList]
-    with LabelSelector[PodsApi[F]] {
+    with Filterable[PodsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "pods"
 
   def namespace(namespace: String) = NamespacedPodsApi(httpClient, config, namespace)
@@ -67,7 +67,7 @@ private[client] case class NamespacedPodsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, Pod]
-    with LabelSelector[NamespacedPodsApi[F]] {
+    with Filterable[NamespacedPodsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
   override def withLabels(labels: Map[String, String]): NamespacedPodsApi[F] =

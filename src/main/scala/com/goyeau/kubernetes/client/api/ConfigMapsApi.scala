@@ -19,7 +19,7 @@ private[client] case class ConfigMapsApi[F[_]](
     encoder: Encoder[ConfigMap],
     decoder: Decoder[ConfigMap]
 ) extends Listable[F, ConfigMapList]
-    with LabelSelector[ConfigMapsApi[F]] {
+    with Filterable[ConfigMapsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "configmaps"
 
   def namespace(namespace: String) = NamespacedConfigMapsApi(httpClient, config, namespace)
@@ -46,7 +46,7 @@ private[client] case class NamespacedConfigMapsApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, ConfigMap]
-    with LabelSelector[NamespacedConfigMapsApi[F]] {
+    with Filterable[NamespacedConfigMapsApi[F]] {
   val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "configmaps"
 
   override def withLabels(labels: Map[String, String]): NamespacedConfigMapsApi[F] =

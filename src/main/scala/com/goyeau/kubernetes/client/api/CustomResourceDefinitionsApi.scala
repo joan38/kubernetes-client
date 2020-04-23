@@ -26,7 +26,7 @@ private[client] case class CustomResourceDefinitionsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, CustomResourceDefinition]
-    with LabelSelector[CustomResourceDefinitionsApi[F]] { self =>
+    with Filterable[CustomResourceDefinitionsApi[F]] { self =>
   val resourceUri               = uri"/apis" / "apiextensions.k8s.io" / "v1" / "customresourcedefinitions"
   override val watchResourceUri = uri"/apis" / "apiextensions.k8s.io" / "v1" / "watch" / "customresourcedefinitions"
 

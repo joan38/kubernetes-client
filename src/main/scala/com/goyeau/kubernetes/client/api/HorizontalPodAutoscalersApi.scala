@@ -19,7 +19,7 @@ private[client] case class HorizontalPodAutoscalersApi[F[_]](
     encoder: Encoder[HorizontalPodAutoscaler],
     decoder: Decoder[HorizontalPodAutoscaler]
 ) extends Listable[F, HorizontalPodAutoscalerList]
-    with LabelSelector[HorizontalPodAutoscalersApi[F]] {
+    with Filterable[HorizontalPodAutoscalersApi[F]] {
   val resourceUri = uri"/apis" / "autoscaling" / "v1" / "horizontalpodautoscalers"
 
   def namespace(namespace: String) = NamespacedHorizontalPodAutoscalersApi(httpClient, config, namespace)
@@ -47,7 +47,7 @@ private[client] case class NamespacedHorizontalPodAutoscalersApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, HorizontalPodAutoscaler]
-    with LabelSelector[NamespacedHorizontalPodAutoscalersApi[F]] {
+    with Filterable[NamespacedHorizontalPodAutoscalersApi[F]] {
   val resourceUri = uri"/apis" / "autoscaling" / "v1" / "namespaces" / namespace / "horizontalpodautoscalers"
 
   override def withLabels(labels: Map[String, String]): NamespacedHorizontalPodAutoscalersApi[F] =

@@ -19,7 +19,7 @@ private[client] case class DeploymentsApi[F[_]](
     encoder: Encoder[Deployment],
     decoder: Decoder[Deployment]
 ) extends Listable[F, DeploymentList]
-    with LabelSelector[DeploymentsApi[F]] {
+    with Filterable[DeploymentsApi[F]] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "deployments"
 
   def namespace(namespace: String) = NamespacedDeploymentsApi(httpClient, config, namespace)
@@ -47,7 +47,7 @@ private[client] case class NamespacedDeploymentsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, Deployment]
-    with LabelSelector[NamespacedDeploymentsApi[F]] {
+    with Filterable[NamespacedDeploymentsApi[F]] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
 
   override def withLabels(labels: Map[String, String]): NamespacedDeploymentsApi[F] =

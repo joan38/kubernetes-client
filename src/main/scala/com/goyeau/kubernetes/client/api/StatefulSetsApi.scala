@@ -19,7 +19,7 @@ private[client] case class StatefulSetsApi[F[_]](
     encoder: Encoder[StatefulSet],
     decoder: Decoder[StatefulSet]
 ) extends Listable[F, StatefulSetList]
-    with LabelSelector[StatefulSetsApi[F]] {
+    with Filterable[StatefulSetsApi[F]] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "statefulsets"
 
   def namespace(namespace: String) = NamespacedStatefulSetsApi(httpClient, config, namespace)
@@ -47,7 +47,7 @@ private[client] case class NamespacedStatefulSetsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, StatefulSet]
-    with LabelSelector[NamespacedStatefulSetsApi[F]] {
+    with Filterable[NamespacedStatefulSetsApi[F]] {
   val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "statefulsets"
 
   override def withLabels(labels: Map[String, String]): NamespacedStatefulSetsApi[F] =
