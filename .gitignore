@@ -1,17 +1,103 @@
-.DS_Store
-.target
-.cache
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+#*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.data
+*.redo
+
+# OS generated files #
+######################
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Editor Files #
+################
+*~
+*.swp
+
+# Gradle Files #
+################
+.gradle
+
+# Build output directories #
+############################
+target
+/build
+/bin
+*/bin
+/classes
+
+# IntelliJ specific files/directories #
+#######################################
+out
+.idea
+!.idea/runConfigurations
+*.ipr
+*.iws
+*.iml
+atlassian-ide-plugin.xml
+
+# Eclipse specific files/directories #
+######################################
 .classpath
 .project
-.history
-.idea
 .settings
-.ensime
-.ensime_cache
-*.iml
-bin
-target
-secrets
-.bloop
-.metals
-metals.sbt
+.metadata
+
+# NetBeans specific files/directories #
+#######################################
+.nbattrs
+
+# newt & Docker
+Dockerfile
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+sdist/
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
