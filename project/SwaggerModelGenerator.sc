@@ -1,31 +1,38 @@
+import $file.Model, Model.{Definition, Property}
+import $ivy.`io.circe::circe-core:0.13.0`
+import $ivy.`io.circe::circe-generic:0.13.0`
+import $ivy.`io.circe::circe-parser:0.13.0`
+import mill._
+import mill.api.Logger
+import mill.define.Sources
+import mill.scalalib._
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
-import sbt.Keys._
-import sbt._
+import os._
 
-object SwaggerModelGenerator extends AutoPlugin {
+trait SwaggerModelGenerator extends JavaModule {
+  import SwaggerModelGenerator._
 
-  object autoImport extends scala.AnyRef {
-    lazy val swaggerModel  = taskKey[Unit]("Generate Scala case class for the given Swagger model")
-    lazy val swaggerSource = settingKey[File]("Swagger resource files")
-  }
-  import autoImport._
-
-  override val projectSettings = Seq(
-    swaggerModel := swaggerModelTask.value,
-    Compile / sourceGenerators += swaggerModelTask.taskValue,
-    Compile / swaggerSource := (Compile / sourceDirectory).value / "swagger"
-  )
-
-  lazy val swaggerModelTask = Def.task {
-    val swaggerFiles =
-      Option((Compile / swaggerSource).value.listFiles(FileFilter.globFilter("*.json"))).toSeq.flatten
-    swaggerFiles.flatMap(processSwaggerFile(_, (Compile / sourceManaged).value, streams.value.log))
+  def swaggerSources: Sources = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
+  def allSwaggerSourceFiles: T[Seq[PathRef]] = T {
+    def isHiddenFile(path: os.Path) = path.last.startsWith(".")
+    for {
+      root <- swaggerSources()
+      if os.exists(root.path)
+      path <- if (os.isDir(root.path)) os.walk(root.path) else Seq(root.path)
+      if os.isFile(path) && path.ext == "json" && !isHiddenFile(path)
+    } yield PathRef(path)
   }
 
-  val skipClasses =
-    Set(
+  override def generatedSources = T {
+    super.generatedSources() ++
+      allSwaggerSourceFiles().flatMap(swagger => processSwaggerFile(swagger.path, T.ctx.dest, T.ctx.log)).map(PathRef(_))
+  }
+}
+
+object SwaggerModelGenerator {
+  val skipClasses = Set(
       "io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrBool",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrStringArray",
@@ -63,8 +70,8 @@ object SwaggerModelGenerator extends AutoPlugin {
     allowedPrefixes.exists(className.startsWith) && !skipClasses.contains(className)
   }
 
-  def processSwaggerFile(swaggerFile: File, outputDir: File, log: Logger): Seq[File] = {
-    val json = parse(IO.read(swaggerFile)).fold(throw _, identity)
+  def processSwaggerFile(swaggerFile: Path, outputDir: Path, log: Logger): Seq[Path] = {
+    val json = parse(read(swaggerFile)).fold(throw _, identity)
     for {
       definitionsJson   <- json.hcursor.downField("definitions").focus.toSeq
       definitionsObject <- definitionsJson.asObject.toSeq
@@ -74,11 +81,11 @@ object SwaggerModelGenerator extends AutoPlugin {
     } yield generateDefinition(fullClassName, definition, outputDir, log)
   }
 
-  def generateDefinition(fullClassName: String, definitionJson: Json, outputDir: File, log: Logger): File = {
+  def generateDefinition(fullClassName: String, definitionJson: Json, outputDir: Path, log: Logger): Path = {
     val split       = fullClassName.split("\\.")
     val packageName = sanitizeClassPath(split.init.mkString("."))
     val className   = split.last
-    val file        = outputDir / sanitizeClassPath(split.init.mkString("/")) / s"$className.scala"
+    val output      = outputDir / RelPath(sanitizeClassPath(split.init.mkString("/"))) / s"$className.scala"
 
     val generatedClass = definitionJson.as[Definition].fold(throw _, identity) match {
       case Definition(desc, required, properties, Some("object"), _) =>
@@ -112,11 +119,11 @@ object SwaggerModelGenerator extends AutoPlugin {
       case d => sys.error(s"Unsupported definition for $fullClassName: $d")
     }
 
-    IO.write(file, s"""package $packageName
-                      |
-                      |$generatedClass""".stripMargin)
-    log.info(s"Generated $file")
-    file
+    write(output, s"""package $packageName
+                     |
+                     |$generatedClass""".stripMargin, createFolders = true)
+    log.info(s"Generated $output")
+    output
   }
 
   def generateAttributes(properties: Iterable[(String, Property)], required: Seq[String]): String =

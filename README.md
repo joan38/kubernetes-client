@@ -5,14 +5,20 @@
 A pure functional client for Kubernetes.
 
 ## Installation
+[Mill](https://www.lihaoyi.com/mill):
 ```scala
-libraryDependencies += "com.goyeau" %% "kubernetes-client" % "<latest version>"
+ivy"com.goyeau::kubernetes-client:<latest version>"
 ```
+or
 
+[SBT](https://www.scala-sbt.org):
+```scala
+"com.goyeau" %% "kubernetes-client" % "<latest version>"
+```
 
 ## Usage
 
-### Client configuration
+### Client configuration example
 ```scala
 import cats.effect._
 import com.goyeau.kubernetes.client._
