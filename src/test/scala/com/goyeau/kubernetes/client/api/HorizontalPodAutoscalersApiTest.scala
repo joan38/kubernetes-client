@@ -36,8 +36,8 @@ class HorizontalPodAutoscalersApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.horizontalPodAutoscalers.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String) = HorizontalPodAutoscaler(
-    metadata = Option(ObjectMeta(name = Option(resourceName))),
+  override def sampleResource(resourceName: String, labels: Map[String, String]) = HorizontalPodAutoscaler(
+    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     spec =
       Option(HorizontalPodAutoscalerSpec(scaleTargetRef = CrossVersionObjectReference("kind", "name"), maxReplicas = 2))
   )

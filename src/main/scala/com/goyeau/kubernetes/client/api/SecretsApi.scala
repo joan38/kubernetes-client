@@ -1,13 +1,12 @@
 package com.goyeau.kubernetes.client.api
 
 import java.util.Base64
-
 import cats.effect.Sync
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.core.v1.{Secret, SecretList}
-import org.http4s.Status
+import org.http4s.{Status, Uri}
 import org.http4s.client.Client
 import org.http4s.implicits._
 import scala.collection.compat._
@@ -41,7 +40,7 @@ private[client] case class NamespacedSecretsApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, Secret] {
-  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "secrets"
+  val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "secrets"
 
   def createEncode(resource: Secret): F[Status] = create(encode(resource))
 

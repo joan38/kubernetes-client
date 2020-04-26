@@ -1,16 +1,18 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.{Applicative, Parallel}
 import cats.effect.concurrent.Ref
 import cats.implicits._
+import cats.{Applicative, Parallel}
+import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
-import fs2.{Pipe, Stream}
 import fs2.concurrent.SignallingRef
+import fs2.{Pipe, Stream}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
@@ -24,7 +26,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
 
-  def sampleResource(resourceName: String): Resource
+  def sampleResource(resourceName: String, labels: Map[String, String]): Resource
 
   def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
 
@@ -34,17 +36,25 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   def watchApi(namespaceName: String)(implicit client: KubernetesClient[F]): Watchable[F, Resource]
 
+  def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
+    deleteApi(namespaceName).delete(resourceName)
+
   "watch" should s"watch a $resourceName events" in usingMinikube { implicit client =>
     val namespaceName = s"$resourceName".toLowerCase
     val name          = resourceName.toLowerCase
 
+    def update(namespaceName: String, resourceName: String) =
+      for {
+        resource <- getChecked(namespaceName, resourceName)
+        status   <- createOrUpdate(namespaceName, resource)
+        _ = status shouldBe Status.Ok
+      } yield ()
+
     val sendEvents = for {
-      status <- namespacedApi(namespaceName).create(sampleResource(name))
+      status <- namespacedApi(namespaceName).create(sampleResource(name, Map.empty))
       _ = status shouldBe Status.Created
-      resource <- getChecked(namespaceName, name)
-      status   <- namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
-      _ = status shouldBe Status.Ok
-      status <- deleteApi(namespaceName).delete(name)
+      _      <- retry(update(namespaceName, name))
+      status <- deleteResource(namespaceName, name)
       _ = status shouldBe Status.Ok
     } yield ()
 
@@ -69,7 +79,8 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     val watchStream = for {
       signal   <- Stream.eval(SignallingRef[F, Boolean](false))
       received <- Stream.eval(Ref.of(mutable.Set.empty[EventType]))
-      watch <- watchApi(namespaceName).watch
+      watch <- watchApi(namespaceName)
+        .watch()
         .through(processEvent(received, signal))
         .evalMap(_ => received.get)
         .interruptWhen(signal)
@@ -86,4 +97,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       timer.sleep(100.millis) *> sendEvents
     ).parSequence
   }
+
+  private def createOrUpdate(namespaceName: String, resource: Resource)(
+      implicit client: KubernetesClient[F]
+  ): F[Status] =
+    namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
 }

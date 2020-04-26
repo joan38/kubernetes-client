@@ -31,8 +31,8 @@ class ConfigMapsApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.configMaps.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String) = ConfigMap(
-    metadata = Option(ObjectMeta(name = Option(resourceName))),
+  override def sampleResource(resourceName: String, labels: Map[String, String]) = ConfigMap(
+    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     data = Option(Map("test" -> "data"))
   )
   val data = Option(Map("test" -> "updated-data"))

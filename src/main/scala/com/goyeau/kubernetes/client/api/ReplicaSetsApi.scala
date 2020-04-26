@@ -5,6 +5,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.apps.v1.{ReplicaSet, ReplicaSetList}
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
@@ -15,9 +16,10 @@ private[client] case class ReplicaSetsApi[F[_]](httpClient: Client[F], config: K
     encoder: Encoder[ReplicaSet],
     decoder: Decoder[ReplicaSet]
 ) extends Listable[F, ReplicaSetList] {
-  val resourceUri = uri"/apis" / "apps" / "v1" / "replicasets"
+  val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "replicasets"
 
-  def namespace(namespace: String) = NamespacedReplicaSetsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedReplicaSetsApi[F] =
+    NamespacedReplicaSetsApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedReplicaSetsApi[F[_]](

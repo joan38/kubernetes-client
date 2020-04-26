@@ -1,15 +1,12 @@
 package com.goyeau.kubernetes.client.api
 
-import scala.concurrent.duration._
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import java.net.URLEncoder
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.stream.scaladsl.BidiFlow
-import akka.stream.scaladsl.Flow
+import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.stream.scaladsl.{BidiFlow, Flow}
 import akka.util.ByteString
 import cats.effect.Async
 import com.goyeau.kubernetes.client.operation._
@@ -19,12 +16,14 @@ import io.circe._
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
-import java.net.URLEncoder
 import org.http4s
-import org.http4s.AuthScheme
+import org.http4s.{AuthScheme, Uri}
 import org.http4s.Credentials.Token
 import org.http4s.client.Client
 import org.http4s.implicits._
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
     implicit
@@ -33,16 +32,12 @@ private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConf
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
 ) extends Listable[F, PodList] {
-  val resourceUri = uri"/api" / "v1" / "pods"
+  val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
-  def namespace(namespace: String) = NamespacedPodsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedPodsApi[F] = NamespacedPodsApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedPodsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    namespace: String
-)(
+private[client] case class NamespacedPodsApi[F[_]](httpClient: Client[F], config: KubeConfig, namespace: String)(
     implicit
     val F: Async[F],
     val resourceEncoder: Encoder[Pod],
@@ -57,7 +52,7 @@ private[client] case class NamespacedPodsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, Pod] {
-  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
+  val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
   def exec[Result](
       podName: String,

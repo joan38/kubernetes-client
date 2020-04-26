@@ -32,11 +32,11 @@ class PodsApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.pods.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String) = Pod(
-    metadata = Option(ObjectMeta(name = Option(resourceName))),
+  override def sampleResource(resourceName: String, labels: Map[String, String]) = Pod(
+    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     spec = Option(PodSpec(nodeName = Some("minikube"), containers = Seq(Container("test", image = Option("docker")))))
   )
-  val activeDeadlineSeconds = Option(5)
+  val activeDeadlineSeconds = Option(5L)
   override def modifyResource(resource: Pod) = resource.copy(
     metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
     spec = resource.spec.map(_.copy(activeDeadlineSeconds = activeDeadlineSeconds))

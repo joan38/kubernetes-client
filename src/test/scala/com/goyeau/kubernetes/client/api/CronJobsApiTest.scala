@@ -34,9 +34,9 @@ class CronJobsApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.cronJobs.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String) =
+  override def sampleResource(resourceName: String, labels: Map[String, String]) =
     CronJob(
-      metadata = Option(ObjectMeta(name = Option(resourceName))),
+      metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
       spec = Option(
         CronJobSpec(
           schedule = "1 * * * *",

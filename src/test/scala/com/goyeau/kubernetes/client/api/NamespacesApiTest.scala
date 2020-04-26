@@ -27,7 +27,7 @@ class NamespacesApiTest
 
   implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
   implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[Namespace].getSimpleName
+  lazy val resourceName: String             = classOf[Namespace].getSimpleName
 
   "create" should "create a namespace" in usingMinikube { implicit client =>
     val namespaceName = s"${resourceName.toLowerCase}-ns-create"
@@ -85,7 +85,7 @@ class NamespacesApiTest
       _             <- createChecked(namespaceName)
       _             <- client.namespaces.delete(namespaceName)
       _ <- retry(for {
-        namespaces <- client.namespaces.list
+        namespaces <- client.namespaces.list()
         _ = namespaces.items.map(_.metadata.get.name.get) should not contain namespaceName
       } yield ())
     } yield ()
@@ -103,7 +103,7 @@ class NamespacesApiTest
       namespaceName <- IO.pure(resourceName.toLowerCase + "-delete-terminated")
       _             <- createChecked(namespaceName)
       _             <- client.namespaces.deleteTerminated(namespaceName)
-      namespaces    <- client.namespaces.list
+      namespaces    <- client.namespaces.list()
       _ = namespaces.items.map(_.metadata.value.name.value) should not contain namespaceName
     } yield ()
   }
@@ -158,7 +158,7 @@ object NamespacesApiTest extends Matchers with OptionValues {
 
   def listChecked[F[_]: Sync](namespaceNames: Seq[String])(implicit client: KubernetesClient[F]): F[NamespaceList] =
     for {
-      namespaces <- client.namespaces.list
+      namespaces <- client.namespaces.list()
       _ = (namespaces.items.map(_.metadata.value.name.value) should contain).allElementsOf(namespaceNames)
     } yield namespaces
 

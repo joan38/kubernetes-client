@@ -11,7 +11,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 
 object SslContexts {
-
   private val TrustStoreSystemProperty         = "javax.net.ssl.trustStore"
   private val TrustStorePasswordSystemProperty = "javax.net.ssl.trustStorePassword"
   private val KeyStoreSystemProperty           = "javax.net.ssl.keyStore"

@@ -1,6 +1,7 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.implicits._
+import cats.implicits._
 import cats.effect.{ConcurrentEffect, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
@@ -35,8 +36,8 @@ class SecretsApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.secrets.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String) = Secret(
-    metadata = Option(ObjectMeta(name = Option(resourceName))),
+  override def sampleResource(resourceName: String, labels: Map[String, String]) = Secret(
+    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     data = Option(Map("test" -> "ZGF0YQ=="))
   )
   val data = Option(Map("test" -> "dXBkYXRlZC1kYXRh"))

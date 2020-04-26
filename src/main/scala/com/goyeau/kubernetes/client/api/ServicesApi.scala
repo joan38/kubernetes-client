@@ -5,6 +5,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.core.v1.{Service, ServiceList}
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
@@ -15,9 +16,9 @@ private[client] case class ServicesApi[F[_]](httpClient: Client[F], config: Kube
     encoder: Encoder[Service],
     decoder: Decoder[Service]
 ) extends Listable[F, ServiceList] {
-  val resourceUri = uri"/api" / "v1" / "services"
+  val resourceUri: Uri = uri"/api" / "v1" / "services"
 
-  def namespace(namespace: String) = NamespacedServicesApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedServicesApi[F] = NamespacedServicesApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedServicesApi[F[_]](
@@ -38,5 +39,5 @@ private[client] case class NamespacedServicesApi[F[_]](
     with Deletable[F]
     with GroupDeletable[F]
     with Watchable[F, Service] {
-  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "services"
+  val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "services"
 }

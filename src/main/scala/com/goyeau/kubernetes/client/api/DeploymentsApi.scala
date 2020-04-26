@@ -5,6 +5,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.apps.v1.{Deployment, DeploymentList}
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
@@ -15,9 +16,10 @@ private[client] case class DeploymentsApi[F[_]](httpClient: Client[F], config: K
     encoder: Encoder[Deployment],
     decoder: Decoder[Deployment]
 ) extends Listable[F, DeploymentList] {
-  val resourceUri = uri"/apis" / "apps" / "v1" / "deployments"
+  val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "deployments"
 
-  def namespace(namespace: String) = NamespacedDeploymentsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedDeploymentsApi[F] =
+    NamespacedDeploymentsApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedDeploymentsApi[F[_]](
@@ -38,5 +40,5 @@ private[client] case class NamespacedDeploymentsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, Deployment] {
-  val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
+  val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
 }
