@@ -33,10 +33,8 @@ class HorizontalPodAutoscalersApiTest
   lazy val resourceName                     = classOf[HorizontalPodAutoscaler].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.horizontalPodAutoscalers
-  override def namespacedApi(namespaceName: String, labels: Map[String, String])(
-      implicit client: KubernetesClient[IO]
-  ) =
-    client.horizontalPodAutoscalers.namespace(namespaceName).withLabels(labels)
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+    client.horizontalPodAutoscalers.namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) = HorizontalPodAutoscaler(
     metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),

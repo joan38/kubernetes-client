@@ -16,15 +16,13 @@ trait DeletableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Res
     with OptionValues
     with MinikubeClientProvider[F] {
 
-  def namespacedApi(namespaceName: String, labels: Map[String, String])(
-      implicit client: KubernetesClient[F]
-  ): Deletable[F]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Deletable[F]
   def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
   def listNotContains(namespaceName: String, resourceNames: Seq[String], labels: Map[String, String] = Map.empty)(
       implicit client: KubernetesClient[F]
   ): F[ResourceList]
-  def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
-    namespacedApi(namespaceName, Map.empty).delete(resourceName)
+  def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
+    namespacedApi(namespaceName).delete(resourceName)
 
   "delete" should s"delete a $resourceName" in usingMinikube { implicit client =>
     for {

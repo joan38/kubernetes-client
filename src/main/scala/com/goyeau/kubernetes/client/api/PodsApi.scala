@@ -1,7 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
 import java.net.URLEncoder
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
@@ -18,41 +17,27 @@ import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s
-import org.http4s.AuthScheme
+import org.http4s.{AuthScheme, Uri}
 import org.http4s.Credentials.Token
 import org.http4s.client.Client
 import org.http4s.implicits._
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-private[client] case class PodsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    labels: Map[String, String] = Map.empty
-)(
+private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
     implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
-) extends Listable[F, PodList]
-    with Filterable[PodsApi[F]] {
-  val resourceUri = uri"/api" / "v1" / "pods"
+) extends Listable[F, PodList] {
+  val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
-  def namespace(namespace: String) = NamespacedPodsApi(httpClient, config, namespace)
-
-  override def withLabels(labels: Map[String, String]): PodsApi[F] =
-    PodsApi(httpClient, config, labels)
+  def namespace(namespace: String): NamespacedPodsApi[F] = NamespacedPodsApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedPodsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    namespace: String,
-    labels: Map[String, String] = Map.empty
-)(
+private[client] case class NamespacedPodsApi[F[_]](httpClient: Client[F], config: KubeConfig, namespace: String)(
     implicit
     val F: Async[F],
     val resourceEncoder: Encoder[Pod],
@@ -66,12 +51,8 @@ private[client] case class NamespacedPodsApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F]
-    with Watchable[F, Pod]
-    with Filterable[NamespacedPodsApi[F]] {
-  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
-
-  override def withLabels(labels: Map[String, String]): NamespacedPodsApi[F] =
-    NamespacedPodsApi(httpClient, config, namespace, labels)
+    with Watchable[F, Pod] {
+  val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
   def exec[Result](
       podName: String,

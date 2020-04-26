@@ -5,34 +5,26 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.core.v1.{Service, ServiceList}
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class ServicesApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    labels: Map[String, String] = Map.empty
-)(
+private[client] case class ServicesApi[F[_]](httpClient: Client[F], config: KubeConfig)(
     implicit
     val F: Sync[F],
     val listDecoder: Decoder[ServiceList],
     encoder: Encoder[Service],
     decoder: Decoder[Service]
-) extends Listable[F, ServiceList]
-    with Filterable[ServicesApi[F]] {
-  val resourceUri = uri"/api" / "v1" / "services"
+) extends Listable[F, ServiceList] {
+  val resourceUri: Uri = uri"/api" / "v1" / "services"
 
-  def namespace(namespace: String) = NamespacedServicesApi(httpClient, config, namespace)
-
-  override def withLabels(labels: Map[String, String]): ServicesApi[F] =
-    ServicesApi(httpClient, config, labels)
+  def namespace(namespace: String): NamespacedServicesApi[F] = NamespacedServicesApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedServicesApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
-    namespace: String,
-    labels: Map[String, String] = Map.empty
+    namespace: String
 )(
     implicit
     val F: Sync[F],
@@ -46,10 +38,6 @@ private[client] case class NamespacedServicesApi[F[_]](
     with Proxy[F]
     with Deletable[F]
     with GroupDeletable[F]
-    with Watchable[F, Service]
-    with Filterable[NamespacedServicesApi[F]] {
-  val resourceUri = uri"/api" / "v1" / "namespaces" / namespace / "services"
-
-  override def withLabels(labels: Map[String, String]): NamespacedServicesApi[F] =
-    NamespacedServicesApi(httpClient, config, namespace, labels)
+    with Watchable[F, Service] {
+  val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "services"
 }

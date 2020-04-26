@@ -24,11 +24,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     with MinikubeClientProvider[F] {
   implicit def parallel: Parallel[F]
 
-  def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
-      implicit client: KubernetesClient[F]
-  ): Creatable[F, Resource]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
 
-  def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): Resource
+  def sampleResource(resourceName: String, labels: Map[String, String]): Resource
 
   def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
 
@@ -53,7 +51,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       } yield ()
 
     val sendEvents = for {
-      status <- namespacedApi(namespaceName).create(sampleResource(name))
+      status <- namespacedApi(namespaceName).create(sampleResource(name, Map.empty))
       _ = status shouldBe Status.Created
       _      <- retry(update(namespaceName, name))
       status <- deleteResource(namespaceName, name)
@@ -81,7 +79,8 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     val watchStream = for {
       signal   <- Stream.eval(SignallingRef[F, Boolean](false))
       received <- Stream.eval(Ref.of(mutable.Set.empty[EventType]))
-      watch <- watchApi(namespaceName).watch
+      watch <- watchApi(namespaceName)
+        .watch()
         .through(processEvent(received, signal))
         .evalMap(_ => received.get)
         .interruptWhen(signal)

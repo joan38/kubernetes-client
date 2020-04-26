@@ -15,10 +15,12 @@ private[client] trait Listable[F[_], Resource] extends Http4sClientDsl[F] {
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
-  protected val labels: Map[String, String]
   implicit protected def listDecoder: Decoder[Resource]
 
-  def list: F[Resource] = {
+  @deprecated("Use list() instead", "0.4.0")
+  def list: F[Resource] = list()
+
+  def list(labels: Map[String, String] = Map.empty): F[Resource] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
     httpClient.expect[Resource](GET(uri, config.authorization.toSeq: _*))
   }

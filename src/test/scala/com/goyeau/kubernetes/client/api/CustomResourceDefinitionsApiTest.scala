@@ -47,7 +47,7 @@ class CustomResourceDefinitionsApiTest
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
-      resourceList <- client.customResourceDefinitions.withLabels(labels).list
+      resourceList <- client.customResourceDefinitions.list(labels)
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).noElementsOf(resourceNames.map(crdName))
     } yield resourceList
 
@@ -59,7 +59,7 @@ class CustomResourceDefinitionsApiTest
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
-      resourceList <- client.customResourceDefinitions.list
+      resourceList <- client.customResourceDefinitions.list()
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).allElementsOf(resourceNames.map(crdName))
     } yield resourceList
 
@@ -119,25 +119,21 @@ class CustomResourceDefinitionsApiTest
     )
 
   def modifyResource(resource: CustomResourceDefinition): CustomResourceDefinition =
-    resource.copy(
-      spec = resource.spec.copy(versions = Seq(versions.copy(served = false)))
-    )
+    resource.copy(spec = resource.spec.copy(versions = Seq(versions.copy(served = false))))
   def checkUpdated(updatedResource: CustomResourceDefinition): Assertion =
     updatedResource.spec.versions.headOption shouldBe versions.copy(served = false).some
 
   override def afterAll(): Unit = {
     super.afterAll()
     val status = kubernetesClient
-      .use(implicit client => client.customResourceDefinitions.withLabels(crdLabel).delete)
+      .use(_.customResourceDefinitions.deleteAll(crdLabel))
       .unsafeRunSync()
     status shouldBe Status.Ok
     ()
   }
 
-  override def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
-      implicit client: KubernetesClient[IO]
-  ) =
-    client.customResourceDefinitions.withLabels(labels)
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+    client.customResourceDefinitions
 
   def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.customResourceDefinitions

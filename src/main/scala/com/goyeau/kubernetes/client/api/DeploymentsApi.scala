@@ -5,34 +5,27 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.apps.v1.{Deployment, DeploymentList}
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class DeploymentsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    labels: Map[String, String] = Map.empty
-)(
+private[client] case class DeploymentsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
     implicit
     val F: Sync[F],
     val listDecoder: Decoder[DeploymentList],
     encoder: Encoder[Deployment],
     decoder: Decoder[Deployment]
-) extends Listable[F, DeploymentList]
-    with Filterable[DeploymentsApi[F]] {
-  val resourceUri = uri"/apis" / "apps" / "v1" / "deployments"
+) extends Listable[F, DeploymentList] {
+  val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "deployments"
 
-  def namespace(namespace: String) = NamespacedDeploymentsApi(httpClient, config, namespace)
-
-  override def withLabels(labels: Map[String, String]): DeploymentsApi[F] =
-    DeploymentsApi(httpClient, config, labels)
+  def namespace(namespace: String): NamespacedDeploymentsApi[F] =
+    NamespacedDeploymentsApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedDeploymentsApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
-    namespace: String,
-    labels: Map[String, String] = Map.empty
+    namespace: String
 )(
     implicit
     val F: Sync[F],
@@ -46,10 +39,6 @@ private[client] case class NamespacedDeploymentsApi[F[_]](
     with Deletable[F]
     with DeletableTerminated[F]
     with GroupDeletable[F]
-    with Watchable[F, Deployment]
-    with Filterable[NamespacedDeploymentsApi[F]] {
-  val resourceUri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
-
-  override def withLabels(labels: Map[String, String]): NamespacedDeploymentsApi[F] =
-    NamespacedDeploymentsApi(httpClient, config, namespace, labels)
+    with Watchable[F, Deployment] {
+  val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "namespaces" / namespace / "deployments"
 }

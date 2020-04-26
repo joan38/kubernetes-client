@@ -30,10 +30,8 @@ class DeploymentsApiTest
   lazy val resourceName                     = classOf[Deployment].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.deployments
-  override def namespacedApi(namespaceName: String, labels: Map[String, String])(
-      implicit client: KubernetesClient[IO]
-  ) =
-    client.deployments.namespace(namespaceName).withLabels(labels)
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+    client.deployments.namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) = {
     val label = Option(Map("app" -> "test"))

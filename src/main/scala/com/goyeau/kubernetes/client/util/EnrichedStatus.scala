@@ -7,7 +7,6 @@ import org.http4s._
 import org.http4s.circe.CirceEntityCodec._
 
 private[client] object EnrichedStatus {
-
   def apply[F[_]: Sync](response: Response[F]): F[Status] =
     if (response.status.isSuccess) Sync[F].delay(response.status)
     else

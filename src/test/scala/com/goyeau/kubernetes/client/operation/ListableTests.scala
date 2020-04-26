@@ -20,9 +20,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
   val resourceIsNamespaced = true
 
   def api(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
-  def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
-      implicit client: KubernetesClient[F]
-  ): Listable[F, ResourceList]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
   def createChecked(namespaceName: String, resourceName: String, labels: Map[String, String] = Map.empty)(
       implicit client: KubernetesClient[F]
   ): F[Resource]
@@ -31,7 +29,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
       implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
-      resourceList <- namespacedApi(namespaceName, labels).list
+      resourceList <- namespacedApi(namespaceName).list(labels)
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).allElementsOf(resourceNames)
     } yield resourceList
 
@@ -39,7 +37,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
       implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
-      resourceList <- api.list
+      resourceList <- api.list()
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).allElementsOf(resourceNames)
     } yield resourceList
 
@@ -47,7 +45,7 @@ trait ListableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }, Reso
       implicit client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
-      resourceList <- namespacedApi(namespaceName, labels).list
+      resourceList <- namespacedApi(namespaceName).list(labels)
       _ = (resourceList.items.map(_.metadata.value.name.value) should contain).noElementsOf(resourceNames)
     } yield resourceList
 

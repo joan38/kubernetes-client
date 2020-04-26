@@ -16,9 +16,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     with OptionValues
     with MinikubeClientProvider[F] {
 
-  def namespacedApi(namespaceName: String, labels: Map[String, String] = Map.empty)(
-      implicit client: KubernetesClient[F]
-  ): Creatable[F, Resource]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
   def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
   def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): Resource
   def modifyResource(resource: Resource): Resource

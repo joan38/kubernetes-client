@@ -30,10 +30,8 @@ class StatefulSetsApiTest
   lazy val resourceName                     = classOf[StatefulSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.statefulSets
-  override def namespacedApi(namespaceName: String, labels: Map[String, String])(
-      implicit client: KubernetesClient[IO]
-  ) =
-    client.statefulSets.namespace(namespaceName).withLabels(labels)
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+    client.statefulSets.namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) = {
     val label = Option(Map("app" -> "test"))

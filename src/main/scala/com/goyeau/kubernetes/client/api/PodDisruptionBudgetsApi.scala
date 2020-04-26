@@ -5,34 +5,27 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.policy.v1beta1.{PodDisruptionBudget, PodDisruptionBudgetList}
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class PodDisruptionBudgetsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    labels: Map[String, String] = Map.empty
-)(
+private[client] case class PodDisruptionBudgetsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
     implicit
     val F: Sync[F],
     val listDecoder: Decoder[PodDisruptionBudgetList],
     encoder: Encoder[PodDisruptionBudget],
     decoder: Decoder[PodDisruptionBudget]
-) extends Listable[F, PodDisruptionBudgetList]
-    with Filterable[PodDisruptionBudgetsApi[F]] {
-  val resourceUri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
+) extends Listable[F, PodDisruptionBudgetList] {
+  val resourceUri: Uri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
 
-  def namespace(namespace: String) = NamespacedPodDisruptionBudgetApi(httpClient, config, namespace)
-
-  override def withLabels(labels: Map[String, String]): PodDisruptionBudgetsApi[F] =
-    PodDisruptionBudgetsApi(httpClient, config, labels)
+  def namespace(namespace: String): NamespacedPodDisruptionBudgetApi[F] =
+    NamespacedPodDisruptionBudgetApi(httpClient, config, namespace)
 }
 
 private[client] case class NamespacedPodDisruptionBudgetApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
-    namespace: String,
-    labels: Map[String, String] = Map.empty
+    namespace: String
 )(
     implicit
     val F: Sync[F],
@@ -45,10 +38,6 @@ private[client] case class NamespacedPodDisruptionBudgetApi[F[_]](
     with Listable[F, PodDisruptionBudgetList]
     with Deletable[F]
     with GroupDeletable[F]
-    with Watchable[F, PodDisruptionBudget]
-    with Filterable[NamespacedPodDisruptionBudgetApi[F]] {
-  val resourceUri = uri"/apis" / "policy" / "v1beta1" / "namespaces" / namespace / "poddisruptionbudgets"
-
-  override def withLabels(labels: Map[String, String]): NamespacedPodDisruptionBudgetApi[F] =
-    NamespacedPodDisruptionBudgetApi(httpClient, config, namespace, labels)
+    with Watchable[F, PodDisruptionBudget] {
+  val resourceUri: Uri = uri"/apis" / "policy" / "v1beta1" / "namespaces" / namespace / "poddisruptionbudgets"
 }

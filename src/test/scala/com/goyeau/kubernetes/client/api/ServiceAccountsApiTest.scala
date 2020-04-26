@@ -28,10 +28,8 @@ class ServiceAccountsApiTest
   lazy val resourceName                     = classOf[ServiceAccount].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.serviceAccounts
-  override def namespacedApi(namespaceName: String, labels: Map[String, String])(
-      implicit client: KubernetesClient[IO]
-  ) =
-    client.serviceAccounts.namespace(namespaceName).withLabels(labels)
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+    client.serviceAccounts.namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) = ServiceAccount(
     metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels)))
