@@ -3,6 +3,7 @@ package com.goyeau.kubernetes.client.api
 import cats.effect._
 import cats.syntax.option._
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest._
 import com.goyeau.kubernetes.client.operation._
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
@@ -12,6 +13,58 @@ import org.http4s.Status
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{Assertion, OptionValues}
+
+object CustomResourceDefinitionsApiTest {
+  val versions: CustomResourceDefinitionVersion =
+    CustomResourceDefinitionVersion(
+      name = "v1",
+      served = true,
+      storage = true,
+      schema = CustomResourceValidation(
+        JSONSchemaProps(
+          `type` = "object".some,
+          properties = Map(
+            "spec" -> JSONSchemaProps(
+              `type` = "object".some,
+              properties = Map(
+                "cronSpec" -> JSONSchemaProps(`type` = "string".some),
+                "image"    -> JSONSchemaProps(`type` = "string".some),
+                "replicas" -> JSONSchemaProps(`type` = "integer".some)
+              ).some
+            ),
+            "status" -> JSONSchemaProps(
+              `type` = "object".some,
+              properties = Map(
+                "name" -> JSONSchemaProps(`type` = "string".some)
+              ).some
+            )
+          ).some
+        ).some
+      ).some,
+      subresources = CustomResourceSubresources(status = CustomResourceSubresourceStatus().some).some
+    )
+  val crdLabel = Map("test" -> "kubernetes-client")
+  val group    = "kubernetes-client.goyeau.com"
+
+  def plural(resourceName: String): String  = s"${resourceName.toLowerCase}s"
+  def crdName(resourceName: String): String = s"${plural(resourceName)}.$group"
+  def crd(resourceName: String, labels: Map[String, String]): CustomResourceDefinition = CustomResourceDefinition(
+    spec = CustomResourceDefinitionSpec(
+      group = group,
+      scope = "Namespaced",
+      names = CustomResourceDefinitionNames(
+        plural(resourceName),
+        resourceName
+      ),
+      versions = Seq(versions)
+    ),
+    apiVersion = "apiextensions.k8s.io/v1".some,
+    metadata = ObjectMeta(
+      name = crdName(resourceName).some,
+      labels = (labels ++ crdLabel).some
+    ).some
+  )
+}
 
 class CustomResourceDefinitionsApiTest
     extends AnyFlatSpec
@@ -29,8 +82,6 @@ class CustomResourceDefinitionsApiTest
   implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
   implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
   lazy val resourceName: String             = classOf[CustomResourceDefinition].getSimpleName
-  lazy val group                            = "kubernetes-client.goyeau.com"
-  lazy val crdLabel                         = Map("test" -> "kubernetes-client")
   override val resourceIsNamespaced         = false
 
   override def api(implicit client: KubernetesClient[IO]) = client.customResourceDefinitions
@@ -75,48 +126,8 @@ class CustomResourceDefinitionsApiTest
       _ = resource.metadata.value.name.value shouldBe crdName
     } yield resource
 
-  def plural(resourceName: String): String  = s"${resourceName}s"
-  def crdName(resourceName: String): String = s"${plural(resourceName)}.$group"
-
   def sampleResource(resourceName: String, labels: Map[String, String]): CustomResourceDefinition =
-    CustomResourceDefinition(
-      spec = CustomResourceDefinitionSpec(
-        group = group,
-        scope = "Namespaced",
-        names = CustomResourceDefinitionNames(
-          plural(resourceName),
-          resourceName
-        ),
-        versions = Seq(versions)
-      ),
-      apiVersion = "apiextensions.k8s.io/v1".some,
-      metadata = ObjectMeta(
-        name = crdName(resourceName).some,
-        labels = (labels ++ crdLabel).some
-      ).some
-    )
-
-  val versions: CustomResourceDefinitionVersion =
-    CustomResourceDefinitionVersion(
-      name = "v1",
-      served = true,
-      storage = true,
-      schema = CustomResourceValidation(
-        JSONSchemaProps(
-          `type` = "object".some,
-          properties = Map(
-            "spec" -> JSONSchemaProps(
-              `type` = "object".some,
-              properties = Map(
-                "cronSpec" -> JSONSchemaProps(`type` = "string".some),
-                "image"    -> JSONSchemaProps(`type` = "string".some),
-                "replicas" -> JSONSchemaProps(`type` = "integer".some)
-              ).some
-            )
-          ).some
-        ).some
-      ).some
-    )
+    CustomResourceDefinitionsApiTest.crd(resourceName, labels)
 
   def modifyResource(resource: CustomResourceDefinition): CustomResourceDefinition =
     resource.copy(spec = resource.spec.copy(versions = Seq(versions.copy(served = false))))
