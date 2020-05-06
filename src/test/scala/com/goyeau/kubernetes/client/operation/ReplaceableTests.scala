@@ -16,9 +16,15 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     with OptionValues
     with MinikubeClientProvider[F] {
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Replaceable[F, Resource]
-  def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
-  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
+  def namespacedApi(namespaceName: String)(
+      implicit client: KubernetesClient[F]
+  ): Replaceable[F, Resource]
+  def createChecked(namespaceName: String, resourceName: String)(
+      implicit client: KubernetesClient[F]
+  ): F[Resource]
+  def getChecked(namespaceName: String, resourceName: String)(
+      implicit client: KubernetesClient[F]
+  ): F[Resource]
   def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): Resource
   def modifyResource(resource: Resource): Resource
   def checkUpdated(updatedResource: Resource): Assertion
@@ -43,16 +49,28 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   it should "fail on non existing namespace" in usingMinikube { implicit client =>
     for {
-      status <- namespacedApi("non-existing").replace(sampleResource("non-existing"))
-      _ = status shouldBe Status.NotFound
+      status <- namespacedApi("non-existing").replace(
+        sampleResource("non-existing")
+      )
+      _ = status should (equal(Status.NotFound).or(
+        equal(
+          Status.InternalServerError
+        )
+      ))
     } yield ()
   }
 
   it should s"fail on non existing $resourceName" in usingMinikube { implicit client =>
     for {
       namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      status        <- namespacedApi(namespaceName).replace(sampleResource("non-existing"))
-      _ = status shouldBe Status.NotFound
+      status <- namespacedApi(namespaceName).replace(
+        sampleResource("non-existing")
+      )
+      _ = status should (equal(Status.NotFound).or(
+        equal(
+          Status.InternalServerError
+        )
+      ))
     } yield ()
   }
 }
