@@ -9,8 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class HorizontalPodAutoscalersApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-    implicit
+private[client] case class HorizontalPodAutoscalersApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[HorizontalPodAutoscalerList],
     encoder: Encoder[HorizontalPodAutoscaler],
@@ -26,8 +25,7 @@ private[client] case class NamespacedHorizontalPodAutoscalersApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
     namespace: String
-)(
-    implicit
+)(implicit
     val F: Sync[F],
     val resourceEncoder: Encoder[HorizontalPodAutoscaler],
     val resourceDecoder: Decoder[HorizontalPodAutoscaler],

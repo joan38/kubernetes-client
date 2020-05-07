@@ -11,8 +11,7 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 import scala.collection.compat._
 
-private[client] case class SecretsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-    implicit
+private[client] case class SecretsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[SecretList],
     encoder: Encoder[Secret],
@@ -27,8 +26,7 @@ private[client] case class NamespacedSecretsApi[F[_]](
     httpClient: Client[F],
     config: KubeConfig,
     namespace: String
-)(
-    implicit
+)(implicit
     val F: Sync[F],
     val resourceEncoder: Encoder[Secret],
     val resourceDecoder: Decoder[Secret],

@@ -16,8 +16,7 @@ private[client] case class CustomResourcesApi[F[_], A, B](
     httpClient: Client[F],
     config: KubeConfig,
     context: CrdContext
-)(
-    implicit
+)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[CustomResourceList[A, B]],
     encoder: Encoder[CustomResource[A, B]],
@@ -35,8 +34,7 @@ private[client] case class NamespacedCustomResourcesApi[F[_], A, B](
     config: KubeConfig,
     context: CrdContext,
     namespace: String
-)(
-    implicit
+)(implicit
     val F: Sync[F],
     val resourceEncoder: Encoder[CustomResource[A, B]],
     val resourceDecoder: Decoder[CustomResource[A, B]],

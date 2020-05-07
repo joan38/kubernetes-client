@@ -25,8 +25,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-    implicit
+private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
     encoder: Encoder[Pod],
@@ -85,10 +84,11 @@ private[client] case class NamespacedPodsApi[F[_]](httpClient: Client[F], config
           .map(log => decode[Status](log.trim).fold(_ => Right(log), Left(_)))
       )
 
-      def convertAuthorization(authorization: http4s.headers.Authorization) = authorization.credentials match {
-        case Token(AuthScheme.Bearer, token) => Authorization(OAuth2BearerToken(token))
-        case _                               => throw new IllegalStateException("")
-      }
+      def convertAuthorization(authorization: http4s.headers.Authorization) =
+        authorization.credentials match {
+          case Token(AuthScheme.Bearer, token) => Authorization(OAuth2BearerToken(token))
+          case _                               => throw new IllegalStateException("")
+        }
 
       val (upgradeResponse, eventualResult) = Http().singleWebSocketRequest(
         WebSocketRequest(
