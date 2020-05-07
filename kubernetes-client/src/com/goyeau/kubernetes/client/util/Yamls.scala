@@ -46,20 +46,23 @@ private[client] object Yamls {
       configJson <- Sync[F].fromEither(parse(Source.fromFile(kubeconfig).mkString))
       config     <- Sync[F].fromEither(configJson.as[Config])
       contextName = contextMaybe.getOrElse(config.`current-context`)
-      namedContext <- config.contexts
-        .find(_.name == contextName)
-        .liftTo[F](new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
+      namedContext <-
+        config.contexts
+          .find(_.name == contextName)
+          .liftTo[F](new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
       _ <- Logger[F].debug(s"KubeConfig with context ${namedContext.name}")
       context = namedContext.context
 
-      namedCluster <- config.clusters
-        .find(_.name == context.cluster)
-        .liftTo[F](new IllegalArgumentException(s"Can't find cluster named ${context.cluster} in $kubeconfig"))
+      namedCluster <-
+        config.clusters
+          .find(_.name == context.cluster)
+          .liftTo[F](new IllegalArgumentException(s"Can't find cluster named ${context.cluster} in $kubeconfig"))
       cluster = namedCluster.cluster
 
-      namedAuthInfo <- config.users
-        .find(_.name == context.user)
-        .liftTo[F](new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
+      namedAuthInfo <-
+        config.users
+          .find(_.name == context.user)
+          .liftTo[F](new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
       user = namedAuthInfo.user
 
       server <- Sync[F].fromEither(Uri.fromString(cluster.server))

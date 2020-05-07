@@ -9,8 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class CustomResourceDefinitionsApi[F[_]](httpClient: Client[F], config: KubeConfig)(
-    implicit
+private[client] case class CustomResourceDefinitionsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[CustomResourceDefinitionList],
     val resourceEncoder: Encoder[CustomResourceDefinition],

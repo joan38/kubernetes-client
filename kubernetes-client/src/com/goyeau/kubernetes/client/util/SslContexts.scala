@@ -36,7 +36,8 @@ object SslContexts {
       certStream <- certDataStream.orElse(certFileStream)
     } yield {
       Security.addProvider(new BouncyCastleProvider())
-      val pemKeyPair = new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair] // scalafix:ok
+      val pemKeyPair =
+        new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair] // scalafix:ok
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
       val certificateFactory = CertificateFactory.getInstance("X509")
