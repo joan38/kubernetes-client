@@ -2,7 +2,9 @@ package com.goyeau.kubernetes.client
 
 import cats.effect._
 import com.goyeau.kubernetes.client.api._
+import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.util.SslContexts
+import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
 import org.http4s.client.blaze.BlazeClientBuilder
 
@@ -23,6 +25,15 @@ case class KubernetesClient[F[_]: ConcurrentEffect](httpClient: Client[F], confi
   lazy val horizontalPodAutoscalers  = HorizontalPodAutoscalersApi(httpClient, config)
   lazy val podDisruptionBudgets      = PodDisruptionBudgetsApi(httpClient, config)
   lazy val customResourceDefinitions = CustomResourceDefinitionsApi(httpClient, config)
+
+  def customResources[A: Encoder: Decoder, B: Encoder: Decoder](
+      context: CrdContext
+  )(
+      implicit listDecoder: Decoder[CustomResourceList[A, B]],
+      encoder: Encoder[CustomResource[A, B]],
+      decoder: Decoder[CustomResource[A, B]]
+  ) =
+    CustomResourcesApi[F, A, B](httpClient, config, context)
 }
 
 object KubernetesClient {
