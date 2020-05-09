@@ -153,7 +153,7 @@ object SwaggerModelGenerator {
         .replace("object", "`object`")
 
   def generateDescription(description: Option[String]): String =
-    description.fold("")(d => s"/** ${d.replace("*/", "*&#47;").replace("/*", "&#47;*")} */\n")
+    description.fold("")(d => s"/* ${d.replace("*/", "*&#47;").replace("/*", "&#47;*")} */\n")
 
   def generateType(property: Property): String =
     (property.`type`, property.$ref) match {
