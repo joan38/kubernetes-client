@@ -1,0 +1,40 @@
+package com.goyeau.kubernetes.client.api
+
+import cats.effect.Sync
+import com.goyeau.kubernetes.client.KubeConfig
+import com.goyeau.kubernetes.client.operation._
+import io.circe._
+import org.http4s.Uri
+import org.http4s.client.Client
+import org.http4s.implicits._
+import io.k8s.api.networking.v1beta1.{Ingress, IngressList}
+
+private[client] case class IngressessApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+    val F: Sync[F],
+    val listDecoder: Decoder[IngressList],
+    encoder: Encoder[Ingress],
+    decoder: Decoder[Ingress]
+) extends Listable[F, IngressList] {
+  val resourceUri: Uri = uri"/apis" / "extensions" / "v1beta1" / "ingresses"
+
+  def namespace(namespace: String): NamespacedIngressesApi[F] = NamespacedIngressesApi(httpClient, config, namespace)
+}
+
+private[client] case class NamespacedIngressesApi[F[_]](
+    httpClient: Client[F],
+    config: KubeConfig,
+    namespace: String
+)(implicit
+    val F: Sync[F],
+    val resourceEncoder: Encoder[Ingress],
+    val resourceDecoder: Decoder[Ingress],
+    val listDecoder: Decoder[IngressList]
+) extends Creatable[F, Ingress]
+    with Replaceable[F, Ingress]
+    with Gettable[F, Ingress]
+    with Listable[F, IngressList]
+    with Deletable[F]
+    with GroupDeletable[F]
+    with Watchable[F, Ingress] {
+  val resourceUri: Uri = uri"/apis" / "extensions" / "v1beta1" / "namespaces" / namespace / "ingresses"
+}
