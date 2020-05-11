@@ -33,9 +33,10 @@ class KubernetesClientModule(val crossScalaVersion: String)
     override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalatest::scalatest:3.1.1")
   }
 
+  override def artifactName = "kubernetes-client"
   def pomSettings =
     PomSettings(
-      description = artifactName(),
+      description = "A Kubernetes client for Scala",
       organization = "com.goyeau",
       url = "https://github.com/joan38/kubernetes-client",
       licenses = Seq(License.`Apache-2.0`),
