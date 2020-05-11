@@ -65,7 +65,8 @@ object SwaggerModelGenerator {
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ExternalDocumentation",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.WebhookClientConfig",
-      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ServiceReference"
+      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ServiceReference",
+      "io.k8s.api.networking.v1beta1"
     )
     allowedPrefixes.exists(className.startsWith) && !skipClasses.contains(className)
   }

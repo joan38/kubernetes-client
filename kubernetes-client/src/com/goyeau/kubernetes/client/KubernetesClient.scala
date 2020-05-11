@@ -25,6 +25,7 @@ case class KubernetesClient[F[_]: ConcurrentEffect](httpClient: Client[F], confi
   lazy val horizontalPodAutoscalers  = HorizontalPodAutoscalersApi(httpClient, config)
   lazy val podDisruptionBudgets      = PodDisruptionBudgetsApi(httpClient, config)
   lazy val customResourceDefinitions = CustomResourceDefinitionsApi(httpClient, config)
+  lazy val ingresses                 = IngressessApi(httpClient, config)
 
   def customResources[A: Encoder: Decoder, B: Encoder: Decoder](context: CrdContext)(implicit
       listDecoder: Decoder[CustomResourceList[A, B]],

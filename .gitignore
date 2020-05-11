@@ -101,3 +101,8 @@ MANIFEST
 env/
 venv/
 ENV/
+
+.metals
+.bloop
+metals.sbt
+build.properties
