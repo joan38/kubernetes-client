@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Set up Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.x
       - name: Style checks
         run: ./mill all __.checkFormat "__.fix --check" __.docJar
 
