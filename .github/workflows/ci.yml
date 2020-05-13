@@ -73,6 +73,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Pull all history with tags for correct versionning
+        run: git fetch --prune --unshallow
       - name: Publish
         if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
         run: |
