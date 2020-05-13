@@ -12,11 +12,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Set up Java
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11.0.x
       - name: Style checks
+        uses: actions/setup-java@v1
+          with:
+            java-version: 11.0.x
         run: ./mill all __.checkFormat "__.fix --check" __.docJar
 
   integration-kubernetes-v1-18:
@@ -33,6 +32,9 @@ jobs:
           kubernetes version: v1.18.2
           github token: ${{ secrets.GITHUB_TOKEN }}
       - name: Test against Kubernetes v1.18.2
+        uses: actions/setup-java@v1
+          with:
+            java-version: 11.0.x
         run: ./mill __.test
 
   integration-kubernetes-v1-17:
@@ -49,6 +51,9 @@ jobs:
           kubernetes version: v1.17.5
           github token: ${{ secrets.GITHUB_TOKEN }}
       - name: Test against Kubernetes v1.17.5
+        uses: actions/setup-java@v1
+          with:
+            java-version: 11.0.x
         run: ./mill __.test
 
   integration-kubernetes-v1-16:
@@ -65,6 +70,9 @@ jobs:
           kubernetes version: v1.16.8
           github token: ${{ secrets.GITHUB_TOKEN }}
       - name: Test against Kubernetes v1.16.8
+        uses: actions/setup-java@v1
+          with:
+            java-version: 11.0.x
         run: ./mill __.test
 
   publish:

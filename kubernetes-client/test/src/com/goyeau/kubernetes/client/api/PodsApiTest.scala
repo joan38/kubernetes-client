@@ -38,7 +38,7 @@ class PodsApiTest
   override def sampleResource(resourceName: String, labels: Map[String, String]) =
     Pod(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
-      spec = Option(PodSpec(containers = Seq(Container("test", image = Option("busybox")))))
+      spec = Option(PodSpec(containers = Seq(Container("test", image = Option("docker")))))
     )
   val activeDeadlineSeconds = Option(5L)
   override def modifyResource(resource: Pod) =
@@ -57,9 +57,9 @@ class PodsApiTest
 
   it should "exec into pod" in {
     val namespaceName = resourceName.toLowerCase
-    val name          = resourceName.toLowerCase + "-exec"
+    val podName          = s"${resourceName.toLowerCase}-exec"
     val testPod = Pod(
-      metadata = Option(ObjectMeta(name = Option(name))),
+      metadata = Option(ObjectMeta(name = Option(podName))),
       spec = Option(
         PodSpec(containers =
           Seq(
@@ -77,7 +77,7 @@ class PodsApiTest
         for {
           status <- namespacedApi(namespaceName).create(testPod)
           _ = status shouldBe Status.Created
-          pod <- waitUntilReady(namespaceName, name)
+          pod <- waitUntilReady(namespaceName, podName)
           res <- namespacedApi(namespaceName).exec(
             pod.metadata.get.name.get,
             (es: ExecStream) => List(es),
@@ -100,13 +100,14 @@ class PodsApiTest
     messages.collect { case StdErr(d) => d }.length should be(0)
   }
 
+  val podStatusCount = 4
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
     Utils.retry(for {
       pod <- getChecked(namespaceName, name)
       notStarted  = pod.status.flatMap(_.conditions.map(_.exists(c => c.status == "False"))).getOrElse(false)
       statusCount = pod.status.flatMap(_.conditions.map(_.length)).getOrElse(0)
       _ <-
-        if (notStarted || statusCount != 4)
+        if (notStarted || statusCount != podStatusCount)
           IO.raiseError(new RuntimeException("Pod is not started"))
         else IO.unit
     } yield pod)
