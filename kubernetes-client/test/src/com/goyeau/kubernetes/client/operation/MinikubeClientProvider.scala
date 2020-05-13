@@ -13,6 +13,7 @@ trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestEx
 
   implicit def F: ConcurrentEffect[F]
   implicit def timer: Timer[F]
+  implicit def contextShift: ContextShift[F]
   implicit def logger: Logger[F]
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {

@@ -13,19 +13,13 @@ object Dependencies {
 
   lazy val http4s = {
     val version = "0.21.2"
+    val jdkClientVersion = "0.3.0"
     Agg(
       ivy"org.http4s::http4s-dsl:$version",
       ivy"org.http4s::http4s-circe:$version",
       ivy"org.http4s::http4s-blaze-server:$version",
-      ivy"org.http4s::http4s-blaze-client:$version"
-    )
-  }
-
-  val akkaHttpVersion = "10.1.11"
-  lazy val akkaHttp = {
-    Agg(
-      ivy"com.typesafe.akka::akka-http:$akkaHttpVersion",
-      ivy"com.typesafe.akka::akka-stream:2.6.4"
+      ivy"org.http4s::http4s-blaze-client:$version",
+      ivy"org.http4s::http4s-jdk-http-client:$jdkClientVersion"
     )
   }
 
@@ -42,8 +36,7 @@ object Dependencies {
 
   lazy val tests = Agg(
     ivy"org.scalatest::scalatest:3.1.1",
-    ivy"com.github.julien-truffaut::monocle-core:2.0.4",
-    ivy"com.typesafe.akka::akka-http-testkit:$akkaHttpVersion"
+    ivy"com.github.julien-truffaut::monocle-core:2.0.4"
   )
 
 }

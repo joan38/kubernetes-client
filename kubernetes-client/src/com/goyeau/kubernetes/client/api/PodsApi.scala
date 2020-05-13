@@ -1,44 +1,47 @@
 package com.goyeau.kubernetes.client.api
 
-import java.net.URLEncoder
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
-import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
-import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.http.scaladsl.{ConnectionContext, Http}
-import akka.stream.scaladsl.{BidiFlow, Flow}
-import akka.util.ByteString
-import cats.effect.Async
+import cats.effect.{Async, ConcurrentEffect, ContextShift}
+import cats.kernel.Monoid
+import cats.syntax.either._
+import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.util.SslContexts
-import com.goyeau.kubernetes.client.{KubeConfig, KubernetesException}
+import fs2.Pipe
 import io.circe._
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
-import org.http4s
-import org.http4s.{AuthScheme, Uri}
-import org.http4s.Credentials.Token
+import org.http4s._
 import org.http4s.client.Client
+import org.http4s.client.jdkhttpclient._
 import org.http4s.implicits._
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scodec.bits.ByteVector
 
-private[client] case class PodsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] case class PodsApi[F[_]](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
+    val concurrent: ConcurrentEffect[F],
+    val contextShift: ContextShift[F],
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
 ) extends Listable[F, PodList] {
   val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
-  def namespace(namespace: String): NamespacedPodsApi[F] = NamespacedPodsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedPodsApi[F] = NamespacedPodsApi(httpClient, wsClient, config, namespace)
 }
 
-private[client] case class NamespacedPodsApi[F[_]](httpClient: Client[F], config: KubeConfig, namespace: String)(
-    implicit
+sealed trait ExecStream
+final case class StdOut(data: String) extends ExecStream
+final case class StdErr(data: String) extends ExecStream
+
+private[client] case class NamespacedPodsApi[F[_]](
+    httpClient: Client[F],
+    wsClient: WSClient[F],
+    config: KubeConfig,
+    namespace: String
+)(implicit
     val F: Async[F],
+    val concurrent: ConcurrentEffect[F],
+    val contextShift: ContextShift[F],
     val resourceEncoder: Encoder[Pod],
     val resourceDecoder: Decoder[Pod],
     val listDecoder: Decoder[PodList]
@@ -53,66 +56,67 @@ private[client] case class NamespacedPodsApi[F[_]](httpClient: Client[F], config
     with Watchable[F, Pod] {
   val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
-  def exec[Result](
+  val execHeaders: Headers =
+    Headers.of(
+      config.authorization.toList ++ headers.`Sec-WebSocket-Protocol`.parse("v4.channel.k8s.io").toOption.toList: _*
+    )
+
+  val webSocketAddress: Uri = Uri.unsafeFromString(
+    config.server
+      .toString()
+      .replaceFirst("http", "ws")
+  )
+
+  def exec[T: Monoid](
       podName: String,
-      flow: Flow[Either[Status, String], Message, Future[Result]],
+      flow: ExecStream => T,
       container: Option[String] = None,
       command: Seq[String] = Seq.empty,
       stdin: Boolean = false,
       stdout: Boolean = true,
       stderr: Boolean = true,
       tty: Boolean = false
-  )(implicit actorSystem: ActorSystem): F[Result] = {
-    import actorSystem.dispatcher
+  ): F[(T, Either[String, Status])] = {
+    val uri = (webSocketAddress.resolve(resourceUri) / podName / "exec")
+      .+?("stdin", stdin.toString)
+      .+?("stdout", stdout.toString)
+      .+?("stderr", stderr.toString)
+      .+?("tty", tty.toString)
+      .+??("container", container)
+      .+?("command", command)
 
-    F.async { cb =>
-      val containerParam = container.fold("")(containerName => s"&container=$containerName")
-      val commandParam   = command.map(c => s"&command=${URLEncoder.encode(c, "UTF-8")}").mkString
-      val params         = s"stdin=$stdin&stdout=$stdout&stderr=$stderr&tty=$tty$containerParam$commandParam"
-      val uri            = s"${config.server.toString.replaceFirst("http", "ws")}/$resourceUri/$podName/exec?$params"
-
-      val mapFlow = BidiFlow.fromFlows(
-        Flow.fromFunction[Message, Message](identity),
-        Flow
-          .fromFunction[Message, Future[String]] {
-            case BinaryMessage.Strict(data)     => Future.successful(data.utf8String)
-            case BinaryMessage.Streamed(stream) => stream.runFold(ByteString(""))(_ ++ _).map(_.utf8String)
-            case TextMessage.Strict(data)       => Future.successful(data)
-            case TextMessage.Streamed(stream)   => stream.runFold("")(_ + _)
-          }
-          .mapAsync(parallelism = 1)(identity)
-          .map(log => decode[Status](log.trim).fold(_ => Right(log), Left(_)))
-      )
-
-      def convertAuthorization(authorization: http4s.headers.Authorization) =
-        authorization.credentials match {
-          case Token(AuthScheme.Bearer, token) => Authorization(OAuth2BearerToken(token))
-          case _                               => throw new IllegalStateException("")
+    val request = WSRequest(uri, execHeaders, Method.POST)
+    wsClient.connectHighLevel(request).use { connection =>
+      connection.receiveStream
+        .through(processWebSocketData)
+        .compile
+        .fold((Monoid.empty[T], "".asLeft[Status])) {
+          case ((accEvents, accStatus), (events, status)) =>
+            (
+              events.foldLeft(accEvents) {
+                case (acc, es) => Monoid.combine[T](acc, flow(es))
+              },
+              accStatus.orElse(status)
+            )
         }
-
-      val (upgradeResponse, eventualResult) = Http().singleWebSocketRequest(
-        WebSocketRequest(
-          uri,
-          extraHeaders = config.authorization.toList.map(convertAuthorization),
-          subprotocol = Option("v4.channel.k8s.io")
-        ),
-        flow.join(mapFlow),
-        ConnectionContext.https(SslContexts.fromConfig(config)),
-        settings = ClientConnectionSettings(actorSystem).withIdleTimeout(10.minutes)
-      )
-
-      val result = for {
-        upgrade <- upgradeResponse
-        response = upgrade.response
-        entity <- response.entity.dataBytes.runFold(ByteString(""))(_ ++ _)
-        _ = if (response.status.isFailure) throw KubernetesException(response.status.intValue, uri, entity.utf8String)
-        result <- eventualResult
-      } yield result
-
-      result.onComplete {
-        case Success(value) => cb(Right(value))
-        case Failure(error) => cb(Left(error))
-      }
     }
   }
+
+  // first byte defines which stream incoming message belongs to
+  private def processWebSocketData: Pipe[F, WSDataFrame, (List[ExecStream], Either[String, Status])] =
+    _.collect {
+      case WSFrame.Binary(data, _) if data.headOption.contains(1.toByte) =>
+        List(StdOut(convertToString(dropRoutingByte(data)))) -> "".asLeft
+      case WSFrame.Binary(data, _) if data.headOption.contains(2.toByte) =>
+        List(StdErr(convertToString(dropRoutingByte(data)))) -> "".asLeft
+      case WSFrame.Binary(data, _) if data.headOption.contains(3.toByte) =>
+        val json = convertToString(dropRoutingByte(data))
+        Nil -> decode[Status](json).left.flatMap(_ => json.asLeft[Status])
+    }
+
+  private def dropRoutingByte(data: ByteVector) =
+    data.drop(1)
+
+  private def convertToString(data: ByteVector) =
+    new String(data.toArray, Charset.`UTF-8`.nioCharset)
 }
