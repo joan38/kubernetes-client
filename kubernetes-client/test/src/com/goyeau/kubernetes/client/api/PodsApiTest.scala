@@ -1,14 +1,18 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.effect.{ConcurrentEffect, IO}
-import com.goyeau.kubernetes.client.KubernetesClient
+import cats.implicits._
+import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.{KubernetesClient, Utils}
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.core.v1.{Container, Pod, PodList, PodSpec}
-import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.flatspec.AnyFlatSpec
+import io.k8s.api.core.v1._
+import io.k8s.apimachinery.pkg.apis.meta.v1
+import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
+import org.http4s.Status
 import org.scalatest.OptionValues
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class PodsApiTest
@@ -32,15 +36,17 @@ class PodsApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.pods.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = Pod(
-    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
-    spec = Option(PodSpec(nodeName = Some("minikube"), containers = Seq(Container("test", image = Option("docker")))))
-  )
+  override def sampleResource(resourceName: String, labels: Map[String, String]) =
+    Pod(
+      metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
+      spec = Option(PodSpec(containers = Seq(Container("test", image = Option("docker")))))
+    )
   val activeDeadlineSeconds = Option(5L)
-  override def modifyResource(resource: Pod) = resource.copy(
-    metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
-    spec = resource.spec.map(_.copy(activeDeadlineSeconds = activeDeadlineSeconds))
-  )
+  override def modifyResource(resource: Pod) =
+    resource.copy(
+      metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
+      spec = resource.spec.map(_.copy(activeDeadlineSeconds = activeDeadlineSeconds))
+    )
   override def checkUpdated(updatedResource: Pod) =
     updatedResource.spec.value.activeDeadlineSeconds shouldBe activeDeadlineSeconds
 
@@ -49,4 +55,66 @@ class PodsApiTest
 
   override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Pod] =
     client.pods.namespace(namespaceName)
+
+  it should "exec into pod" in {
+    val namespaceName = resourceName.toLowerCase
+    val podName       = s"${resourceName.toLowerCase}-exec"
+    val testPod = Pod(
+      metadata = Option(ObjectMeta(name = Option(podName))),
+      spec = Option(
+        PodSpec(containers =
+          Seq(
+            Container(
+              "test",
+              image = Option("docker"),
+              command = Option(Seq("sh", "-c", "tail -f /dev/null"))
+            )
+          )
+        )
+      )
+    )
+    val res = kubernetesClient
+      .use { implicit client =>
+        for {
+          status <- namespacedApi(namespaceName).create(testPod)
+          _ = status shouldBe Status.Created
+          pod <- waitUntilReady(namespaceName, podName)
+          res <- namespacedApi(namespaceName).exec(
+            pod.metadata.get.name.get,
+            (es: ExecStream) => List(es),
+            pod.spec.flatMap(_.containers.headOption.map(_.name)),
+            Seq("ls")
+          )
+        } yield res
+      }
+      .unsafeRunSync()
+    val (messages, status) = res
+
+    status should be(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
+
+    messages.length shouldNot be(0)
+
+    val stdOut = messages
+      .collect {
+        case StdOut(d) => d
+      }
+      .mkString("")
+    val expectedDirs = List("dev", "etc", "home", "usr", "var").mkString("|")
+
+    (stdOut should include).regex(expectedDirs)
+    messages.map(_.data).mkString("") should include.regex(expectedDirs)
+    messages.collect { case StdErr(d) => d }.length should be(0)
+  }
+
+  val podStatusCount = 4
+  def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
+    Utils.retry(for {
+      pod <- getChecked(namespaceName, name)
+      notStarted  = pod.status.flatMap(_.conditions.map(_.exists(c => c.status == "False"))).getOrElse(false)
+      statusCount = pod.status.flatMap(_.conditions.map(_.length)).getOrElse(0)
+      _ <-
+        if (notStarted || statusCount != podStatusCount)
+          IO.raiseError(new RuntimeException("Pod is not started"))
+        else IO.unit
+    } yield pod)
 }

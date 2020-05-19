@@ -25,12 +25,15 @@ class KubernetesClientModule(val crossScalaVersion: String)
     super.scalacOptions().filter(_ != "-Wunused:imports") ++
       (if (crossScalaVersion.startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty)
   override def ivyDeps =
-    super.ivyDeps() ++ http4s ++ akkaHttp ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
+    super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
 
   object test extends Tests {
     def testFrameworks    = Seq("org.scalatest.tools.Framework")
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
     override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalatest::scalatest:3.1.1")
+    def testOne(args: String*) = T.command {
+      super.runMain("org.scalatest.run", args: _*)
+    }
   }
 
   override def artifactName = "kubernetes-client"
