@@ -4,6 +4,7 @@ import cats.effect.{Async, ConcurrentEffect, ContextShift}
 import cats.kernel.Monoid
 import cats.syntax.either._
 import com.goyeau.kubernetes.client.KubeConfig
+import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation._
 import fs2.Pipe
 import io.circe._
@@ -29,9 +30,13 @@ private[client] case class PodsApi[F[_]](httpClient: Client[F], wsClient: WSClie
   def namespace(namespace: String): NamespacedPodsApi[F] = NamespacedPodsApi(httpClient, wsClient, config, namespace)
 }
 
-sealed trait ExecStream
-final case class StdOut(data: String) extends ExecStream
-final case class StdErr(data: String) extends ExecStream
+sealed trait ExecStream {
+  def data: String
+}
+object ExecStream {
+  final case class StdOut(data: String) extends ExecStream
+  final case class StdErr(data: String) extends ExecStream
+}
 
 private[client] case class NamespacedPodsApi[F[_]](
     httpClient: Client[F],

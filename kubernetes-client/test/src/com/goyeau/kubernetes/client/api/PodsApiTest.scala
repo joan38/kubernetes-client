@@ -2,6 +2,7 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.{ConcurrentEffect, IO}
 import cats.implicits._
+import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.{KubernetesClient, Utils}
 import io.chrisdavenport.log4cats.Logger
@@ -57,7 +58,7 @@ class PodsApiTest
 
   it should "exec into pod" in {
     val namespaceName = resourceName.toLowerCase
-    val podName          = s"${resourceName.toLowerCase}-exec"
+    val podName       = s"${resourceName.toLowerCase}-exec"
     val testPod = Pod(
       metadata = Option(ObjectMeta(name = Option(podName))),
       spec = Option(
@@ -92,11 +93,16 @@ class PodsApiTest
     status should be(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
 
     messages.length shouldNot be(0)
-    val stdOut = messages.collect {
-      case StdOut(d) => d
-    }.mkString("")
-    stdOut should include regex("dev|etc|home|usr|var")
 
+    val stdOut = messages
+      .collect {
+        case StdOut(d) => d
+      }
+      .mkString("")
+    val expectedDirs = List("dev", "etc", "home", "usr", "var").mkString("|")
+
+    (stdOut should include).regex(expectedDirs)
+    messages.map(_.data).mkString("") should include.regex(expectedDirs)
     messages.collect { case StdErr(d) => d }.length should be(0)
   }
 
