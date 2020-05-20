@@ -23,7 +23,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with SwaggerModelGenerator {
   override def scalacOptions =
     super.scalacOptions().filter(_ != "-Wunused:imports") ++
-      (if (crossScalaVersion.startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty)
+      (if (scalaVersion().startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty)
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
 
