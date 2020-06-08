@@ -17,7 +17,6 @@ object Dependencies {
     Agg(
       ivy"org.http4s::http4s-dsl:$version",
       ivy"org.http4s::http4s-circe:$version",
-      ivy"org.http4s::http4s-blaze-server:$version",
       ivy"org.http4s::http4s-blaze-client:$version",
       ivy"org.http4s::http4s-jdk-http-client:$jdkClientVersion"
     )

@@ -102,6 +102,8 @@ env/
 venv/
 ENV/
 
+# Scala
+.bsp
 .metals
 .bloop
 metals.sbt
