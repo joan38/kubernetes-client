@@ -28,8 +28,13 @@ case class KubeConfig(
 
 object KubeConfig {
 
-  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig] = Yamls.fromKubeConfigFile(kubeconfig, None)
+  @deprecated(message = "Use fromFile instead", since = "0.4.1")
+  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig]    = fromFile(kubeconfig)
+  def fromFile[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig] = Yamls.fromKubeConfigFile(kubeconfig, None)
 
+  @deprecated(message = "Use fromFile instead", since = "0.4.1")
   def apply[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig] =
+    fromFile(kubeconfig, contextName)
+  def fromFile[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig] =
     Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 }

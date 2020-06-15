@@ -20,15 +20,15 @@ or
 
 ### Client configuration example
 ```scala
-import cats.effect._
+import cats.effect.{ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client._
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import java.io.File
 import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
-import org.http4s.implicits._
 import org.http4s.headers.Authorization
+import org.http4s.implicits._
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
@@ -47,14 +47,10 @@ val kubernetesClient =
 ```
 
 ```scala
-import cats.effect._
+import cats.effect.{ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client._
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.apps.v1._
-import io.k8s.api.core.v1._
-import io.k8s.apimachinery.pkg.api.resource.Quantity
-import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import java.io.File
 import scala.concurrent.ExecutionContext
 
@@ -63,13 +59,13 @@ implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.g
 implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
 val kubernetesClient =
-  KubernetesClient[IO](KubeConfig(new File(s"${System.getProperty("user.home")}/.kube/config")))
+  KubernetesClient[IO](KubeConfig.fromFile[IO](new File(s"${System.getProperty("user.home")}/.kube/config")))
 ```
 
 ### Requests
 
 ```scala
-import cats.effect._
+import cats.effect.{ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client._
 import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
@@ -85,7 +81,7 @@ implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.g
 implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
 val kubernetesClient =
-  KubernetesClient[IO](KubeConfig(new File(s"${System.getProperty("user.home")}/.kube/config")))
+  KubernetesClient(KubeConfig.fromFile[IO](new File(s"${System.getProperty("user.home")}/.kube/config")))
 
 val deployment = Deployment(
   metadata = Option(ObjectMeta(name = Option("web-backend"), namespace = Option("my-namespace"))),
@@ -95,7 +91,7 @@ val deployment = Deployment(
       strategy = Option(
         DeploymentStrategy(
           `type` = Option("RollingUpdate"),
-          rollingUpdate = Option(RollingUpdateDeployment(Option(IntOrString("10%")), Option(IntOrString("50%"))))
+          rollingUpdate = Option(RollingUpdateDeployment(Option(StringValue("10%")), Option(StringValue("50%"))))
         )
       ),
       template = PodTemplateSpec(

@@ -17,7 +17,7 @@ trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestEx
   implicit def logger: Logger[F]
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
-    val kubeConfig = KubeConfig[F](
+    val kubeConfig = KubeConfig.fromFile[F](
       new File(s"${System.getProperty("user.home")}/.kube/config"),
       sys.env.getOrElse("KUBE_CONTEXT_NAME", "minikube")
     )
