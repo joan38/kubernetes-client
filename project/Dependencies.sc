@@ -28,14 +28,5 @@ object Dependencies {
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.1.4")
 
-  lazy val logging = Agg(
-    ivy"io.chrisdavenport::log4cats-slf4j:1.0.1",
-    ivy"ch.qos.logback:logback-classic:1.2.3"
-  )
-
-  lazy val tests = Agg(
-    ivy"org.scalatest::scalatest:3.1.1",
-    ivy"com.github.julien-truffaut::monocle-core:2.0.4"
-  )
-
+  lazy val logging = Agg(ivy"io.chrisdavenport::log4cats-slf4j:1.0.1")
 }
