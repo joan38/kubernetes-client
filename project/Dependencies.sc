@@ -28,5 +28,5 @@ object Dependencies {
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.1.4")
 
-  lazy val logging = Agg(ivy"io.chrisdavenport::log4cats-slf4j:1.0.1")
+  lazy val logging = Agg(ivy"io.chrisdavenport::log4cats-slf4j:1.1.1")
 }
