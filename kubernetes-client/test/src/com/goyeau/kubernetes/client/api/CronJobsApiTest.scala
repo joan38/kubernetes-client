@@ -9,14 +9,10 @@ import io.k8s.api.batch.v1.JobSpec
 import io.k8s.api.batch.v1beta1.{CronJob, CronJobList, CronJobSpec, JobTemplateSpec}
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.OptionValues
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class CronJobsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, CronJob]
     with GettableTests[IO, CronJob]
     with ListableTests[IO, CronJob, CronJobList]
@@ -64,7 +60,7 @@ class CronJobsApiTest
     spec = resource.spec.map(_.copy(schedule = schedule))
   )
   override def checkUpdated(updatedResource: CronJob) =
-    updatedResource.spec.value.schedule shouldBe schedule
+    assertEquals(updatedResource.spec.map(_.schedule), Some(schedule))
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.cronJobs.namespace(namespaceName)

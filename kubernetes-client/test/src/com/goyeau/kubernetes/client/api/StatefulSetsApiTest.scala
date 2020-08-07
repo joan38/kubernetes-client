@@ -8,14 +8,10 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.apps.v1._
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.OptionValues
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class StatefulSetsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, StatefulSet]
     with GettableTests[IO, StatefulSet]
     with ListableTests[IO, StatefulSet, StatefulSetList]
@@ -55,12 +51,13 @@ class StatefulSetsApiTest
       rollingUpdate = Option(RollingUpdateStatefulSetStrategy(partition = Option(10)))
     )
   )
-  override def modifyResource(resource: StatefulSet) = resource.copy(
-    metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
-    spec = resource.spec.map(_.copy(updateStrategy = updateStrategy))
-  )
+  override def modifyResource(resource: StatefulSet) =
+    resource.copy(
+      metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
+      spec = resource.spec.map(_.copy(updateStrategy = updateStrategy))
+    )
   override def checkUpdated(updatedResource: StatefulSet) =
-    updatedResource.spec.value.updateStrategy shouldBe updateStrategy
+    assertEquals(updatedResource.spec.flatMap(_.updateStrategy), updateStrategy)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.statefulSets.namespace(namespaceName)

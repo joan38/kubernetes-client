@@ -5,72 +5,66 @@ import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils.retry
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+import munit.FunSuite
 import org.http4s.Status
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.{Assertion, OptionValues}
 
 trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with MinikubeClientProvider[F] {
 
-  def namespacedApi(namespaceName: String)(
-      implicit client: KubernetesClient[F]
+  def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[F]
   ): Replaceable[F, Resource]
-  def createChecked(namespaceName: String, resourceName: String)(
-      implicit client: KubernetesClient[F]
+  def createChecked(namespaceName: String, resourceName: String)(implicit
+      client: KubernetesClient[F]
   ): F[Resource]
-  def getChecked(namespaceName: String, resourceName: String)(
-      implicit client: KubernetesClient[F]
+  def getChecked(namespaceName: String, resourceName: String)(implicit
+      client: KubernetesClient[F]
   ): F[Resource]
   def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): Resource
   def modifyResource(resource: Resource): Resource
-  def checkUpdated(updatedResource: Resource): Assertion
+  def checkUpdated(updatedResource: Resource): Unit
 
   def replace(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
       resource <- getChecked(namespaceName, resourceName)
       status   <- namespacedApi(namespaceName).replace(modifyResource(resource))
-      _ = status shouldBe Status.Ok
+      _ = assertEquals(status, Status.Ok)
     } yield ()
 
-  "replace" should s"replace a $resourceName" in usingMinikube { implicit client =>
-    for {
-      namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      resourceName  <- Applicative[F].pure("some-resource")
-      _             <- createChecked(namespaceName, resourceName)
-      _             <- retry(replace(namespaceName, resourceName))
-      replaced      <- getChecked(namespaceName, resourceName)
-      _ = checkUpdated(replaced)
-    } yield ()
+  test(s"replace a $resourceName") {
+    usingMinikube { implicit client =>
+      for {
+        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        resourceName  <- Applicative[F].pure("some-resource")
+        _             <- createChecked(namespaceName, resourceName)
+        _             <- retry(replace(namespaceName, resourceName))
+        replaced      <- getChecked(namespaceName, resourceName)
+        _ = checkUpdated(replaced)
+      } yield ()
+    }
   }
 
-  it should "fail on non existing namespace" in usingMinikube { implicit client =>
-    for {
-      status <- namespacedApi("non-existing").replace(
-        sampleResource("non-existing")
-      )
-      _ = status should (equal(Status.NotFound).or(
-        equal(
-          Status.InternalServerError
+  test("fail on non existing namespace") {
+    usingMinikube { implicit client =>
+      for {
+        status <- namespacedApi("non-existing").replace(
+          sampleResource("non-existing")
         )
-      ))
-    } yield ()
+        _ = assert(Set(Status.NotFound, Status.InternalServerError).contains(status))
+      } yield ()
+    }
   }
 
-  it should s"fail on non existing $resourceName" in usingMinikube { implicit client =>
-    for {
-      namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-      status <- namespacedApi(namespaceName).replace(
-        sampleResource("non-existing")
-      )
-      _ = status should (equal(Status.NotFound).or(
-        equal(
-          Status.InternalServerError
+  test(s"fail on non existing $resourceName") {
+    usingMinikube { implicit client =>
+      for {
+        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        status <- namespacedApi(namespaceName).replace(
+          sampleResource("non-existing")
         )
-      ))
-    } yield ()
+        _ = assert(Set(Status.NotFound, Status.InternalServerError).contains(status))
+      } yield ()
+    }
   }
 }

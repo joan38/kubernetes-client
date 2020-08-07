@@ -8,16 +8,12 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{Secret, SecretList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import java.util.Base64
+import munit.FunSuite
 import org.http4s.Status
-import org.scalatest.OptionValues
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import scala.collection.compat._
 
 class SecretsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, Secret]
     with GettableTests[IO, Secret]
     with ListableTests[IO, Secret, SecretList]
@@ -34,79 +30,92 @@ class SecretsApiTest
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.secrets.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = Secret(
-    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
-    data = Option(Map("test" -> "ZGF0YQ=="))
-  )
+  override def sampleResource(resourceName: String, labels: Map[String, String]) =
+    Secret(
+      metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
+      data = Option(Map("test" -> "ZGF0YQ=="))
+    )
   val data = Option(Map("test" -> "dXBkYXRlZC1kYXRh"))
   override def modifyResource(resource: Secret) =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))), data = data)
-  override def checkUpdated(updatedResource: Secret) = updatedResource.data shouldBe data
+  override def checkUpdated(updatedResource: Secret) = assertEquals(updatedResource.data, data)
 
-  def createEncodeChecked(namespaceName: String, secretName: String)(
-      implicit client: KubernetesClient[IO]
+  def createEncodeChecked(namespaceName: String, secretName: String)(implicit
+      client: KubernetesClient[IO]
   ): IO[Secret] =
     for {
       _ <- NamespacesApiTest.createChecked[IO](namespaceName)
       data = Map("test" -> "data")
-      status <- client.secrets
-        .namespace(namespaceName)
-        .createEncode(
-          Secret(
-            metadata = Option(ObjectMeta(name = Option(secretName))),
-            data = Option(Map("test" -> "data"))
+      status <-
+        client.secrets
+          .namespace(namespaceName)
+          .createEncode(
+            Secret(
+              metadata = Option(ObjectMeta(name = Option(secretName))),
+              data = Option(Map("test" -> "data"))
+            )
           )
-        )
-      _ = status shouldBe Status.Created
+      _ = assertEquals(status, Status.Created)
       secret <- getChecked(namespaceName, secretName)
-      _ = secret.data.value.values.head shouldBe Base64.getEncoder.encodeToString(data.values.head.getBytes)
+      _ = assertEquals(secret.data.get.values.head, Base64.getEncoder.encodeToString(data.values.head.getBytes))
     } yield secret
 
-  "createEncode" should "create a secret" in usingMinikube { implicit client =>
-    val namespaceName = resourceName.toLowerCase + "-create-encode"
-    createEncodeChecked(namespaceName, "some-secret").guarantee(client.namespaces.delete(namespaceName).void)
+  test("createEncode should create a secret") {
+    usingMinikube { implicit client =>
+      val namespaceName = resourceName.toLowerCase + "-create-encode"
+      createEncodeChecked(namespaceName, "some-secret").guarantee(client.namespaces.delete(namespaceName).void)
+    }
   }
 
-  "createOrUpdateEncode" should "create a secret" in usingMinikube { implicit client =>
-    val namespaceName = resourceName.toLowerCase + "-create-update-encode"
-    (for {
-      _ <- NamespacesApiTest.createChecked(namespaceName)
+  test("createOrUpdateEncode should create a secret") {
+    usingMinikube { implicit client =>
+      val namespaceName = resourceName.toLowerCase + "-create-update-encode"
+      (for {
+        _ <- NamespacesApiTest.createChecked(namespaceName)
 
-      secretName = "some-secret"
-      status <- client.secrets
-        .namespace(namespaceName)
-        .createOrUpdateEncode(
-          Secret(
-            metadata = Option(ObjectMeta(name = Option(secretName))),
-            data = Option(Map("test" -> "data"))
-          )
-        )
-      _ = status shouldBe Status.Created
-      _ <- getChecked(namespaceName, secretName)
-    } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
+        secretName = "some-secret"
+        status <-
+          client.secrets
+            .namespace(namespaceName)
+            .createOrUpdateEncode(
+              Secret(
+                metadata = Option(ObjectMeta(name = Option(secretName))),
+                data = Option(Map("test" -> "data"))
+              )
+            )
+        _ = assertEquals(status, Status.Created)
+        _ <- getChecked(namespaceName, secretName)
+      } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
+    }
   }
 
-  it should "update a secret already created" in usingMinikube { implicit client =>
-    val namespaceName = resourceName.toLowerCase + "-update-encode"
-    (for {
-      secretName <- IO.pure("some-secret")
-      secret     <- createEncodeChecked(namespaceName, secretName)
+  test("update a secret already created") {
+    usingMinikube { implicit client =>
+      val namespaceName = resourceName.toLowerCase + "-update-encode"
+      (for {
+        secretName <- IO.pure("some-secret")
+        secret     <- createEncodeChecked(namespaceName, secretName)
 
-      data = Option(Map("test" -> "updated-data"))
-      status <- client.secrets
-        .namespace(namespaceName)
-        .createOrUpdateEncode(
-          secret.copy(
-            metadata = Option(ObjectMeta(name = secret.metadata.flatMap(_.name))),
-            data = data
+        data = Option(Map("test" -> "updated-data"))
+        status <-
+          client.secrets
+            .namespace(namespaceName)
+            .createOrUpdateEncode(
+              secret.copy(
+                metadata = Option(ObjectMeta(name = secret.metadata.flatMap(_.name))),
+                data = data
+              )
+            )
+        _ = assertEquals(status, Status.Ok)
+        updatedSecret <- getChecked(namespaceName, secretName)
+        _ = assertEquals(
+          updatedSecret.data,
+          data.map(
+            _.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap
           )
         )
-      _ = status shouldBe Status.Ok
-      updatedSecret <- getChecked(namespaceName, secretName)
-      _ = updatedSecret.data shouldBe data.map(
-        _.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap
-      )
-    } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
+      } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
+    }
   }
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

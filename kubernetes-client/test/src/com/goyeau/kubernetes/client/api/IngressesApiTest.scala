@@ -7,14 +7,10 @@ import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.networking.v1beta1.{Ingress, IngressList, IngressRule, IngressSpec}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.OptionValues
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class IngressesApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, Ingress]
     with GettableTests[IO, Ingress]
     with ListableTests[IO, Ingress, IngressList]
@@ -53,9 +49,7 @@ class IngressesApiTest
       spec = updatedHost
     )
   override def checkUpdated(updatedResource: Ingress) =
-    updatedResource.spec should be(
-      updatedHost
-    )
+    assertEquals(updatedResource.spec, updatedHost)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.ingresses.namespace(namespaceName)

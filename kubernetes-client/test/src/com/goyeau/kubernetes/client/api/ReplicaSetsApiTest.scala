@@ -8,14 +8,10 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.apps.v1._
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.OptionValues
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class ReplicaSetsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, ReplicaSet]
     with GettableTests[IO, ReplicaSet]
     with ListableTests[IO, ReplicaSet, ReplicaSetList]
@@ -56,7 +52,7 @@ class ReplicaSetsApiTest
     spec = resource.spec.map(_.copy(replicas = replicas))
   )
   override def checkUpdated(updatedResource: ReplicaSet) =
-    updatedResource.spec.value.replicas shouldBe replicas
+    assertEquals(updatedResource.spec.flatMap(_.replicas), replicas)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.replicaSets.namespace(namespaceName)

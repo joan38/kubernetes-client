@@ -1,7 +1,7 @@
-import $ivy.`com.goyeau::mill-git:0.1.0-6-4254b37`
-import $ivy.`com.goyeau::mill-scalafix:c71a533`
+import $ivy.`com.goyeau::mill-git:0.1.1`
+import $ivy.`com.goyeau::mill-scalafix:0.1.4`
 import $ivy.`com.lihaoyi::mill-contrib-bsp:$MILL_VERSION`
-import $ivy.`io.github.davidgregory084::mill-tpolecat:0.1.3`
+import $ivy.`io.github.davidgregory084::mill-tpolecat:0.1.4`
 import $file.project.Dependencies, Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
 import SwaggerModelGeneratorFile.SwaggerModelGenerator
@@ -26,13 +26,9 @@ class KubernetesClientModule(val crossScalaVersion: String)
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
 
   object test extends Tests {
-    def testFrameworks    = Seq("org.scalatest.tools.Framework")
+    def testFrameworks    = Seq("munit.Framework")
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
-    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalatest::scalatest:3.2.0")
-    def testOne(args: String*) =
-      T.command {
-        super.runMain("org.scalatest.run", args: _*)
-      }
+    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.10")
   }
 
   override def artifactName = "kubernetes-client"

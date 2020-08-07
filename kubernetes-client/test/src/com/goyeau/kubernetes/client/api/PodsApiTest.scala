@@ -10,15 +10,11 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1
 import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
+import munit.FunSuite
 import org.http4s.Status
-import org.scalatest.OptionValues
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 
 class PodsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, Pod]
     with GettableTests[IO, Pod]
     with ListableTests[IO, Pod, PodList]
@@ -48,7 +44,7 @@ class PodsApiTest
       spec = resource.spec.map(_.copy(activeDeadlineSeconds = activeDeadlineSeconds))
     )
   override def checkUpdated(updatedResource: Pod) =
-    updatedResource.spec.value.activeDeadlineSeconds shouldBe activeDeadlineSeconds
+    assertEquals(updatedResource.spec.flatMap(_.activeDeadlineSeconds), activeDeadlineSeconds)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.pods.namespace(namespaceName)
@@ -56,7 +52,7 @@ class PodsApiTest
   override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Pod] =
     client.pods.namespace(namespaceName)
 
-  it should "exec into pod" in {
+  test("exec into pod") {
     val namespaceName = resourceName.toLowerCase
     val podName       = s"${resourceName.toLowerCase}-exec"
     val testPod = Pod(
@@ -77,7 +73,7 @@ class PodsApiTest
       .use { implicit client =>
         for {
           status <- namespacedApi(namespaceName).create(testPod)
-          _ = status shouldBe Status.Created
+          _ = assertEquals(status, Status.Created)
           pod <- waitUntilReady(namespaceName, podName)
           res <- namespacedApi(namespaceName).exec(
             pod.metadata.get.name.get,
@@ -90,20 +86,20 @@ class PodsApiTest
       .unsafeRunSync()
     val (messages, status) = res
 
-    status should be(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
+    assertEquals(status, Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
 
-    messages.length shouldNot be(0)
+    assertNotEquals(messages.length, 0)
 
     val stdOut = messages
       .collect {
         case StdOut(d) => d
       }
       .mkString("")
-    val expectedDirs = List("dev", "etc", "home", "usr", "var").mkString("|")
+    val expectedDirs = List("dev", "etc", "home", "usr", "var").mkString("|").r
 
-    (stdOut should include).regex(expectedDirs)
-    messages.map(_.data).mkString("") should include.regex(expectedDirs)
-    messages.collect { case StdErr(d) => d }.length should be(0)
+    assert(expectedDirs.findFirstIn(stdOut).isDefined)
+    assert(expectedDirs.findFirstIn(messages.map(_.data).mkString("")).isDefined)
+    assertEquals(messages.collect { case StdErr(d) => d }.length, 0)
   }
 
   val podStatusCount = 4
