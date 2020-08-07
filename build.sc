@@ -28,7 +28,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
   object test extends Tests {
     def testFrameworks    = Seq("org.scalatest.tools.Framework")
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
-    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalatest::scalatest:3.2.0")
+    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalatest::scalatest:3.2.1")
     def testOne(args: String*) =
       T.command {
         super.runMain("org.scalatest.run", args: _*)
