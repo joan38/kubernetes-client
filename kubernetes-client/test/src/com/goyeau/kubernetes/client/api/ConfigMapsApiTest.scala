@@ -7,14 +7,10 @@ import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.OptionValues
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class ConfigMapsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, ConfigMap]
     with GettableTests[IO, ConfigMap]
     with ListableTests[IO, ConfigMap, ConfigMapList]
@@ -38,7 +34,7 @@ class ConfigMapsApiTest
   val data = Option(Map("test" -> "updated-data"))
   override def modifyResource(resource: ConfigMap) =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))), data = data)
-  override def checkUpdated(updatedResource: ConfigMap) = updatedResource.data shouldBe data
+  override def checkUpdated(updatedResource: ConfigMap) = assertEquals(updatedResource.data, data)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.configMaps.namespace(namespaceName)

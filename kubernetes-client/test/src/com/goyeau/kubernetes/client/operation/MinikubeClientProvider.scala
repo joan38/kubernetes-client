@@ -6,9 +6,9 @@ import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
 import io.chrisdavenport.log4cats.Logger
 import java.io.File
-import org.scalatest.{BeforeAndAfterAll, ParallelTestExecution, Suite}
+import munit.Suite
 
-trait MinikubeClientProvider[F[_]] extends BeforeAndAfterAll with ParallelTestExecution {
+trait MinikubeClientProvider[F[_]] {
   this: Suite =>
 
   implicit def F: ConcurrentEffect[F]

@@ -7,14 +7,10 @@ import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.OptionValues
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class ServiceAccountsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, ServiceAccount]
     with GettableTests[IO, ServiceAccount]
     with ListableTests[IO, ServiceAccount, ServiceAccountList]
@@ -37,7 +33,8 @@ class ServiceAccountsApiTest
   val labels = Option(Map("test" -> "updated-label"))
   override def modifyResource(resource: ServiceAccount) =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name), labels = labels)))
-  override def checkUpdated(updatedResource: ServiceAccount) = updatedResource.metadata.value.labels shouldBe labels
+  override def checkUpdated(updatedResource: ServiceAccount) =
+    assertEquals(updatedResource.metadata.flatMap(_.labels), labels)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.serviceAccounts.namespace(namespaceName)

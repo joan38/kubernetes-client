@@ -12,10 +12,8 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe._
 import io.circe.generic.semiauto._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+import munit.FunSuite
 import org.http4s.Status
-import org.scalatest.OptionValues
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 
 case class CronTab(cronSpec: String, image: String, replicas: Int)
 object CronTab {
@@ -34,9 +32,7 @@ object CustomResourcesApiTest {
 }
 
 class CustomResourcesApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, CronTabResource]
     with GettableTests[IO, CronTabResource]
     with ListableTests[IO, CronTabResource, CronTabResourceList]
@@ -71,7 +67,7 @@ class CustomResourcesApiTest
 
   override def modifyResource(resource: CronTabResource) =
     resource.copy(spec = resource.spec.copy(cronSpec = cronSpec))
-  override def checkUpdated(updatedResource: CronTabResource) = updatedResource.spec.cronSpec shouldBe cronSpec
+  override def checkUpdated(updatedResource: CronTabResource) = assertEquals(updatedResource.spec.cronSpec, cronSpec)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.customResources[CronTab, CronTabStatus](context).namespace(namespaceName)
@@ -81,13 +77,16 @@ class CustomResourcesApiTest
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    kubernetesClient
-      .use(client => client.customResourceDefinitions.create(crd(resourceName, Map.empty)))
-      .unsafeRunSync() should === (Status.Created)
+    assertEquals(
+      kubernetesClient
+        .use(client => client.customResourceDefinitions.create(crd(resourceName, Map.empty)))
+        .unsafeRunSync(),
+      Status.Created
+    )
     ()
   }
 
-  it should "update custom resource status" in {
+  test("update custom resource status") {
     kubernetesClient
       .use { implicit client =>
         val name          = s"${resourceName.toLowerCase}-status"
@@ -96,15 +95,15 @@ class CustomResourcesApiTest
 
         for {
           status <- namespacedApi(namespaceName).create(resource)
-          _ = status shouldBe Status.Created
+          _ = assertEquals(status, Status.Created)
           created <- getChecked(namespaceName, name)
           updateStatus <- namespacedApi(namespaceName).updateStatus(
             name,
             created.copy(status = CronTabStatus("updated").some)
           )
-          _ = updateStatus shouldBe Status.Ok
+          _ = assertEquals(updateStatus, Status.Ok)
           updated <- getChecked(namespaceName, name)
-          _ = updated.status should === (CronTabStatus("updated").some)
+          _ = assertEquals(updated.status, CronTabStatus("updated").some)
         } yield ()
       }
       .unsafeRunSync()
@@ -112,9 +111,12 @@ class CustomResourcesApiTest
 
   override def afterAll(): Unit = {
     super.afterAll()
-    kubernetesClient
-      .use(client => client.customResourceDefinitions.delete(crdName(resourceName)))
-      .unsafeRunSync() should === (Status.Ok)
+    assertEquals(
+      kubernetesClient
+        .use(client => client.customResourceDefinitions.delete(crdName(resourceName)))
+        .unsafeRunSync(),
+      Status.Ok
+    )
     ()
   }
 }

@@ -8,14 +8,10 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.apps.v1._
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.OptionValues
-import org.scalatest.matchers.should.Matchers
+import munit.FunSuite
 
 class DeploymentsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, Deployment]
     with GettableTests[IO, Deployment]
     with ListableTests[IO, Deployment, DeploymentList]
@@ -60,7 +56,7 @@ class DeploymentsApiTest
     spec = resource.spec.map(_.copy(strategy = strategy))
   )
   override def checkUpdated(updatedResource: Deployment) =
-    updatedResource.spec.value.strategy shouldBe strategy
+    assertEquals(updatedResource.spec.flatMap(_.strategy), strategy)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.deployments.namespace(namespaceName)

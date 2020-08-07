@@ -9,10 +9,8 @@ import io.chrisdavenport.log4cats.Logger
 import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+import munit.FunSuite
 import org.http4s.Status
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.{Assertion, OptionValues}
 
 object CustomResourceDefinitionsApiTest {
   val versions: CustomResourceDefinitionVersion =
@@ -67,9 +65,7 @@ object CustomResourceDefinitionsApiTest {
 }
 
 class CustomResourceDefinitionsApiTest
-    extends AnyFlatSpec
-    with Matchers
-    with OptionValues
+    extends FunSuite
     with CreatableTests[IO, CustomResourceDefinition]
     with GettableTests[IO, CustomResourceDefinition]
     with ListableTests[IO, CustomResourceDefinition, CustomResourceDefinitionList]
@@ -94,24 +90,24 @@ class CustomResourceDefinitionsApiTest
   override def deleteTerminated(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     namespacedApi(namespaceName).deleteTerminated(crdName(resourceName))
 
-  def listNotContains(resourceNames: Seq[String], labels: Map[String, String])(
+  def listNotContains(resourceNames: Set[String], labels: Map[String, String])(
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
       resourceList <- client.customResourceDefinitions.list(labels)
-      _ = (resourceList.items.map(_.metadata.value.name.value) should contain).noElementsOf(resourceNames.map(crdName))
+      _ = assert(resourceList.items.flatMap(_.metadata.flatMap(_.name)).forall(!resourceNames.map(crdName).contains(_)))
     } yield resourceList
 
-  override def listContains(namespaceName: String, resourceNames: Seq[String], labels: Map[String, String])(
+  override def listContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String])(
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] = listContains(resourceNames)
 
-  def listContains(resourceNames: Seq[String])(
+  def listContains(resourceNames: Set[String])(
       implicit client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
       resourceList <- client.customResourceDefinitions.list()
-      _ = (resourceList.items.map(_.metadata.value.name.value) should contain).allElementsOf(resourceNames.map(crdName))
+      _ = assert(resourceNames.map(crdName).subsetOf(resourceList.items.flatMap(_.metadata.flatMap(_.name)).toSet))
     } yield resourceList
 
   override def getChecked(namespaceName: String, resourceName: String)(
@@ -123,7 +119,7 @@ class CustomResourceDefinitionsApiTest
     for {
       crdName  <- IO.pure(crdName(resourceName))
       resource <- client.customResourceDefinitions.get(crdName)
-      _ = resource.metadata.value.name.value shouldBe crdName
+      _ = assertEquals(resource.metadata.flatMap(_.name), Some(crdName))
     } yield resource
 
   def sampleResource(resourceName: String, labels: Map[String, String]): CustomResourceDefinition =
@@ -131,15 +127,15 @@ class CustomResourceDefinitionsApiTest
 
   def modifyResource(resource: CustomResourceDefinition): CustomResourceDefinition =
     resource.copy(spec = resource.spec.copy(versions = Seq(versions.copy(served = false))))
-  def checkUpdated(updatedResource: CustomResourceDefinition): Assertion =
-    updatedResource.spec.versions.headOption shouldBe versions.copy(served = false).some
+  def checkUpdated(updatedResource: CustomResourceDefinition): Unit =
+    assertEquals(updatedResource.spec.versions.headOption, versions.copy(served = false).some)
 
   override def afterAll(): Unit = {
     super.afterAll()
     val status = kubernetesClient
       .use(_.customResourceDefinitions.deleteAll(crdLabel))
       .unsafeRunSync()
-    status shouldBe Status.Ok
+    assertEquals(status, Status.Ok)
     ()
   }
 
