@@ -13,7 +13,7 @@ object Dependencies {
 
   lazy val http4s = {
     val version = "0.21.2"
-    val jdkClientVersion = "0.3.0"
+    val jdkClientVersion = "0.3.1"
     Agg(
       ivy"org.http4s::http4s-dsl:$version",
       ivy"org.http4s::http4s-circe:$version",
