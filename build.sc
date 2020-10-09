@@ -28,7 +28,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
   object test extends Tests {
     def testFrameworks    = Seq("munit.Framework")
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
-    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.10")
+    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.14")
   }
 
   override def artifactName = "kubernetes-client"
