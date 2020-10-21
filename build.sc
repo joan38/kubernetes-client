@@ -4,7 +4,7 @@ import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
 import $file.project.Dependencies, Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
 import SwaggerModelGeneratorFile.SwaggerModelGenerator
-import com.goyeau.mill.git.GitVersionedPublishModule
+import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
@@ -19,9 +19,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
 
-  override def scalacOptions =
-    super.scalacOptions().filter(_ != "-Wunused:imports") ++
-      (if (scalaVersion().startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty)
+  override def scalacOptions = super.scalacOptions().filter(_ != "-Wunused:imports")
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
 
@@ -31,7 +29,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
     override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.10")
   }
 
-  override def artifactName = "kubernetes-client"
+  override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
   def pomSettings =
     PomSettings(
       description = "A Kubernetes client for Scala",

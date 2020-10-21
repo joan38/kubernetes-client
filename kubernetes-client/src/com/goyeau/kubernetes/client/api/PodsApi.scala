@@ -95,14 +95,13 @@ private[client] case class NamespacedPodsApi[F[_]](
       connection.receiveStream
         .through(processWebSocketData)
         .compile
-        .fold((Monoid.empty[T], "".asLeft[Status])) {
-          case ((accEvents, accStatus), (events, status)) =>
-            (
-              events.foldLeft(accEvents) {
-                case (acc, es) => Monoid.combine[T](acc, flow(es))
-              },
-              accStatus.orElse(status)
-            )
+        .fold((Monoid.empty[T], "".asLeft[Status])) { case ((accEvents, accStatus), (events, status)) =>
+          (
+            events.foldLeft(accEvents) { case (acc, es) =>
+              Monoid.combine[T](acc, flow(es))
+            },
+            accStatus.orElse(status)
+          )
         }
     }
   }
