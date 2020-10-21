@@ -49,11 +49,8 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       .use(EnrichedStatus.apply[F])
       .flatMap {
         case status if status.isSuccess => update
-        case Status.NotFound =>
-          create(resource).recoverWith {
-            case Status.Conflict => update
-          }
-        case status => F.pure(status)
+        case Status.NotFound            => create(resource).recoverWith { case Status.Conflict => update }
+        case status                     => F.pure(status)
       }
   }
 }
