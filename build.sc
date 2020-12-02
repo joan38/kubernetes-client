@@ -1,6 +1,5 @@
 import $ivy.`com.goyeau::mill-git:0.2.0`
-import $ivy.`com.goyeau::mill-scalafix:0.2.0`
-import $ivy.`com.lihaoyi::mill-bsp:$MILL_VERSION`
+import $ivy.`com.goyeau::mill-scalafix:0.2.1`
 import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
 import $file.project.Dependencies, Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
@@ -19,7 +18,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with StyleModule
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
-  override def scalacPluginIvyDeps = Agg(ivy"org.scalameta:::semanticdb-scalac:4.4.0")
+
   override def scalacOptions =
     super.scalacOptions().filter(_ != "-Wunused:imports") ++
       (if (scalaVersion().startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty)
