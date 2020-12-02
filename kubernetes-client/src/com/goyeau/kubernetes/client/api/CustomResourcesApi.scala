@@ -10,7 +10,7 @@ import io.circe._
 import org.http4s.Method._
 import org.http4s.client.Client
 import org.http4s.implicits._
-import org.http4s.{Status, Uri, Request}
+import org.http4s.{Request, Status, Uri}
 
 private[client] case class CustomResourcesApi[F[_], A, B](
     httpClient: Client[F],
@@ -50,9 +50,13 @@ private[client] case class NamespacedCustomResourcesApi[F[_], A, B](
   val resourceUri: Uri = uri"/apis" / context.group / context.version / "namespaces" / namespace / context.plural
 
   def updateStatus(name: String, resource: CustomResource[A, B]): F[Status] =
-    httpClient.run(
-      Request[F](PUT, config.server.resolve(resourceUri / name / "status")).withEntity(resource).putHeaders(config.authorization.toSeq: _*)
-    ).use(
-      EnrichedStatus[F]
-    )
+    httpClient
+      .run(
+        Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
+          .withEntity(resource)
+          .putHeaders(config.authorization.toSeq: _*)
+      )
+      .use(
+        EnrichedStatus[F]
+      )
 }

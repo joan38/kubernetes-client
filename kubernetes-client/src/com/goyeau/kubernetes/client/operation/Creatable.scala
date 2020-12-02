@@ -21,22 +21,32 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   implicit protected def resourceEncoder: Encoder[Resource]
 
   def create(resource: Resource): F[Status] =
-    httpClient.run(Request[F](POST, config.server.resolve(resourceUri)).withEntity(resource).putHeaders(config.authorization.toSeq: _*)).use(
-      EnrichedStatus[F]
-    )
+    httpClient
+      .run(
+        Request[F](POST, config.server.resolve(resourceUri))
+          .withEntity(resource)
+          .putHeaders(config.authorization.toSeq: _*)
+      )
+      .use(
+        EnrichedStatus[F]
+      )
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
     def update =
-      httpClient.run(
-        Request[F](PATCH, fullResourceUri).withEntity(resource)
-          .putHeaders(
-          `Content-Type`(MediaType.application.`merge-patch+json`) +: config.authorization.toSeq: _*
+      httpClient
+        .run(
+          Request[F](PATCH, fullResourceUri)
+            .withEntity(resource)
+            .putHeaders(
+              `Content-Type`(MediaType.application.`merge-patch+json`) +: config.authorization.toSeq: _*
+            )
         )
-      ).use(EnrichedStatus[F])
+        .use(EnrichedStatus[F])
 
     httpClient
-      .run(Request[F](GET, fullResourceUri).putHeaders(config.authorization.toSeq: _*)).use(EnrichedStatus.apply[F])
+      .run(Request[F](GET, fullResourceUri).putHeaders(config.authorization.toSeq: _*))
+      .use(EnrichedStatus.apply[F])
       .flatMap {
         case status if status.isSuccess => update
         case Status.NotFound =>
