@@ -12,39 +12,46 @@ import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.client.jdkhttpclient.JdkWSClient
 
 import scala.concurrent.ExecutionContext
+import org.http4s.client.jdkhttpclient.WSClient
 
-case class KubernetesClient[F[_]: ConcurrentEffect: ContextShift](httpClient: Client[F], config: KubeConfig) {
-  lazy val namespaces = NamespacesApi(httpClient, config)
-  lazy val pods = PodsApi(
+case class KubernetesClient[F[_]: Concurrent](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
+  lazy val namespaces = new NamespacesApi(httpClient, config)
+  lazy val pods = new PodsApi(
     httpClient,
-    JdkWSClient[F](HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build()),
+    wsClient,
     config
   )
-  lazy val jobs                      = JobsApi(httpClient, config)
-  lazy val cronJobs                  = CronJobsApi(httpClient, config)
-  lazy val deployments               = DeploymentsApi(httpClient, config)
-  lazy val statefulSets              = StatefulSetsApi(httpClient, config)
-  lazy val replicaSets               = ReplicaSetsApi(httpClient, config)
-  lazy val services                  = ServicesApi(httpClient, config)
-  lazy val serviceAccounts           = ServiceAccountsApi(httpClient, config)
-  lazy val configMaps                = ConfigMapsApi(httpClient, config)
-  lazy val secrets                   = SecretsApi(httpClient, config)
-  lazy val horizontalPodAutoscalers  = HorizontalPodAutoscalersApi(httpClient, config)
-  lazy val podDisruptionBudgets      = PodDisruptionBudgetsApi(httpClient, config)
-  lazy val customResourceDefinitions = CustomResourceDefinitionsApi(httpClient, config)
-  lazy val ingresses                 = IngressessApi(httpClient, config)
+  lazy val jobs                      = new JobsApi(httpClient, config)
+  lazy val cronJobs                  = new CronJobsApi(httpClient, config)
+  lazy val deployments               = new DeploymentsApi(httpClient, config)
+  lazy val statefulSets              = new StatefulSetsApi(httpClient, config)
+  lazy val replicaSets               = new ReplicaSetsApi(httpClient, config)
+  lazy val services                  = new ServicesApi(httpClient, config)
+  lazy val serviceAccounts           = new ServiceAccountsApi(httpClient, config)
+  lazy val configMaps                = new ConfigMapsApi(httpClient, config)
+  lazy val secrets                   = new SecretsApi(httpClient, config)
+  lazy val horizontalPodAutoscalers  = new HorizontalPodAutoscalersApi(httpClient, config)
+  lazy val podDisruptionBudgets      = new PodDisruptionBudgetsApi(httpClient, config)
+  lazy val customResourceDefinitions = new CustomResourceDefinitionsApi(httpClient, config)
+  lazy val ingresses                 = new IngressessApi(httpClient, config)
 
   def customResources[A: Encoder: Decoder, B: Encoder: Decoder](context: CrdContext)(implicit
       listDecoder: Decoder[CustomResourceList[A, B]],
       encoder: Encoder[CustomResource[A, B]],
       decoder: Decoder[CustomResource[A, B]]
-  ) = CustomResourcesApi[F, A, B](httpClient, config, context)
+  ) = new CustomResourcesApi[F, A, B](httpClient, config, context)
 }
 
 object KubernetesClient {
   def apply[F[_]: ConcurrentEffect: ContextShift](config: KubeConfig): Resource[F, KubernetesClient[F]] =
     BlazeClientBuilder[F](ExecutionContext.global, Option(SslContexts.fromConfig(config))).resource
-      .map(httpClient => apply(httpClient, config))
+      .map(httpClient =>
+        apply(
+          httpClient,
+          JdkWSClient[F](HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build()),
+          config
+        )
+      )
 
   def apply[F[_]: ConcurrentEffect: ContextShift](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
     Resource.liftF(config).flatMap(apply(_))

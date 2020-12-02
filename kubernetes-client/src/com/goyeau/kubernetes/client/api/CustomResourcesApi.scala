@@ -12,10 +12,10 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 import org.http4s.{Request, Status, Uri}
 
-private[client] case class CustomResourcesApi[F[_], A, B](
-    httpClient: Client[F],
-    config: KubeConfig,
-    context: CrdContext
+private[client] class CustomResourcesApi[F[_], A, B](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val context: CrdContext
 )(implicit
     val F: Sync[F],
     val listDecoder: Decoder[CustomResourceList[A, B]],
@@ -26,13 +26,13 @@ private[client] case class CustomResourcesApi[F[_], A, B](
   val resourceUri: Uri = uri"/apis" / context.group / context.version / context.plural
 
   def namespace(namespace: String): NamespacedCustomResourcesApi[F, A, B] =
-    NamespacedCustomResourcesApi(httpClient, config, context, namespace)
+    new NamespacedCustomResourcesApi(httpClient, config, context, namespace)
 }
 
-private[client] case class NamespacedCustomResourcesApi[F[_], A, B](
-    httpClient: Client[F],
-    config: KubeConfig,
-    context: CrdContext,
+private[client] class NamespacedCustomResourcesApi[F[_], A, B](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val context: CrdContext,
     namespace: String
 )(implicit
     val F: Sync[F],

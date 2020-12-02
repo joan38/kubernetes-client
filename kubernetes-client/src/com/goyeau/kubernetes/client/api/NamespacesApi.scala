@@ -9,7 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class NamespacesApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class NamespacesApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[NamespaceList],
     val resourceEncoder: Encoder[Namespace],

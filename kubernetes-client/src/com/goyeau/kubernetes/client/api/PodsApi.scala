@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, ConcurrentEffect, ContextShift}
+import cats.effect.Concurrent
 import cats.kernel.Monoid
 import cats.syntax.either._
 import com.goyeau.kubernetes.client.KubeConfig
@@ -17,17 +17,16 @@ import org.http4s.client.jdkhttpclient._
 import org.http4s.implicits._
 import scodec.bits.ByteVector
 
-private[client] case class PodsApi[F[_]](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig)(implicit
-    val F: Async[F],
+private[client] class PodsApi[F[_]](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(implicit
+    val F: Concurrent[F],
     val listDecoder: Decoder[PodList],
-    val concurrent: ConcurrentEffect[F],
-    val contextShift: ContextShift[F],
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
 ) extends Listable[F, PodList] {
   val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
-  def namespace(namespace: String): NamespacedPodsApi[F] = NamespacedPodsApi(httpClient, wsClient, config, namespace)
+  def namespace(namespace: String): NamespacedPodsApi[F] =
+    new NamespacedPodsApi(httpClient, wsClient, config, namespace)
 }
 
 sealed trait ExecStream {
@@ -38,15 +37,13 @@ object ExecStream {
   final case class StdErr(data: String) extends ExecStream
 }
 
-private[client] case class NamespacedPodsApi[F[_]](
-    httpClient: Client[F],
+private[client] class NamespacedPodsApi[F[_]](
+    val httpClient: Client[F],
     wsClient: WSClient[F],
-    config: KubeConfig,
+    val config: KubeConfig,
     namespace: String
 )(implicit
-    val F: Async[F],
-    val concurrent: ConcurrentEffect[F],
-    val contextShift: ContextShift[F],
+    val F: Concurrent[F],
     val resourceEncoder: Encoder[Pod],
     val resourceDecoder: Decoder[Pod],
     val listDecoder: Decoder[PodList]

@@ -9,7 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class ConfigMapsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class ConfigMapsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[ConfigMapList],
     encoder: Encoder[ConfigMap],
@@ -17,13 +17,14 @@ private[client] case class ConfigMapsApi[F[_]](httpClient: Client[F], config: Ku
 ) extends Listable[F, ConfigMapList] {
   val resourceUri: Uri = uri"/api" / "v1" / "configmaps"
 
-  def namespace(namespace: String): NamespacedConfigMapsApi[F] = NamespacedConfigMapsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedConfigMapsApi[F] =
+    new NamespacedConfigMapsApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedConfigMapsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
-    namespace: String
+private[client] class NamespacedConfigMapsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val namespace: String
 )(implicit
     val F: Sync[F],
     val resourceEncoder: Encoder[ConfigMap],
