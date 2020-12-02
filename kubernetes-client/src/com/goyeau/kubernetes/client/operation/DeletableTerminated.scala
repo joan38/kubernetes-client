@@ -6,9 +6,8 @@ import cats.effect.Timer
 import cats.implicits._
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s._
-import org.http4s.client.dsl.Http4sClientDsl
 
-private[client] trait DeletableTerminated[F[_]] extends Http4sClientDsl[F] { this: Deletable[F] =>
+private[client] trait DeletableTerminated[F[_]] { this: Deletable[F] =>
 
   def deleteTerminated(name: String, deleteOptions: Option[DeleteOptions] = None)(implicit
       timer: Timer[F]

@@ -9,10 +9,9 @@ import io.circe._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.Method._
 
-private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] extends Http4sClientDsl[F] {
+private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
@@ -20,11 +19,13 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   implicit protected def resourceEncoder: Encoder[Resource]
 
   def replace(resource: Resource): F[Status] =
-    httpClient.fetch(
-      PUT(
-        resource,
-        config.server.resolve(resourceUri) / resource.metadata.get.name.get,
-        config.authorization.toSeq: _*
+    httpClient
+      .run(
+        Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)
+          .withEntity(resource)
+          .putHeaders(
+            config.authorization.toSeq: _*
+          )
       )
-    )(EnrichedStatus[F])
+      .use(EnrichedStatus[F])
 }

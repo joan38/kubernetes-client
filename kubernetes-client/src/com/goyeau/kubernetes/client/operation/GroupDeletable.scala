@@ -6,10 +6,9 @@ import com.goyeau.kubernetes.client.util.EnrichedStatus
 import com.goyeau.kubernetes.client.util.Uris.addLabels
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.Method._
 
-private[client] trait GroupDeletable[F[_]] extends Http4sClientDsl[F] {
+private[client] trait GroupDeletable[F[_]] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
@@ -20,6 +19,6 @@ private[client] trait GroupDeletable[F[_]] extends Http4sClientDsl[F] {
 
   def deleteAll(labels: Map[String, String] = Map.empty): F[Status] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
-    httpClient.fetch(DELETE(uri, config.authorization.toSeq: _*))(EnrichedStatus[F])
+    httpClient.run(Request[F](DELETE, uri).putHeaders(config.authorization.toSeq: _*)).use(EnrichedStatus[F])
   }
 }

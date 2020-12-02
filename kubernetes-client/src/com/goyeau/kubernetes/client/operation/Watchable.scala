@@ -11,10 +11,9 @@ import jawnfs2._
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 import org.typelevel.jawn.Facade
 
-private[client] trait Watchable[F[_], Resource] extends Http4sClientDsl[F] {
+private[client] trait Watchable[F[_], Resource] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
@@ -26,13 +25,10 @@ private[client] trait Watchable[F[_], Resource] extends Http4sClientDsl[F] {
 
   def watch(labels: Map[String, String] = Map.empty): Stream[F, Either[String, WatchEvent[Resource]]] = {
     val uri = addLabels(labels, config.server.resolve(watchResourceUri))
-    val req = GET(uri.+?("watch", "1"), config.authorization.toSeq: _*)
+    val req = Request[F](GET, uri.withQueryParam("watch", "1")).putHeaders(config.authorization.toSeq: _*)
     jsonStream(req).map(_.as[WatchEvent[Resource]].leftMap(_.getMessage))
   }
 
-  private def jsonStream(req: F[Request[F]]): Stream[F, Json] =
-    for {
-      request <- Stream.eval(req)
-      json    <- httpClient.stream(request).flatMap(_.body.chunks.parseJsonStream)
-    } yield json
+  private def jsonStream(req: Request[F]): Stream[F, Json] =
+    httpClient.stream(req).flatMap(_.body.chunks.parseJsonStream)
 }

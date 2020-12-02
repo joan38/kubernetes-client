@@ -10,11 +10,10 @@ import io.circe._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.headers.`Content-Type`
 import org.http4s.Method._
 
-private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] extends Http4sClientDsl[F] {
+private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
@@ -22,29 +21,29 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   implicit protected def resourceEncoder: Encoder[Resource]
 
   def create(resource: Resource): F[Status] =
-    httpClient.fetch(POST(resource, config.server.resolve(resourceUri), config.authorization.toSeq: _*))(
+    httpClient.run(Request[F](POST, config.server.resolve(resourceUri)).withEntity(resource).putHeaders(config.authorization.toSeq: _*)).use(
       EnrichedStatus[F]
     )
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
     def update =
-      httpClient.fetch(
-        PATCH(
-          resource,
-          fullResourceUri,
+      httpClient.run(
+        Request[F](PATCH, fullResourceUri).withEntity(resource)
+          .putHeaders(
           `Content-Type`(MediaType.application.`merge-patch+json`) +: config.authorization.toSeq: _*
         )
-      )(EnrichedStatus[F])
+      ).use(EnrichedStatus[F])
 
     httpClient
-      .fetch(GET(fullResourceUri, config.authorization.toSeq: _*))(EnrichedStatus.apply[F])
+      .run(Request[F](GET, fullResourceUri).putHeaders(config.authorization.toSeq: _*)).use(EnrichedStatus.apply[F])
       .flatMap {
         case status if status.isSuccess => update
         case Status.NotFound =>
           create(resource).recoverWith {
             case Status.Conflict => update
           }
+        case status => F.pure(status)
       }
   }
 }
