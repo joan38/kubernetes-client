@@ -27,7 +27,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Minikube and start Kubernetes v1.18.2
-        uses: manusa/actions-setup-minikube@v2.0.0
+        uses: manusa/actions-setup-minikube@v2.1.0
         with:
           minikube version: v1.9.2
           kubernetes version: v1.18.2
@@ -47,7 +47,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Minikube and start Kubernetes v1.17.5
-        uses: manusa/actions-setup-minikube@v2.0.0
+        uses: manusa/actions-setup-minikube@v2.1.0
         with:
           minikube version: v1.9.2
           kubernetes version: v1.17.5
@@ -67,7 +67,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Minikube and start Kubernetes v1.16.8
-        uses: manusa/actions-setup-minikube@v2.0.0
+        uses: manusa/actions-setup-minikube@v2.1.0
         with:
           minikube version: v1.9.2
           kubernetes version: v1.16.8
