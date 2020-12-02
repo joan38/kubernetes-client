@@ -7,10 +7,9 @@ import com.goyeau.kubernetes.client.util.Uris.addLabels
 import io.circe._
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.Method._
 
-private[client] trait Listable[F[_], Resource] extends Http4sClientDsl[F] {
+private[client] trait Listable[F[_], Resource] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
@@ -22,6 +21,6 @@ private[client] trait Listable[F[_], Resource] extends Http4sClientDsl[F] {
 
   def list(labels: Map[String, String] = Map.empty): F[Resource] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
-    httpClient.expect[Resource](GET(uri, config.authorization.toSeq: _*))
+    httpClient.expect[Resource](Request[F](GET, uri).putHeaders(config.authorization.toSeq: _*))
   }
 }

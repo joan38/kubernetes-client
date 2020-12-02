@@ -8,22 +8,23 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s._
 import org.http4s.Method._
 import org.http4s.client.Client
-import org.http4s.client.dsl.Http4sClientDsl
 
-private[client] trait Deletable[F[_]] extends Http4sClientDsl[F] {
+private[client] trait Deletable[F[_]] {
   protected def httpClient: Client[F]
   implicit protected val F: Sync[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
 
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None): F[Status] =
-    httpClient.fetch(
-      Request(
-        DELETE,
-        config.server.resolve(resourceUri) / name,
-        headers = Headers(config.authorization.toList),
-        body =
-          deleteOptions.fold[EntityBody[F]](EmptyBody)(implicitly[EntityEncoder[F, DeleteOptions]].toEntity(_).body)
+    httpClient
+      .run(
+        Request(
+          DELETE,
+          config.server.resolve(resourceUri) / name,
+          headers = Headers(config.authorization.toList),
+          body =
+            deleteOptions.fold[EntityBody[F]](EmptyBody)(implicitly[EntityEncoder[F, DeleteOptions]].toEntity(_).body)
+        )
       )
-    )(EnrichedStatus[F])
+      .use(EnrichedStatus[F])
 }

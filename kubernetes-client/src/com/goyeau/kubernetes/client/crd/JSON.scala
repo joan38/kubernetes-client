@@ -6,6 +6,6 @@ import io.circe.{Decoder, Encoder}
 final case class JSON(value: String)
 
 object JSON {
-  implicit val encode: Encoder[JSON] = _.asJson
+  implicit val encode: Encoder[JSON] = _.value.asJson
   implicit val decode: Decoder[JSON] = _.as[String].map(JSON(_))
 }

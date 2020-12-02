@@ -1,7 +1,6 @@
-import $ivy.`com.goyeau::mill-git:0.1.1`
-import $ivy.`com.goyeau::mill-scalafix:0.1.4`
-import $ivy.`com.lihaoyi::mill-contrib-bsp:$MILL_VERSION`
-import $ivy.`io.github.davidgregory084::mill-tpolecat:0.1.4`
+import $ivy.`com.goyeau::mill-git:0.2.0`
+import $ivy.`com.goyeau::mill-scalafix:0.2.1`
+import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
 import $file.project.Dependencies, Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
 import SwaggerModelGeneratorFile.SwaggerModelGenerator
@@ -12,13 +11,14 @@ import mill._
 import mill.scalalib._
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("2.13.2", "2.12.11")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("2.13.4", "2.12.12")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
     with TpolecatModule
     with StyleModule
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
+
   override def scalacOptions =
     super.scalacOptions().filter(_ != "-Wunused:imports") ++
       (if (scalaVersion().startsWith("2.12")) Seq("-Ypartial-unification") else Seq.empty)

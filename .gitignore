@@ -108,3 +108,6 @@ ENV/
 .bloop
 metals.sbt
 build.properties
+.idea
+out
+.vscode
