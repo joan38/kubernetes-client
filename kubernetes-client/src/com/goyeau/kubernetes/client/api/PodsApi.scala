@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.Concurrent
+import cats.effect.Sync
 import cats.kernel.Monoid
 import cats.syntax.either._
 import com.goyeau.kubernetes.client.KubeConfig
@@ -18,7 +18,7 @@ import org.http4s.implicits._
 import scodec.bits.ByteVector
 
 private[client] class PodsApi[F[_]](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(implicit
-    val F: Concurrent[F],
+    val F: Sync[F],
     val listDecoder: Decoder[PodList],
     encoder: Encoder[Pod],
     decoder: Decoder[Pod]
@@ -43,7 +43,7 @@ private[client] class NamespacedPodsApi[F[_]](
     val config: KubeConfig,
     namespace: String
 )(implicit
-    val F: Concurrent[F],
+    val F: Sync[F],
     val resourceEncoder: Encoder[Pod],
     val resourceDecoder: Decoder[Pod],
     val listDecoder: Decoder[PodList]

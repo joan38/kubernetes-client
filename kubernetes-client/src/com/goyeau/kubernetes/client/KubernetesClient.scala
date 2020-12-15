@@ -14,7 +14,7 @@ import org.http4s.client.jdkhttpclient.JdkWSClient
 import scala.concurrent.ExecutionContext
 import org.http4s.client.jdkhttpclient.WSClient
 
-case class KubernetesClient[F[_]: Concurrent](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
+case class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
   lazy val namespaces = new NamespacesApi(httpClient, config)
   lazy val pods = new PodsApi(
     httpClient,
