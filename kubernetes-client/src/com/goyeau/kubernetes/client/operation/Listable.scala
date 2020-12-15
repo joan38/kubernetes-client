@@ -16,9 +16,6 @@ private[client] trait Listable[F[_], Resource] {
   protected def resourceUri: Uri
   implicit protected def listDecoder: Decoder[Resource]
 
-  @deprecated("Use list() instead", "0.4.0")
-  def list: F[Resource] = list()
-
   def list(labels: Map[String, String] = Map.empty): F[Resource] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
     httpClient.expect[Resource](Request[F](GET, uri).putHeaders(config.authorization.toSeq: _*))

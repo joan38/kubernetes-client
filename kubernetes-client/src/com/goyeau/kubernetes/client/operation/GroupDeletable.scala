@@ -14,9 +14,6 @@ private[client] trait GroupDeletable[F[_]] {
   protected def config: KubeConfig
   protected def resourceUri: Uri
 
-  @deprecated("Use deleteAll() instead", "0.4.0")
-  lazy val delete: F[Status] = deleteAll()
-
   def deleteAll(labels: Map[String, String] = Map.empty): F[Status] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
     httpClient.run(Request[F](DELETE, uri).putHeaders(config.authorization.toSeq: _*)).use(EnrichedStatus[F])
