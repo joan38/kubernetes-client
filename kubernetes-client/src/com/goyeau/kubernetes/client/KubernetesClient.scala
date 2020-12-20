@@ -14,7 +14,7 @@ import org.http4s.client.jdkhttpclient.JdkWSClient
 import scala.concurrent.ExecutionContext
 import org.http4s.client.jdkhttpclient.WSClient
 
-case class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
+class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
   lazy val namespaces = new NamespacesApi(httpClient, config)
   lazy val pods = new PodsApi(
     httpClient,
@@ -46,7 +46,7 @@ object KubernetesClient {
   def apply[F[_]: ConcurrentEffect: ContextShift](config: KubeConfig): Resource[F, KubernetesClient[F]] =
     BlazeClientBuilder[F](ExecutionContext.global, Option(SslContexts.fromConfig(config))).resource
       .map(httpClient =>
-        apply(
+        new KubernetesClient(
           httpClient,
           JdkWSClient[F](HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build()),
           config
