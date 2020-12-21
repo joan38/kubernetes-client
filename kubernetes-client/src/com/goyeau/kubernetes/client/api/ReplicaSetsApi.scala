@@ -9,7 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class ReplicaSetsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class ReplicaSetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[ReplicaSetList],
     encoder: Encoder[ReplicaSet],
@@ -18,12 +18,12 @@ private[client] case class ReplicaSetsApi[F[_]](httpClient: Client[F], config: K
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "replicasets"
 
   def namespace(namespace: String): NamespacedReplicaSetsApi[F] =
-    NamespacedReplicaSetsApi(httpClient, config, namespace)
+    new NamespacedReplicaSetsApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedReplicaSetsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
+private[client] class NamespacedReplicaSetsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
     namespace: String
 )(implicit
     val F: Sync[F],

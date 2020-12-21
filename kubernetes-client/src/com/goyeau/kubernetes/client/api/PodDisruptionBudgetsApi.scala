@@ -9,7 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class PodDisruptionBudgetsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class PodDisruptionBudgetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[PodDisruptionBudgetList],
     encoder: Encoder[PodDisruptionBudget],
@@ -18,12 +18,12 @@ private[client] case class PodDisruptionBudgetsApi[F[_]](httpClient: Client[F], 
   val resourceUri: Uri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
 
   def namespace(namespace: String): NamespacedPodDisruptionBudgetApi[F] =
-    NamespacedPodDisruptionBudgetApi(httpClient, config, namespace)
+    new NamespacedPodDisruptionBudgetApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedPodDisruptionBudgetApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
+private[client] class NamespacedPodDisruptionBudgetApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
     namespace: String
 )(implicit
     val F: Sync[F],

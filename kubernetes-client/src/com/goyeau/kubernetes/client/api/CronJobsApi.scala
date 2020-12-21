@@ -9,7 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class CronJobsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class CronJobsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[CronJobList],
     encoder: Encoder[CronJob],
@@ -17,10 +17,10 @@ private[client] case class CronJobsApi[F[_]](httpClient: Client[F], config: Kube
 ) extends Listable[F, CronJobList] {
   val resourceUri: Uri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
 
-  def namespace(namespace: String): NamespacedCronJobsApi[F] = NamespacedCronJobsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedCronJobsApi[F] = new NamespacedCronJobsApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedCronJobsApi[F[_]](httpClient: Client[F], config: KubeConfig, namespace: String)(
+private[client] class NamespacedCronJobsApi[F[_]](val httpClient: Client[F], val config: KubeConfig, namespace: String)(
     implicit
     val F: Sync[F],
     val resourceEncoder: Encoder[CronJob],

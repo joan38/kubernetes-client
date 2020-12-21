@@ -9,7 +9,7 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] case class DeploymentsApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class DeploymentsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[DeploymentList],
     encoder: Encoder[Deployment],
@@ -18,12 +18,12 @@ private[client] case class DeploymentsApi[F[_]](httpClient: Client[F], config: K
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "deployments"
 
   def namespace(namespace: String): NamespacedDeploymentsApi[F] =
-    NamespacedDeploymentsApi(httpClient, config, namespace)
+    new NamespacedDeploymentsApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedDeploymentsApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
+private[client] class NamespacedDeploymentsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
     namespace: String
 )(implicit
     val F: Sync[F],

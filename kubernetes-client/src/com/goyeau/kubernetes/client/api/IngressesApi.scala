@@ -9,7 +9,7 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 import io.k8s.api.networking.v1beta1.{Ingress, IngressList}
 
-private[client] case class IngressessApi[F[_]](httpClient: Client[F], config: KubeConfig)(implicit
+private[client] class IngressessApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Sync[F],
     val listDecoder: Decoder[IngressList],
     encoder: Encoder[Ingress],
@@ -17,12 +17,13 @@ private[client] case class IngressessApi[F[_]](httpClient: Client[F], config: Ku
 ) extends Listable[F, IngressList] {
   val resourceUri: Uri = uri"/apis" / "extensions" / "v1beta1" / "ingresses"
 
-  def namespace(namespace: String): NamespacedIngressesApi[F] = NamespacedIngressesApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedIngressesApi[F] =
+    new NamespacedIngressesApi(httpClient, config, namespace)
 }
 
-private[client] case class NamespacedIngressesApi[F[_]](
-    httpClient: Client[F],
-    config: KubeConfig,
+private[client] class NamespacedIngressesApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
     namespace: String
 )(implicit
     val F: Sync[F],
