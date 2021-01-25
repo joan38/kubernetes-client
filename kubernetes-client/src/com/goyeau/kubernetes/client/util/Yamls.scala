@@ -66,15 +66,16 @@ private[client] object Yamls {
       user = namedAuthInfo.user
 
       server <- Sync[F].fromEither(Uri.fromString(cluster.server))
-    } yield KubeConfig(
-      server = server,
-      caCertData = cluster.`certificate-authority-data`,
-      caCertFile = cluster.`certificate-authority`.map(new File(_)),
-      clientCertData = user.`client-certificate-data`,
-      clientCertFile = user.`client-certificate`.map(new File(_)),
-      clientKeyData = user.`client-key-data`,
-      clientKeyFile = user.`client-key`.map(new File(_))
-    )
+      config <- KubeConfig.of[F](
+        server = server,
+        caCertData = cluster.`certificate-authority-data`,
+        caCertFile = cluster.`certificate-authority`.map(new File(_)),
+        clientCertData = user.`client-certificate-data`,
+        clientCertFile = user.`client-certificate`.map(new File(_)),
+        clientKeyData = user.`client-key-data`,
+        clientKeyFile = user.`client-key`.map(new File(_))
+      )
+    } yield config
 
   implicit lazy val configDecoder: Decoder[Config]          = deriveDecoder
   implicit lazy val configEncoder: Encoder.AsObject[Config] = deriveEncoder
