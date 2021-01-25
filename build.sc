@@ -22,6 +22,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
   override def scalacOptions = super.scalacOptions().filter(_ != "-Wunused:imports")
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
+  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++ Agg(ivy"org.typelevel:::kind-projector:0.11.3")
 
   object test extends Tests {
     def testFrameworks    = Seq("munit.Framework")
