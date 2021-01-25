@@ -27,7 +27,9 @@ object SslContexts {
       keyStream  <- config.clientKey.map(_.bytesStream)
       certStream <- config.clientCert.map(_.bytesStream)
     } yield {
-      Security.addProvider(new BouncyCastleProvider()) // FIXME: side-effect. Function should return effect, not pure value
+      Security.addProvider(
+        new BouncyCastleProvider()
+      ) // FIXME: side-effect. Function should return effect, not pure value
       val pemKeyPair =
         new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair] // scalafix:ok
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
