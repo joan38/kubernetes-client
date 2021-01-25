@@ -1,8 +1,7 @@
 package com.goyeau.kubernetes.client.util
-import java.io.{ByteArrayInputStream, File, FileInputStream, InputStreamReader}
+import java.io.{File, FileInputStream, InputStreamReader}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.{KeyStore, SecureRandom, Security}
-import java.util.Base64
 
 import com.goyeau.kubernetes.client.KubeConfig
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
