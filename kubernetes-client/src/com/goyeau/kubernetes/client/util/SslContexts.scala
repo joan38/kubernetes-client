@@ -23,19 +23,11 @@ object SslContexts {
   }
 
   private def keyManagers(config: KubeConfig) = {
-    // Client certificate
-    val certDataStream = config.clientCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
-    val certFileStream = config.clientCertFile.map(new FileInputStream(_))
-
-    // Client key
-    val keyDataStream = config.clientKeyData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
-    val keyFileStream = config.clientKeyFile.map(new FileInputStream(_))
-
     for {
-      keyStream  <- keyDataStream.orElse(keyFileStream)
-      certStream <- certDataStream.orElse(certFileStream)
+      keyStream  <- config.clientKey.map(_.bytesStream)
+      certStream <- config.clientCert.map(_.bytesStream)
     } yield {
-      Security.addProvider(new BouncyCastleProvider())
+      Security.addProvider(new BouncyCastleProvider()) // FIXME: side-effect. Function should return effect, not pure value
       val pemKeyPair =
         new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair] // scalafix:ok
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
@@ -69,12 +61,10 @@ object SslContexts {
   }
 
   private def trustManagers(config: KubeConfig) = {
-    val certDataStream = config.caCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
-    val certFileStream = config.caCertFile.map(new FileInputStream(_))
-
-    certDataStream.orElse(certFileStream).foreach { certStream =>
+    config.caCert.foreach { certStream =>
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
+      val certificate =
+        certificateFactory.generateCertificate(certStream.bytesStream).asInstanceOf[X509Certificate] // scalafix:ok
       defaultTrustStore.setCertificateEntry(certificate.getSubjectX500Principal.getName, certificate)
     }
 
