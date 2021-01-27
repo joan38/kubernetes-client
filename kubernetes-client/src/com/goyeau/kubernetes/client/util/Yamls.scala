@@ -1,10 +1,10 @@
 package com.goyeau.kubernetes.client.util
 
 import java.io.File
-
 import cats.effect.Sync
 import cats.implicits._
-import com.goyeau.kubernetes.client.KubeConfig
+import com.goyeau.kubernetes.client.Certificate.{CertData, CertFile}
+import com.goyeau.kubernetes.client.{Certificate, KubeConfig}
 
 import scala.io.Source
 import io.chrisdavenport.log4cats.Logger
@@ -68,13 +68,13 @@ private[client] object Yamls {
       server <- Sync[F].fromEither(Uri.fromString(cluster.server))
     } yield KubeConfig(
       server = server,
-      caCertData = cluster.`certificate-authority-data`,
-      caCertFile = cluster.`certificate-authority`.map(new File(_)),
-      clientCertData = user.`client-certificate-data`,
-      clientCertFile = user.`client-certificate`.map(new File(_)),
-      clientKeyData = user.`client-key-data`,
-      clientKeyFile = user.`client-key`.map(new File(_))
+      caCert = certificateFromDataOrFile(cluster.`certificate-authority-data`, cluster.`certificate-authority`),
+      clientCert = certificateFromDataOrFile(user.`client-certificate-data`, user.`client-certificate`),
+      clientKey = certificateFromDataOrFile(user.`client-key-data`, user.`client-key`)
     )
+
+  private def certificateFromDataOrFile(certData: Option[String], certFileName: Option[String]): Option[Certificate] =
+    certData.map(CertData).orElse(certFileName.map(fileName => CertFile(new File(fileName))))
 
   implicit lazy val configDecoder: Decoder[Config]          = deriveDecoder
   implicit lazy val configEncoder: Encoder.AsObject[Config] = deriveEncoder
