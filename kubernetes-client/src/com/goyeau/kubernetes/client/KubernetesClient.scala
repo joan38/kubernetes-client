@@ -8,10 +8,8 @@ import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResou
 import com.goyeau.kubernetes.client.util.SslContexts
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
-import org.http4s.client.blaze.BlazeClientBuilder
-import org.http4s.client.jdkhttpclient.JdkWSClient
+import org.http4s.client.jdkhttpclient.{JdkHttpClient, JdkWSClient}
 
-import scala.concurrent.ExecutionContext
 import org.http4s.client.jdkhttpclient.WSClient
 
 class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
@@ -44,14 +42,14 @@ class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F],
 
 object KubernetesClient {
   def apply[F[_]: ConcurrentEffect: ContextShift](config: KubeConfig): Resource[F, KubernetesClient[F]] =
-    BlazeClientBuilder[F](ExecutionContext.global, Option(SslContexts.fromConfig(config))).resource
-      .map(httpClient =>
-        new KubernetesClient(
-          httpClient,
-          JdkWSClient[F](HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build()),
-          config
-        )
+    Resource.pure {
+      val client = HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build()
+      new KubernetesClient(
+        JdkHttpClient(client),
+        JdkWSClient[F](client),
+        config
       )
+    }
 
   def apply[F[_]: ConcurrentEffect: ContextShift](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
     Resource.liftF(config).flatMap(apply(_))
