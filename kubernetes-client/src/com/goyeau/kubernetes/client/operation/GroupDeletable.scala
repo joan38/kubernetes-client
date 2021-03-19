@@ -16,6 +16,8 @@ private[client] trait GroupDeletable[F[_]] {
 
   def deleteAll(labels: Map[String, String] = Map.empty): F[Status] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
-    httpClient.run(Request[F](DELETE, uri).putHeaders(config.authorization.toSeq: _*)).use(EnrichedStatus[F])
+    httpClient
+      .run(Request[F](DELETE, uri).withOptionalAuthorization(config.authorization))
+      .use(EnrichedStatus[F])
   }
 }

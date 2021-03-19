@@ -23,9 +23,7 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
       .run(
         Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)
           .withEntity(resource)
-          .putHeaders(
-            config.authorization.toSeq: _*
-          )
+          .withOptionalAuthorization(config.authorization)
       )
       .use(EnrichedStatus[F])
 }

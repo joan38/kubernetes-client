@@ -3,9 +3,9 @@ package com.goyeau.kubernetes.client.operation
 import cats.effect.Sync
 import com.goyeau.kubernetes.client.KubeConfig
 import org.http4s._
-import org.http4s.dsl.impl.Path
 import org.http4s.client.Client
 import org.http4s.EntityDecoder
+import org.http4s.Uri.Path
 import org.http4s.headers.`Content-Type`
 
 private[client] trait Proxy[F[_]] {
@@ -24,6 +24,7 @@ private[client] trait Proxy[F[_]] {
     httpClient.expect[String](
       Request(
         method,
+        //TODO: I think this is wrong (hamnis)
         config.server.resolve(resourceUri) / name / s"proxy$path",
         headers = Headers(config.authorization.toList),
         body = data.fold[EntityBody[F]](EmptyBody)(
