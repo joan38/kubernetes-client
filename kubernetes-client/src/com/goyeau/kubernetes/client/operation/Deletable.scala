@@ -19,7 +19,7 @@ private[client] trait Deletable[F[_]] {
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None): F[Status] = {
     implicit val encoder: EntityEncoder[F, Option[DeleteOptions]] =
       EntityEncoder.encodeBy(`Content-Type`(MediaType.application.json)) { opt =>
-        opt.fold(Entity.empty.asInstanceOf[Entity[F]])(EntityEncoder[F, DeleteOptions].toEntity(_))
+        opt.fold(Entity[F](EmptyBody.covary[F], Some(0L)))(EntityEncoder[F, DeleteOptions].toEntity(_))
       }
 
     httpClient
