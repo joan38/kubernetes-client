@@ -17,17 +17,15 @@ private[client] trait Deletable[F[_]] {
   protected def resourceUri: Uri
 
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None): F[Status] = {
-    implicit val encoder: EntityEncoder[F, Option[DeleteOptions]] =
-      EntityEncoder.encodeBy(`Content-Type`(MediaType.application.json)) { opt =>
-        opt.fold(Entity[F](EmptyBody.covary[F], Some(0L)))(EntityEncoder[F, DeleteOptions].toEntity(_))
+    val encoder: EntityEncoder[F, Option[DeleteOptions]] =
+      EntityEncoder.encodeBy(`Content-Type`(MediaType.application.json)) { maybeOptions =>
+        maybeOptions.fold(Entity[F](EmptyBody.covary[F], Some(0L)))(EntityEncoder[F, DeleteOptions].toEntity(_))
       }
 
     httpClient
       .run(
-        Request[F](
-          method = DELETE,
-          uri = config.server.resolve(resourceUri) / name
-        ).withOptionalAuthorization(config.authorization)
+        Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
+          .withOptionalAuthorization(config.authorization)
           .withEntity(deleteOptions)(encoder)
       )
       .use(EnrichedStatus[F])

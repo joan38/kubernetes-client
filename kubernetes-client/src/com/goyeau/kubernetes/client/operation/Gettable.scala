@@ -19,5 +19,4 @@ private[client] trait Gettable[F[_], Resource] {
     httpClient.expect[Resource](
       Request[F](GET, config.server.resolve(resourceUri) / name).withOptionalAuthorization(config.authorization)
     )
-
 }
