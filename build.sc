@@ -11,7 +11,7 @@ import mill._
 import mill.scalalib._
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("2.13.4", "2.12.12")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("2.13.5", "2.12.12")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
     with TpolecatModule
