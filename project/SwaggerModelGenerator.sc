@@ -1,7 +1,7 @@
 import $file.Model, Model.{Definition, Property}
-import $ivy.`io.circe::circe-core:0.13.0`
-import $ivy.`io.circe::circe-generic:0.13.0`
-import $ivy.`io.circe::circe-parser:0.13.0`
+import $ivy.`io.circe::circe-core:0.14.0`
+import $ivy.`io.circe::circe-generic:0.14.0`
+import $ivy.`io.circe::circe-parser:0.14.0`
 import mill._
 import mill.api.Logger
 import mill.define.Sources
