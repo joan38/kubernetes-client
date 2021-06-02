@@ -6,8 +6,8 @@ import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils._
 import com.goyeau.kubernetes.client.operation.MinikubeClientProvider
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{Namespace, NamespaceList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status

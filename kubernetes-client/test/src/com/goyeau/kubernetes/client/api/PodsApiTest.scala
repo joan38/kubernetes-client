@@ -5,8 +5,8 @@ import cats.implicits._
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.{KubernetesClient, Utils}
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1
 import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
