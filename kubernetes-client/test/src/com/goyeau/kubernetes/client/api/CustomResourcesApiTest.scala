@@ -7,8 +7,8 @@ import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest._
 import com.goyeau.kubernetes.client.api.CustomResourcesApiTest.{CronTabResource, CronTabResourceList}
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.operation._
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.circe._
 import io.circe.generic.semiauto._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta

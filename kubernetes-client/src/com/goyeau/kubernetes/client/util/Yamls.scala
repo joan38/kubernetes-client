@@ -7,7 +7,7 @@ import cats.implicits._
 import com.goyeau.kubernetes.client.KubeConfig
 
 import scala.io.Source
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto._
 import io.circe.yaml.parser._

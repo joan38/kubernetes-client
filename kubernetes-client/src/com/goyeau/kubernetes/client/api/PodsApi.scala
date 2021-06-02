@@ -13,7 +13,7 @@ import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.jdkhttpclient._
+import org.http4s.jdkhttpclient._
 import org.http4s.implicits._
 import scodec.bits.ByteVector
 import org.typelevel.ci.CIString
@@ -61,10 +61,8 @@ private[client] class NamespacedPodsApi[F[_]](
 
   val execHeaders: Headers =
     Headers(
-      config.authorization.map(_.toRaw).toList ++ List(
-        Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io")
-      )
-    )
+      config.authorization.toList
+    ).put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
 
   val webSocketAddress: Uri = Uri.unsafeFromString(
     config.server

@@ -8,9 +8,7 @@ import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResou
 import com.goyeau.kubernetes.client.util.SslContexts
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
-import org.http4s.client.jdkhttpclient.{JdkHttpClient, JdkWSClient}
-
-import org.http4s.client.jdkhttpclient.WSClient
+import org.http4s.jdkhttpclient.{WSClient, JdkHttpClient, JdkWSClient}
 
 class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
   lazy val namespaces = new NamespacesApi(httpClient, config)
@@ -52,5 +50,5 @@ object KubernetesClient {
     }
 
   def apply[F[_]: ConcurrentEffect: ContextShift](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
-    Resource.liftF(config).flatMap(apply(_))
+    Resource.eval(config).flatMap(apply(_))
 }
