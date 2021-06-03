@@ -128,4 +128,4 @@ jobs:
           gpg --batch --yes --import private.key
           rm private.key
 
-          ./mill mill.scalalib.PublishModule/publishAll --sonatypeCreds ${{secrets.sonatype_credentials}} --publishArtifacts __.publishArtifacts --release true
+          ./mill mill.scalalib.PublishModule/publishAll --sonatypeCreds ${{secrets.sonatype_credentials}} --publishArtifacts __.publishArtifacts --awaitTimeout 600000 --release true
