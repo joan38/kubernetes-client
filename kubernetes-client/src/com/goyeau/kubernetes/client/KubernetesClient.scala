@@ -8,7 +8,7 @@ import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResou
 import com.goyeau.kubernetes.client.util.SslContexts
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
-import org.http4s.jdkhttpclient.{WSClient, JdkHttpClient, JdkWSClient}
+import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
 
 class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
   lazy val namespaces = new NamespacesApi(httpClient, config)
