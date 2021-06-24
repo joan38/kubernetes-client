@@ -84,14 +84,16 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       val watchEvents = for {
         set <- watchStream.interruptAfter(60.seconds).compile.toList
-        result = set.headOption.getOrElse(fail("stream should have at least one element with all received events")).toSet
-        _      = assertEquals(result, expected)
+        result = set.headOption
+          .getOrElse(fail("stream should have at least one element with all received events"))
+          .toSet
+        _ = assertEquals(result, expected)
       } yield ()
 
       (
         watchEvents,
         timer.sleep(100.millis) *> sendEvents
-      ).parSequence
+      ).parBisequence
     }
   }
 
