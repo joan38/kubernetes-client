@@ -19,7 +19,10 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
 
-  override def scalacOptions = super.scalacOptions().filter(_ != "-Wunused:imports")
+  override def scalacOptions = super.scalacOptions()
+    .filter(_ != "-Wunused:imports")
+    .filter(_ != "-Xfatal-warnings")
+
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++ Agg(ivy"org.typelevel:::kind-projector:0.11.3")
