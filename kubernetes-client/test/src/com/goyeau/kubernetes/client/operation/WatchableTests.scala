@@ -93,7 +93,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       (
         watchEvents,
         timer.sleep(100.millis) *> sendEvents
-      ).parBisequence
+      ).parSequence
     }
   }
 
