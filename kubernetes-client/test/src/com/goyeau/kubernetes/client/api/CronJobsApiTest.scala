@@ -3,8 +3,8 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.{ConcurrentEffect, IO}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.KubernetesClient
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.batch.v1.JobSpec
 import io.k8s.api.batch.v1beta1.{CronJob, CronJobList, CronJobSpec, JobTemplateSpec}
 import io.k8s.api.core.v1._

@@ -5,7 +5,7 @@ import java.io.File
 import cats.ApplicativeError
 import cats.effect.Sync
 import com.goyeau.kubernetes.client.util.Yamls
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import org.http4s.Uri
 import org.http4s.headers.Authorization
 

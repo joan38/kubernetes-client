@@ -25,7 +25,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       .run(
         Request[F](POST, config.server.resolve(resourceUri))
           .withEntity(resource)
-          .putHeaders(config.authorization.toSeq: _*)
+          .withOptionalAuthorization(config.authorization)
       )
       .use(
         EnrichedStatus[F]
@@ -39,13 +39,14 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
           Request[F](PATCH, fullResourceUri)
             .withEntity(resource)
             .putHeaders(
-              `Content-Type`(MediaType.application.`merge-patch+json`) +: config.authorization.toSeq: _*
+              `Content-Type`(MediaType.application.`merge-patch+json`)
             )
+            .withOptionalAuthorization(config.authorization)
         )
         .use(EnrichedStatus[F])
 
     httpClient
-      .run(Request[F](GET, fullResourceUri).putHeaders(config.authorization.toSeq: _*))
+      .run(Request[F](GET, fullResourceUri).withOptionalAuthorization(config.authorization))
       .use(EnrichedStatus.apply[F])
       .flatMap {
         case status if status.isSuccess => update

@@ -25,7 +25,7 @@ private[client] trait Watchable[F[_], Resource] {
 
   def watch(labels: Map[String, String] = Map.empty): Stream[F, Either[String, WatchEvent[Resource]]] = {
     val uri = addLabels(labels, config.server.resolve(watchResourceUri))
-    val req = Request[F](GET, uri.withQueryParam("watch", "1")).putHeaders(config.authorization.toSeq: _*)
+    val req = Request[F](GET, uri.withQueryParam("watch", "1")).withOptionalAuthorization(config.authorization)
     jsonStream(req).map(_.as[WatchEvent[Resource]].leftMap(_.getMessage))
   }
 

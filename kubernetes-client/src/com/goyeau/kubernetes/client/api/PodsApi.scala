@@ -13,9 +13,10 @@ import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.client.jdkhttpclient._
+import org.http4s.jdkhttpclient._
 import org.http4s.implicits._
 import scodec.bits.ByteVector
+import org.typelevel.ci.CIString
 
 private[client] class PodsApi[F[_]](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(implicit
     val F: Sync[F],
@@ -59,9 +60,9 @@ private[client] class NamespacedPodsApi[F[_]](
   val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
 
   val execHeaders: Headers =
-    Headers.of(
-      config.authorization.toList ++ headers.`Sec-WebSocket-Protocol`.parse("v4.channel.k8s.io").toOption.toList: _*
-    )
+    Headers(
+      config.authorization.toList
+    ).put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
 
   val webSocketAddress: Uri = Uri.unsafeFromString(
     config.server
@@ -80,12 +81,12 @@ private[client] class NamespacedPodsApi[F[_]](
       tty: Boolean = false
   ): F[(T, Either[String, Status])] = {
     val uri = (webSocketAddress.resolve(resourceUri) / podName / "exec")
-      .+?("stdin", stdin.toString)
-      .+?("stdout", stdout.toString)
-      .+?("stderr", stderr.toString)
-      .+?("tty", tty.toString)
-      .+??("container", container)
-      .+?("command", command)
+      .+?("stdin" -> stdin.toString)
+      .+?("stdout" -> stdout.toString)
+      .+?("stderr" -> stderr.toString)
+      .+?("tty" -> tty.toString)
+      .+??("container" -> container)
+      .++?("command" -> command)
 
     val request = WSRequest(uri, execHeaders, Method.POST)
     wsClient.connectHighLevel(request).use { connection =>

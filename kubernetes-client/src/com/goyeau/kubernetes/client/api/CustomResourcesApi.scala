@@ -54,7 +54,7 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
       .run(
         Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
           .withEntity(resource)
-          .putHeaders(config.authorization.toSeq: _*)
+          .withOptionalAuthorization(config.authorization)
       )
       .use(
         EnrichedStatus[F]

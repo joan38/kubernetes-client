@@ -17,6 +17,6 @@ private[client] trait Gettable[F[_], Resource] {
 
   def get(name: String): F[Resource] =
     httpClient.expect[Resource](
-      Request[F](GET, config.server.resolve(resourceUri) / name).putHeaders(config.authorization.toSeq: _*)
+      Request[F](GET, config.server.resolve(resourceUri) / name).withOptionalAuthorization(config.authorization)
     )
 }
