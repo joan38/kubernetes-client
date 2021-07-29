@@ -22,8 +22,8 @@ or
 ```scala
 import cats.effect.{ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client._
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.io.File
 import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
@@ -49,8 +49,8 @@ val kubernetesClient =
 ```scala
 import cats.effect.{ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client._
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.io.File
 import scala.concurrent.ExecutionContext
 
@@ -67,8 +67,8 @@ val kubernetesClient =
 ```scala
 import cats.effect.{ContextShift, IO, Timer}
 import com.goyeau.kubernetes.client._
-import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.apps.v1._
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.api.resource.Quantity
@@ -135,6 +135,14 @@ kubernetesClient.use { client =>
   client.deployments.namespace("my-namespace").create(deployment)
 }
 ```
+
+
+## Development
+
+### Pre-requisites
+
+ - Java 11 or higher
+ - Docker
 
 
 ## Related projects
