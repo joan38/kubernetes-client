@@ -1,26 +1,28 @@
 package com.goyeau.kubernetes.client.operation
 
 import scala.concurrent.duration._
-import cats.Applicative
-import cats.effect.Timer
 import cats.implicits._
+import cats.effect.Temporal
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s._
 
 private[client] trait DeletableTerminated[F[_]] { this: Deletable[F] =>
 
   def deleteTerminated(name: String, deleteOptions: Option[DeleteOptions] = None)(implicit
-      timer: Timer[F]
+      temporal: Temporal[F]
   ): F[Status] = {
-    def deleteTerminated(firstTry: Boolean): F[Status] = {
-      def retry() = timer.sleep(1.second) *> deleteTerminated(firstTry = false)
 
-      delete(name, deleteOptions).flatMap {
+    def deleteTerminated(firstTry: Boolean): F[Status] = {
+
+      def retry() =
+        F.*>(temporal.sleep(1.second))(deleteTerminated(firstTry = false))
+
+      F.flatMap(delete(name, deleteOptions)) {
         case status if status.isSuccess => retry()
         case Status.Conflict            => retry()
         case response @ Status.NotFound =>
-          if (firstTry) Applicative[F].pure(response) else Applicative[F].pure(Status.Ok)
-        case error => Applicative[F].pure(error)
+          if (firstTry) F.pure(response) else F.pure(Status.Ok)
+        case error => F.pure(error)
       }
     }
 

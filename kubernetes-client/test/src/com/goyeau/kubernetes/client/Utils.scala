@@ -1,15 +1,19 @@
 package com.goyeau.kubernetes.client
 
+import cats.effect.Temporal
 import cats.implicits._
-import cats.effect.{Sync, Timer}
+import cats.{ApplicativeError, Defer}
+
 import scala.concurrent.duration._
 
 object Utils {
-  def retry[F[_]: Sync, Result](f: F[Result], initialDelay: FiniteDuration = 500.millis, maxRetries: Int = 50)(
-      implicit timer: Timer[F]
+  def retry[F[_], Result](f: F[Result], initialDelay: FiniteDuration = 500.millis, maxRetries: Int = 50)(implicit
+      temporal: Temporal[F],
+      F: ApplicativeError[F, Throwable],
+      D: Defer[F]
   ): F[Result] =
     f.handleErrorWith { exception =>
-      if (maxRetries > 0) timer.sleep(initialDelay) *> retry(f, initialDelay * 2, maxRetries - 1)
-      else Sync[F].raiseError(exception)
+      if (maxRetries > 0) temporal.sleep(initialDelay) *> D.defer(retry(f, initialDelay * 2, maxRetries - 1))
+      else F.raiseError(exception)
     }
 }

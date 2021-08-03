@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.Sync
+import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
@@ -10,7 +10,7 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 
 private[client] class ReplicaSetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
-    val F: Sync[F],
+    val F: Async[F],
     val listDecoder: Decoder[ReplicaSetList],
     encoder: Encoder[ReplicaSet],
     decoder: Decoder[ReplicaSet]
@@ -26,7 +26,7 @@ private[client] class NamespacedReplicaSetsApi[F[_]](
     val config: KubeConfig,
     namespace: String
 )(implicit
-    val F: Sync[F],
+    val F: Async[F],
     val resourceEncoder: Encoder[ReplicaSet],
     val resourceDecoder: Decoder[ReplicaSet],
     val listDecoder: Decoder[ReplicaSetList]

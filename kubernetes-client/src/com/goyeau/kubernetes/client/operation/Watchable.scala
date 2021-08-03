@@ -1,13 +1,13 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.effect.Sync
+import cats.effect.Async
 import cats.syntax.either._
 import com.goyeau.kubernetes.client.util.Uris.addLabels
 import com.goyeau.kubernetes.client.{KubeConfig, WatchEvent}
 import fs2.Stream
 import io.circe.jawn.CirceSupportParser
 import io.circe.{Decoder, Json}
-import jawnfs2._
+import org.typelevel.jawn.fs2._
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.client.Client
@@ -15,7 +15,7 @@ import org.typelevel.jawn.Facade
 
 private[client] trait Watchable[F[_], Resource] {
   protected def httpClient: Client[F]
-  implicit protected val F: Sync[F]
+  implicit protected val F: Async[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
   protected def watchResourceUri: Uri = resourceUri

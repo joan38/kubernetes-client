@@ -19,9 +19,9 @@ class ServiceAccountsApiTest
     with WatchableTests[IO, ServiceAccount]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[ServiceAccount].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[ServiceAccount].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.serviceAccounts
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

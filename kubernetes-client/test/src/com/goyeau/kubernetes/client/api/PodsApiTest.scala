@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{ConcurrentEffect, IO}
+import cats.effect.{Async, IO}
 import cats.implicits._
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation._
@@ -12,6 +12,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1
 import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
 import munit.FunSuite
 import org.http4s.Status
+import cats.effect.unsafe.implicits.global
 
 class PodsApiTest
     extends FunSuite
@@ -24,9 +25,9 @@ class PodsApiTest
     with WatchableTests[IO, Pod]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[Pod].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[Pod].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.pods
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
@@ -91,8 +92,8 @@ class PodsApiTest
     assertNotEquals(messages.length, 0)
 
     val stdOut = messages
-      .collect {
-        case StdOut(d) => d
+      .collect { case StdOut(d) =>
+        d
       }
       .mkString("")
     val expectedDirs = List("dev", "etc", "home", "usr", "var").mkString("|").r

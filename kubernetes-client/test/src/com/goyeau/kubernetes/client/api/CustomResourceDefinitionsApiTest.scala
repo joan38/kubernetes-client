@@ -11,6 +11,7 @@ import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
+import cats.effect.unsafe.implicits.global
 
 object CustomResourceDefinitionsApiTest {
   val versions: CustomResourceDefinitionVersion =
@@ -75,43 +76,43 @@ class CustomResourceDefinitionsApiTest
     with WatchableTests[IO, CustomResourceDefinition]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName: String             = classOf[CustomResourceDefinition].getSimpleName
-  override val resourceIsNamespaced         = false
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName: String        = classOf[CustomResourceDefinition].getSimpleName
+  override val resourceIsNamespaced    = false
 
   override def api(implicit client: KubernetesClient[IO]) = client.customResourceDefinitions
   override def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     namespacedApi(namespaceName).delete(crdName(resourceName))
-  override def deleteResource(namespaceName: String, resourceName: String)(
-      implicit client: KubernetesClient[IO]
+  override def deleteResource(namespaceName: String, resourceName: String)(implicit
+      client: KubernetesClient[IO]
   ): IO[Status] =
     namespacedApi(namespaceName).delete(crdName(resourceName))
   override def deleteTerminated(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     namespacedApi(namespaceName).deleteTerminated(crdName(resourceName))
 
-  def listNotContains(resourceNames: Set[String], labels: Map[String, String])(
-      implicit client: KubernetesClient[IO]
+  def listNotContains(resourceNames: Set[String], labels: Map[String, String])(implicit
+      client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
       resourceList <- client.customResourceDefinitions.list(labels)
       _ = assert(resourceList.items.flatMap(_.metadata.flatMap(_.name)).forall(!resourceNames.map(crdName).contains(_)))
     } yield resourceList
 
-  override def listContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String])(
-      implicit client: KubernetesClient[IO]
+  override def listContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String])(implicit
+      client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] = listContains(resourceNames)
 
-  def listContains(resourceNames: Set[String])(
-      implicit client: KubernetesClient[IO]
+  def listContains(resourceNames: Set[String])(implicit
+      client: KubernetesClient[IO]
   ): IO[CustomResourceDefinitionList] =
     for {
       resourceList <- client.customResourceDefinitions.list()
       _ = assert(resourceNames.map(crdName).subsetOf(resourceList.items.flatMap(_.metadata.flatMap(_.name)).toSet))
     } yield resourceList
 
-  override def getChecked(namespaceName: String, resourceName: String)(
-      implicit client: KubernetesClient[IO]
+  override def getChecked(namespaceName: String, resourceName: String)(implicit
+      client: KubernetesClient[IO]
   ): IO[CustomResourceDefinition] =
     getChecked(resourceName)
 

@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.effect.Sync
+import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.EnrichedStatus
 import com.goyeau.kubernetes.client.util.Uris.addLabels
@@ -10,7 +10,7 @@ import org.http4s.Method._
 
 private[client] trait GroupDeletable[F[_]] {
   protected def httpClient: Client[F]
-  implicit protected val F: Sync[F]
+  implicit protected val F: Async[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
 

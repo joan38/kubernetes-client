@@ -19,9 +19,9 @@ class ConfigMapsApiTest
     with WatchableTests[IO, ConfigMap]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[ConfigMap].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[ConfigMap].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.configMaps
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

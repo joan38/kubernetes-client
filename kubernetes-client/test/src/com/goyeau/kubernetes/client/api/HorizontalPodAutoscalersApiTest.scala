@@ -5,7 +5,12 @@ import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.autoscaling.v1.{CrossVersionObjectReference, HorizontalPodAutoscaler, HorizontalPodAutoscalerList, HorizontalPodAutoscalerSpec}
+import io.k8s.api.autoscaling.v1.{
+  CrossVersionObjectReference,
+  HorizontalPodAutoscaler,
+  HorizontalPodAutoscalerList,
+  HorizontalPodAutoscalerSpec
+}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 
@@ -19,9 +24,9 @@ class HorizontalPodAutoscalersApiTest
     with WatchableTests[IO, HorizontalPodAutoscaler]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[HorizontalPodAutoscaler].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[HorizontalPodAutoscaler].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.horizontalPodAutoscalers
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

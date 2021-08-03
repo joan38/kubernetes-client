@@ -12,8 +12,8 @@ object Dependencies {
   }
 
   lazy val http4s = {
-    val version = "0.22.0-RC1"
-    val jdkClientVersion = "0.4.0-RC1"
+    val version = "0.23.0"
+    val jdkClientVersion = "0.5.0"
     Agg(
       ivy"org.http4s::http4s-dsl:$version",
       ivy"org.http4s::http4s-circe:$version",
@@ -27,5 +27,5 @@ object Dependencies {
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.4.4")
 
-  lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:1.3.1")
+  lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.1.1")
 }

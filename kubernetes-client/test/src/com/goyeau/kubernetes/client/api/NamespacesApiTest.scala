@@ -1,7 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.Applicative
-import cats.effect.{ConcurrentEffect, IO, Sync, Timer}
+import cats.effect.{Async, IO, Sync}
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils._
@@ -19,9 +18,9 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
 
   import NamespacesApiTest._
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName: String             = classOf[Namespace].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName: String        = classOf[Namespace].getSimpleName
 
   test("create a namespace") {
     usingMinikube { implicit client =>
@@ -160,14 +159,14 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
 
 object NamespacesApiTest {
 
-  def createChecked[F[_]: Sync](
+  def createChecked[F[_]: Async](
       namespaceName: String
-  )(implicit client: KubernetesClient[F], timer: Timer[F]): F[Namespace] =
+  )(implicit client: KubernetesClient[F]): F[Namespace] =
     for {
       status <- client.namespaces.create(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
       _ = assertEquals(status, Status.Created)
       namespace          <- getChecked(namespaceName)
-      serviceAccountName <- Applicative[F].pure("default")
+      serviceAccountName <- Sync[F].pure("default")
       _ <- retry(for {
         serviceAccount <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
         _ = assertEquals(serviceAccount.metadata.flatMap(_.name), Some(serviceAccountName))

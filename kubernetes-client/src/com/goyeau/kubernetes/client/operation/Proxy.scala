@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.effect.Sync
+import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import org.http4s._
 import org.http4s.client.Client
@@ -10,7 +10,7 @@ import org.http4s.headers.`Content-Type`
 
 private[client] trait Proxy[F[_]] {
   protected def httpClient: Client[F]
-  implicit protected val F: Sync[F]
+  implicit protected val F: Async[F]
   protected def config: KubeConfig
   protected def resourceUri: Uri
 

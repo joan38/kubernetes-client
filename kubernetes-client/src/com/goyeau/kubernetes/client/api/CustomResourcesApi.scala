@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.Sync
+import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.operation._
@@ -17,7 +17,7 @@ private[client] class CustomResourcesApi[F[_], A, B](
     val config: KubeConfig,
     val context: CrdContext
 )(implicit
-    val F: Sync[F],
+    val F: Async[F],
     val listDecoder: Decoder[CustomResourceList[A, B]],
     encoder: Encoder[CustomResource[A, B]],
     decoder: Decoder[CustomResource[A, B]]
@@ -35,7 +35,7 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
     val context: CrdContext,
     namespace: String
 )(implicit
-    val F: Sync[F],
+    val F: Async[F],
     val resourceEncoder: Encoder[CustomResource[A, B]],
     val resourceDecoder: Decoder[CustomResource[A, B]],
     val listDecoder: Decoder[CustomResourceList[A, B]]
@@ -56,7 +56,5 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
           .withEntity(resource)
           .withOptionalAuthorization(config.authorization)
       )
-      .use(
-        EnrichedStatus[F]
-      )
+      .use(EnrichedStatus[F])
 }

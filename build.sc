@@ -19,7 +19,8 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
 
-  override def scalacOptions = super.scalacOptions()
+  override def scalacOptions =    
+    super.scalacOptions()
     .filter(_ != "-Wunused:imports")
     .filter(_ != "-Xfatal-warnings")
 
