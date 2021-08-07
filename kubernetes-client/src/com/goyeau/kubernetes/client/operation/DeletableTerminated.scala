@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.operation
 
 import scala.concurrent.duration._
-import cats.implicits._
+import cats.implicits.{catsSyntaxApply, toFlatMapOps}
 import cats.effect.Temporal
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s._
@@ -15,9 +15,9 @@ private[client] trait DeletableTerminated[F[_]] { this: Deletable[F] =>
     def deleteTerminated(firstTry: Boolean): F[Status] = {
 
       def retry() =
-        F.*>(temporal.sleep(1.second))(deleteTerminated(firstTry = false))
+        temporal.sleep(1.second) *> deleteTerminated(firstTry = false)
 
-      F.flatMap(delete(name, deleteOptions)) {
+      delete(name, deleteOptions).flatMap {
         case status if status.isSuccess => retry()
         case Status.Conflict            => retry()
         case response @ Status.NotFound =>
