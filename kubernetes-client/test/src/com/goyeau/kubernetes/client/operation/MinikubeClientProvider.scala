@@ -4,9 +4,10 @@ import cats.effect._
 import cats.implicits._
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
-import org.typelevel.log4cats.Logger
-import java.io.File
 import munit.Suite
+import org.typelevel.log4cats.Logger
+
+import java.io.File
 
 trait MinikubeClientProvider[F[_]] {
   this: Suite =>
@@ -26,20 +27,26 @@ trait MinikubeClientProvider[F[_]] {
 
   def resourceName: String
 
-  private val createNamespace: F[Unit] = kubernetesClient.use { implicit client =>
+  def defaultNamespace: String = resourceName.toLowerCase
+
+  protected val extraNamespace = Option.empty[String]
+
+  protected def createNamespace(namespace: String): F[Unit] = kubernetesClient.use { implicit client =>
     for {
-      _ <- client.namespaces.deleteTerminated(resourceName.toLowerCase)
-      _ <- NamespacesApiTest.createChecked[F](resourceName.toLowerCase)
+      _ <- client.namespaces.deleteTerminated(namespace)
+      _ <- NamespacesApiTest.createChecked[F](namespace)
     } yield ()
   }
 
-  private val deleteNamespace = kubernetesClient.use { client =>
-    client.namespaces.delete(resourceName.toLowerCase).void
+  private def deleteNamespace(namespace: String) = kubernetesClient.use { client =>
+    client.namespaces.delete(namespace).void
   }
 
-  override def beforeAll(): Unit = unsafeRunSync(createNamespace)
+  override def beforeAll(): Unit =
+    (defaultNamespace +: extraNamespace.toList).foreach(name => unsafeRunSync(createNamespace(name)))
 
-  override def afterAll(): Unit = unsafeRunSync(deleteNamespace)
+  override def afterAll(): Unit =
+    (defaultNamespace +: extraNamespace.toList).foreach(name => unsafeRunSync(deleteNamespace(name)))
 
   def usingMinikube[T](body: KubernetesClient[F] => F[T]): T =
     unsafeRunSync(kubernetesClient.use(body))

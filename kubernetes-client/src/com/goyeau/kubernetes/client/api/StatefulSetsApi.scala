@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class StatefulSetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[StatefulSetList],
-    encoder: Encoder[StatefulSet],
-    decoder: Decoder[StatefulSet]
-) extends Listable[F, StatefulSetList] {
+    val resourceDecoder: Decoder[StatefulSet],
+    encoder: Encoder[StatefulSet]
+) extends Listable[F, StatefulSetList]
+    with Watchable[F, StatefulSet] {
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "statefulsets"
 
   def namespace(namespace: String): NamespacedStatefulSetsApi[F] =

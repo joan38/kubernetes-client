@@ -10,7 +10,7 @@ import scala.concurrent.duration.DurationInt
 trait ContextProvider {
 
   private val dispatcher: Resource[IO, Dispatcher[IO]] = Dispatcher[IO]
-  private val runTimeout                               = 1.minute
+  private val runTimeout                               = 90.seconds
 
   def unsafeRunSync[A](f: IO[A]): A =
     dispatcher

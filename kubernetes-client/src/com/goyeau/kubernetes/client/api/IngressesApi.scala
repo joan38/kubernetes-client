@@ -4,17 +4,18 @@ import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
+import io.k8s.api.networking.v1beta1.{Ingress, IngressList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
-import io.k8s.api.networking.v1beta1.{Ingress, IngressList}
 
 private[client] class IngressessApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[IngressList],
-    encoder: Encoder[Ingress],
-    decoder: Decoder[Ingress]
-) extends Listable[F, IngressList] {
+    val resourceDecoder: Decoder[Ingress],
+    encoder: Encoder[Ingress]
+) extends Listable[F, IngressList]
+    with Watchable[F, Ingress] {
   val resourceUri: Uri = uri"/apis" / "extensions" / "v1beta1" / "ingresses"
 
   def namespace(namespace: String): NamespacedIngressesApi[F] =

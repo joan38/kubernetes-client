@@ -13,17 +13,18 @@ import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.jdkhttpclient._
 import org.http4s.implicits._
-import scodec.bits.ByteVector
+import org.http4s.jdkhttpclient._
 import org.typelevel.ci.CIString
+import scodec.bits.ByteVector
 
 private[client] class PodsApi[F[_]](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
-    encoder: Encoder[Pod],
-    decoder: Decoder[Pod]
-) extends Listable[F, PodList] {
+    val resourceDecoder: Decoder[Pod],
+    encoder: Encoder[Pod]
+) extends Listable[F, PodList]
+    with Watchable[F, Pod] {
   val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
   def namespace(namespace: String): NamespacedPodsApi[F] =

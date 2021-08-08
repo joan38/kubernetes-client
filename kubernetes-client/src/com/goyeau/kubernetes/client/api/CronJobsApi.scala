@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class CronJobsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[CronJobList],
-    encoder: Encoder[CronJob],
-    decoder: Decoder[CronJob]
-) extends Listable[F, CronJobList] {
+    val resourceDecoder: Decoder[CronJob],
+    encoder: Encoder[CronJob]
+) extends Listable[F, CronJobList]
+    with Watchable[F, CronJob] {
   val resourceUri: Uri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
 
   def namespace(namespace: String): NamespacedCronJobsApi[F] = new NamespacedCronJobsApi(httpClient, config, namespace)
