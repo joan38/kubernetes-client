@@ -41,7 +41,7 @@ object SslContexts {
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
+      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
 
       defaultKeyStore.setKeyEntry(
         certificate.getSubjectX500Principal.getName,
@@ -74,7 +74,7 @@ object SslContexts {
 
     certDataStream.orElse(certFileStream).foreach { certStream =>
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
+      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
       defaultTrustStore.setCertificateEntry(certificate.getSubjectX500Principal.getName, certificate)
     }
 

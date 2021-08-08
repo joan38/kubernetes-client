@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{ConcurrentEffect, IO}
+import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
 import org.typelevel.log4cats.Logger
@@ -21,9 +21,9 @@ class StatefulSetsApiTest
     with WatchableTests[IO, StatefulSet]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[StatefulSet].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[StatefulSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.statefulSets
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

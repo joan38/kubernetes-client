@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 import cats.implicits._
 import cats.{Applicative, Parallel}
 import com.goyeau.kubernetes.client.Utils.retry
@@ -92,7 +92,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       (
         watchEvents,
-        timer.sleep(100.millis) *> sendEvents
+        F.sleep(100.millis) *> sendEvents
       ).parSequence
     }
   }

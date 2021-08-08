@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.api
 
 import java.util.Base64
-import cats.effect.Sync
+import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
@@ -12,7 +12,7 @@ import org.http4s.implicits._
 import scala.collection.compat._
 
 private[client] class SecretsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
-    val F: Sync[F],
+    val F: Async[F],
     val listDecoder: Decoder[SecretList],
     encoder: Encoder[Secret],
     decoder: Decoder[Secret]
@@ -27,7 +27,7 @@ private[client] class NamespacedSecretsApi[F[_]](
     val config: KubeConfig,
     namespace: String
 )(implicit
-    val F: Sync[F],
+    val F: Async[F],
     val resourceEncoder: Encoder[Secret],
     val resourceDecoder: Decoder[Secret],
     val listDecoder: Decoder[SecretList]

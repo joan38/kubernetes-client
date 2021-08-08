@@ -1,15 +1,17 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{ConcurrentEffect, IO}
+import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{Secret, SecretList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+
 import java.util.Base64
 import munit.FunSuite
 import org.http4s.Status
+
 import scala.collection.compat._
 
 class SecretsApiTest
@@ -22,9 +24,9 @@ class SecretsApiTest
     with WatchableTests[IO, Secret]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[Secret].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[Secret].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.secrets
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

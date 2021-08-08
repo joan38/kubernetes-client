@@ -14,6 +14,7 @@ import io.circe.generic.semiauto._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
+import cats.effect.unsafe.implicits.global
 
 case class CronTab(cronSpec: String, image: String, replicas: Int)
 object CronTab {
@@ -41,12 +42,12 @@ class CustomResourcesApiTest
     with WatchableTests[IO, CronTabResource]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[CronTab].getSimpleName
-  val kind                                  = s"${classOf[CronTab].getSimpleName}"
-  val context                               = CrdContext(group, "v1", plural(resourceName))
-  val cronSpec                              = "* * * * * *"
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[CronTab].getSimpleName
+  val kind                             = s"${classOf[CronTab].getSimpleName}"
+  val context                          = CrdContext(group, "v1", plural(resourceName))
+  val cronSpec                         = "* * * * * *"
 
   override def api(implicit client: KubernetesClient[IO]) = client.customResources[CronTab, CronTabStatus](context)
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

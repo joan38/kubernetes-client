@@ -3,11 +3,11 @@ package com.goyeau.kubernetes.client.api
 import cats.effect._
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 class ServicesApiTest
     extends FunSuite
@@ -19,9 +19,9 @@ class ServicesApiTest
     with WatchableTests[IO, Service]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[Service].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[Service].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.services
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

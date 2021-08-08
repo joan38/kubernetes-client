@@ -11,9 +11,9 @@ import munit.Suite
 trait MinikubeClientProvider[F[_]] {
   this: Suite =>
 
-  implicit def F: ConcurrentEffect[F]
-  implicit def timer: Timer[F]
-  implicit def contextShift: ContextShift[F]
+  def unsafeRunSync[A](f: F[A]): A
+
+  implicit def F: Async[F]
   implicit def logger: Logger[F]
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
@@ -26,7 +26,7 @@ trait MinikubeClientProvider[F[_]] {
 
   def resourceName: String
 
-  private val createNamespace = kubernetesClient.use { implicit client =>
+  private val createNamespace: F[Unit] = kubernetesClient.use { implicit client =>
     for {
       _ <- client.namespaces.deleteTerminated(resourceName.toLowerCase)
       _ <- NamespacesApiTest.createChecked[F](resourceName.toLowerCase)
@@ -37,10 +37,10 @@ trait MinikubeClientProvider[F[_]] {
     client.namespaces.delete(resourceName.toLowerCase).void
   }
 
-  override def beforeAll(): Unit = ConcurrentEffect[F].toIO(createNamespace).unsafeRunSync()
+  override def beforeAll(): Unit = unsafeRunSync(createNamespace)
 
-  override def afterAll(): Unit = ConcurrentEffect[F].toIO(deleteNamespace).unsafeRunSync()
+  override def afterAll(): Unit = unsafeRunSync(deleteNamespace)
 
   def usingMinikube[T](body: KubernetesClient[F] => F[T]): T =
-    ConcurrentEffect[F].toIO(kubernetesClient.use(body)).unsafeRunSync()
+    unsafeRunSync(kubernetesClient.use(body))
 }

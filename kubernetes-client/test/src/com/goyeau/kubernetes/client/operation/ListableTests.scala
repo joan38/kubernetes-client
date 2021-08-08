@@ -80,13 +80,12 @@ trait ListableTests[F[
         namespaceResourceNames <- Applicative[F].pure(
           (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i", s"list-all-${resourceName.toLowerCase}-$i")).toSet
         )
-        _ <- namespaceResourceNames.toList.traverse {
-          case (namespaceName, resourceName) =>
-            NamespacesApiTest.createChecked[F](namespaceName) *> createChecked(namespaceName, resourceName)
+        _ <- namespaceResourceNames.toList.traverse { case (namespaceName, resourceName) =>
+          NamespacesApiTest.createChecked[F](namespaceName) *> createChecked(namespaceName, resourceName)
         }
         _ <- listAllContains(namespaceResourceNames.map(_._2))
-        _ <- namespaceResourceNames.toList.traverse {
-          case (namespaceName, _) => client.namespaces.delete(namespaceName)
+        _ <- namespaceResourceNames.toList.traverse { case (namespaceName, _) =>
+          client.namespaces.delete(namespaceName)
         }
       } yield ()
     }

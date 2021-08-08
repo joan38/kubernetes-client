@@ -10,7 +10,7 @@ import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
 import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
 
-class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
+class KubernetesClient[F[_]: Async](httpClient: Client[F], wsClient: WSClient[F], config: KubeConfig) {
   lazy val namespaces = new NamespacesApi(httpClient, config)
   lazy val pods = new PodsApi(
     httpClient,
@@ -39,16 +39,19 @@ class KubernetesClient[F[_]: Sync](httpClient: Client[F], wsClient: WSClient[F],
 }
 
 object KubernetesClient {
-  def apply[F[_]: ConcurrentEffect: ContextShift](config: KubeConfig): Resource[F, KubernetesClient[F]] =
-    Resource.pure {
-      val client = HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build()
-      new KubernetesClient(
-        JdkHttpClient(client),
-        JdkWSClient[F](client),
-        config
-      )
-    }
+  def apply[F[_]: Async](config: KubeConfig): Resource[F, KubernetesClient[F]] =
+    for {
+      client <- Resource.eval {
+        Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
+      }
+      httpClient <- JdkHttpClient[F](client)
+      wsClient   <- JdkWSClient[F](client)
+    } yield new KubernetesClient(
+      httpClient,
+      wsClient,
+      config
+    )
 
-  def apply[F[_]: ConcurrentEffect: ContextShift](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
     Resource.eval(config).flatMap(apply(_))
 }

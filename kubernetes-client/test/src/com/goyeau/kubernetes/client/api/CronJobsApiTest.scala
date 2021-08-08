@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{ConcurrentEffect, IO}
+import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.KubernetesClient
 import org.typelevel.log4cats.Logger
@@ -22,9 +22,9 @@ class CronJobsApiTest
     with WatchableTests[IO, CronJob]
     with ContextProvider {
 
-  implicit lazy val F: ConcurrentEffect[IO] = IO.ioConcurrentEffect
-  implicit lazy val logger: Logger[IO]      = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                     = classOf[CronJob].getSimpleName
+  implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  lazy val resourceName                = classOf[CronJob].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.cronJobs
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
