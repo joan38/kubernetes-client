@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class HorizontalPodAutoscalersApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[HorizontalPodAutoscalerList],
-    encoder: Encoder[HorizontalPodAutoscaler],
-    decoder: Decoder[HorizontalPodAutoscaler]
-) extends Listable[F, HorizontalPodAutoscalerList] {
+    val resourceDecoder: Decoder[HorizontalPodAutoscaler],
+    encoder: Encoder[HorizontalPodAutoscaler]
+) extends Listable[F, HorizontalPodAutoscalerList]
+    with Watchable[F, HorizontalPodAutoscaler] {
   val resourceUri: Uri = uri"/apis" / "autoscaling" / "v1" / "horizontalpodautoscalers"
 
   def namespace(namespace: String): NamespacedHorizontalPodAutoscalersApi[F] =

@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class ReplicaSetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[ReplicaSetList],
-    encoder: Encoder[ReplicaSet],
-    decoder: Decoder[ReplicaSet]
-) extends Listable[F, ReplicaSetList] {
+    val resourceDecoder: Decoder[ReplicaSet],
+    encoder: Encoder[ReplicaSet]
+) extends Listable[F, ReplicaSetList]
+    with Watchable[F, ReplicaSet] {
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "replicasets"
 
   def namespace(namespace: String): NamespacedReplicaSetsApi[F] =

@@ -19,9 +19,10 @@ private[client] class CustomResourcesApi[F[_], A, B](
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[CustomResourceList[A, B]],
-    encoder: Encoder[CustomResource[A, B]],
-    decoder: Decoder[CustomResource[A, B]]
-) extends Listable[F, CustomResourceList[A, B]] {
+    val resourceDecoder: Decoder[CustomResource[A, B]],
+    encoder: Encoder[CustomResource[A, B]]
+) extends Listable[F, CustomResourceList[A, B]]
+    with Watchable[F, CustomResource[A, B]] {
 
   val resourceUri: Uri = uri"/apis" / context.group / context.version / context.plural
 

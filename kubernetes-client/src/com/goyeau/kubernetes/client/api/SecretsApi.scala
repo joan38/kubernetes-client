@@ -1,22 +1,24 @@
 package com.goyeau.kubernetes.client.api
 
-import java.util.Base64
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import io.circe._
 import io.k8s.api.core.v1.{Secret, SecretList}
-import org.http4s.{Status, Uri}
 import org.http4s.client.Client
 import org.http4s.implicits._
+import org.http4s.{Status, Uri}
+
+import java.util.Base64
 import scala.collection.compat._
 
 private[client] class SecretsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[SecretList],
-    encoder: Encoder[Secret],
-    decoder: Decoder[Secret]
-) extends Listable[F, SecretList] {
+    val resourceDecoder: Decoder[Secret],
+    encoder: Encoder[Secret]
+) extends Listable[F, SecretList]
+    with Watchable[F, Secret] {
   val resourceUri = uri"/api" / "v1" / "secrets"
 
   def namespace(namespace: String) = new NamespacedSecretsApi(httpClient, config, namespace)

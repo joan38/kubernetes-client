@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class ServiceAccountsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[ServiceAccountList],
-    encoder: Encoder[ServiceAccount],
-    decoder: Decoder[ServiceAccount]
-) extends Listable[F, ServiceAccountList] {
+    val resourceDecoder: Decoder[ServiceAccount],
+    encoder: Encoder[ServiceAccount]
+) extends Listable[F, ServiceAccountList]
+    with Watchable[F, ServiceAccount] {
   val resourceUri: Uri = uri"/api" / "v1" / "serviceaccounts"
 
   def namespace(namespace: String): NamespacedServiceAccountsApi[F] =

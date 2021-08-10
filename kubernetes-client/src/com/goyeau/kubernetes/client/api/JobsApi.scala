@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class JobsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[JobList],
-    encoder: Encoder[Job],
-    decoder: Decoder[Job]
-) extends Listable[F, JobList] {
+    val resourceDecoder: Decoder[Job],
+    encoder: Encoder[Job]
+) extends Listable[F, JobList]
+    with Watchable[F, Job] {
   val resourceUri: Uri = uri"/apis" / "batch" / "v1" / "jobs"
 
   def namespace(namespace: String): NamespacedJobsApi[F] = new NamespacedJobsApi(httpClient, config, namespace)

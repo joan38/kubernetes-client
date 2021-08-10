@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class PodDisruptionBudgetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodDisruptionBudgetList],
-    encoder: Encoder[PodDisruptionBudget],
-    decoder: Decoder[PodDisruptionBudget]
-) extends Listable[F, PodDisruptionBudgetList] {
+    val resourceDecoder: Decoder[PodDisruptionBudget],
+    encoder: Encoder[PodDisruptionBudget]
+) extends Listable[F, PodDisruptionBudgetList]
+    with Watchable[F, PodDisruptionBudget] {
   val resourceUri: Uri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
 
   def namespace(namespace: String): NamespacedPodDisruptionBudgetApi[F] =

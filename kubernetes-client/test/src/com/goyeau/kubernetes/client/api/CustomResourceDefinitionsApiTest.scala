@@ -5,13 +5,12 @@ import cats.syntax.option._
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest._
 import com.goyeau.kubernetes.client.operation._
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
-import cats.effect.unsafe.implicits.global
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object CustomResourceDefinitionsApiTest {
   val versions: CustomResourceDefinitionVersion =
@@ -80,6 +79,7 @@ class CustomResourceDefinitionsApiTest
   implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName: String        = classOf[CustomResourceDefinition].getSimpleName
   override val resourceIsNamespaced    = false
+  override val watchIsNamespaced       = resourceIsNamespaced
 
   override def api(implicit client: KubernetesClient[IO]) = client.customResourceDefinitions
   override def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
@@ -133,11 +133,8 @@ class CustomResourceDefinitionsApiTest
 
   override def afterAll(): Unit = {
     super.afterAll()
-    val status = kubernetesClient
-      .use(_.customResourceDefinitions.deleteAll(crdLabel))
-      .unsafeRunSync()
+    val status = usingMinikube(_.customResourceDefinitions.deleteAll(crdLabel))
     assertEquals(status, Status.Ok)
-    ()
   }
 
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =

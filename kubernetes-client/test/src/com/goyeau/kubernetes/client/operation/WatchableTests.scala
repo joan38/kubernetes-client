@@ -1,8 +1,8 @@
 package com.goyeau.kubernetes.client.operation
 
+import cats.Parallel
 import cats.effect.Ref
 import cats.implicits._
-import cats.{Applicative, Parallel}
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
@@ -10,7 +10,7 @@ import fs2.{Pipe, Stream}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
-import scala.collection.mutable
+
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 
@@ -18,6 +18,10 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     extends FunSuite
     with MinikubeClientProvider[F] {
   implicit def parallel: Parallel[F]
+
+  val watchIsNamespaced = true
+
+  override protected val extraNamespace = Some("anothernamespace")
 
   def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
 
@@ -31,74 +35,120 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   def watchApi(namespaceName: String)(implicit client: KubernetesClient[F]): Watchable[F, Resource]
 
+  def api(implicit client: KubernetesClient[F]): Watchable[F, Resource]
+
   def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
     deleteApi(namespaceName).delete(resourceName)
 
-  test(s"watch a $resourceName events") {
-    usingMinikube { implicit client =>
-      val namespaceName = s"$resourceName".toLowerCase
-      val name          = resourceName.toLowerCase
-
-      def update(namespaceName: String, resourceName: String) =
-        for {
-          resource <- getChecked(namespaceName, resourceName)
-          status   <- createOrUpdate(namespaceName, resource)
-          _ = assertEquals(status, Status.Ok)
-        } yield ()
-
-      val sendEvents = for {
-        status <- namespacedApi(namespaceName).create(sampleResource(name, Map.empty))
-        _ = assertEquals(status, Status.Created)
-        _      <- retry(update(namespaceName, name))
-        status <- deleteResource(namespaceName, name)
-        _ = assertEquals(status, Status.Ok)
-      } yield ()
-
-      val expected = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
-
-      def processEvent(
-          received: Ref[F, mutable.Set[EventType]],
-          signal: SignallingRef[F, Boolean]
-      ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
-        _.flatMap {
-          case Right(we) if we.`object`.metadata.exists(_.name.exists(_ == name)) =>
-            Stream.eval {
-              for {
-                _           <- received.update(_ += we.`type`)
-                allReceived <- received.get.map(_.intersect(expected) == expected)
-                _           <- F.whenA(allReceived)(signal.set(true))
-              } yield ()
-            }
-          case _ => Stream.eval(Applicative[F].unit)
-        }
-
-      val watchStream = for {
-        signal   <- Stream.eval(SignallingRef[F, Boolean](false))
-        received <- Stream.eval(Ref.of(mutable.Set.empty[EventType]))
-        watch <- watchApi(namespaceName)
-          .watch()
-          .through(processEvent(received, signal))
-          .evalMap(_ => received.get)
-          .interruptWhen(signal)
-      } yield watch
-
-      val watchEvents = for {
-        set <- watchStream.interruptAfter(60.seconds).compile.toList
-        result = set.headOption
-          .getOrElse(fail("stream should have at least one element with all received events"))
-          .toSet
-        _ = assertEquals(result, expected)
-      } yield ()
-
-      (
-        watchEvents,
-        F.sleep(100.millis) *> sendEvents
-      ).parSequence
-    }
-  }
+  private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    for {
+      resource <- getChecked(namespaceName, resourceName)
+      status   <- createOrUpdate(namespaceName, resource)
+      _ = assertEquals(status, Status.Ok)
+    } yield ()
 
   private def createOrUpdate(namespaceName: String, resource: Resource)(implicit
       client: KubernetesClient[F]
   ): F[Status] =
     namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
+
+  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    for {
+      _      <- retry(create(namespace, resourceName), maxRetries = 3)
+      _      <- retry(update(namespace, resourceName))
+      status <- deleteResource(namespace, resourceName)
+      _ = assertEquals(status, Status.Ok)
+    } yield ()
+
+  private def create(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    for {
+      status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
+      _ = assertEquals(status, Status.Created)
+    } yield ()
+
+  private def watchEvents(
+      expected: Map[String, Set[EventType]],
+      resourceName: String,
+      watchingNamespace: Option[String]
+  )(implicit
+      client: KubernetesClient[F]
+  ) = {
+    def processEvent(
+        received: Ref[F, Map[String, Set[EventType]]],
+        signal: SignallingRef[F, Boolean]
+    ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
+      _.flatMap {
+        case Right(we) if we.`object`.metadata.exists(_.name.exists(_ == resourceName)) =>
+          Stream.eval {
+            for {
+              _ <- received.update(events =>
+                we.`object`.metadata.flatMap(_.namespace) match {
+                  case Some(namespace) =>
+                    val updated = events.get(namespace) match {
+                      case Some(namespaceEvents) => namespaceEvents + we.`type`
+                      case _                     => Set(we.`type`)
+                    }
+                    events.updated(namespace, updated)
+                  case _ => events
+                }
+              )
+              allReceived <- received.get.map(_ == expected)
+              _           <- F.whenA(allReceived)(signal.set(true))
+            } yield ()
+          }
+        case _ => Stream.eval(F.unit)
+      }
+
+    val watchStream = for {
+      signal         <- Stream.eval(SignallingRef[F, Boolean](false))
+      receivedEvents <- Stream.eval(Ref.of(Map.empty[String, Set[EventType]]))
+      watch <- watchingNamespace
+        .map(watchApi)
+        .getOrElse(api)
+        .watch()
+        .through(processEvent(receivedEvents, signal))
+        .evalMap(_ => receivedEvents.get)
+        .interruptWhen(signal)
+    } yield watch
+
+    for {
+      set <- watchStream.interruptAfter(60.seconds).compile.toList
+      result = set.headOption
+        .getOrElse(fail("stream should have at least one element with all received events"))
+      _ = assertEquals(result, expected)
+    } yield ()
+  }
+
+  private def sendToAnotherNamespace(name: String)(implicit client: KubernetesClient[F]) =
+    F.whenA(watchIsNamespaced)(extraNamespace.map(sendEvents(_, name)).getOrElse(F.unit))
+
+  test(s"watch $resourceName events in all namespaces") {
+    usingMinikube { implicit client =>
+      val name           = s"${resourceName.toLowerCase}-watch-all"
+      val expectedEvents = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
+      val expected =
+        if (watchIsNamespaced)
+          (defaultNamespace +: extraNamespace.toList).map(_ -> expectedEvents).toMap
+        else
+          Map(defaultNamespace -> expectedEvents)
+
+      (
+        watchEvents(expected, name, None),
+        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+      ).parSequence
+    }
+  }
+
+  test(s"watch $resourceName events in the single namespace") {
+    usingMinikube { implicit client =>
+      assume(watchIsNamespaced)
+      val name     = s"${resourceName.toLowerCase}-watch-single"
+      val expected = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
+
+      (
+        watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
+        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+      ).parSequence
+    }
+  }
 }

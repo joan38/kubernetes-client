@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class DeploymentsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[DeploymentList],
-    encoder: Encoder[Deployment],
-    decoder: Decoder[Deployment]
-) extends Listable[F, DeploymentList] {
+    val resourceDecoder: Decoder[Deployment],
+    encoder: Encoder[Deployment]
+) extends Listable[F, DeploymentList]
+    with Watchable[F, Deployment] {
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "deployments"
 
   def namespace(namespace: String): NamespacedDeploymentsApi[F] =

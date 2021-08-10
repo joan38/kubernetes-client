@@ -12,9 +12,10 @@ import org.http4s.implicits._
 private[client] class ConfigMapsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
     val listDecoder: Decoder[ConfigMapList],
-    encoder: Encoder[ConfigMap],
-    decoder: Decoder[ConfigMap]
-) extends Listable[F, ConfigMapList] {
+    val resourceDecoder: Decoder[ConfigMap],
+    encoder: Encoder[ConfigMap]
+) extends Listable[F, ConfigMapList]
+    with Watchable[F, ConfigMap] {
   val resourceUri: Uri = uri"/api" / "v1" / "configmaps"
 
   def namespace(namespace: String): NamespacedConfigMapsApi[F] =
