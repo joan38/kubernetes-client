@@ -24,8 +24,7 @@ private[client] trait Proxy[F[_]] {
     httpClient.expect[String](
       Request(
         method,
-        //TODO: I think this is wrong (hamnis)
-        config.server.resolve(resourceUri) / name / s"proxy$path",
+        (config.server.resolve(resourceUri) / name / "proxy").addPath(path.toRelative.renderString),
         headers = Headers(config.authorization.toList),
         body = data.fold[EntityBody[F]](EmptyBody)(
           implicitly[EntityEncoder[F, String]].withContentType(contentType).toEntity(_).body
