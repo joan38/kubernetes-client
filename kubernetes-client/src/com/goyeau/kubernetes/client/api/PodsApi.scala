@@ -1,12 +1,15 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.Async
-import cats.kernel.Monoid
-import cats.syntax.either._
+import cats.effect.{Async, Resource}
+import cats.syntax.all._
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
+import com.goyeau.kubernetes.client.api.NamespacedPodsApi.ErrorOrStatus
+import com.goyeau.kubernetes.client.api.ExecRouting._
 import com.goyeau.kubernetes.client.operation._
-import fs2.Pipe
+import fs2.concurrent.SignallingRef
+import fs2.io.file.Files
+import fs2.{Chunk, Pipe, Stream}
 import io.circe._
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
@@ -16,9 +19,15 @@ import org.http4s.client.Client
 import org.http4s.implicits._
 import org.http4s.jdkhttpclient._
 import org.typelevel.ci.CIString
+import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
 
-private[client] class PodsApi[F[_]](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(implicit
+import java.io.FileOutputStream
+import java.nio.file.Path
+import scala.concurrent.duration.DurationInt
+
+private[client] class PodsApi[F[_]: Logger](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(
+    implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
     val resourceDecoder: Decoder[Pod],
@@ -32,11 +41,26 @@ private[client] class PodsApi[F[_]](val httpClient: Client[F], wsClient: WSClien
 }
 
 sealed trait ExecStream {
-  def data: String
+  def data: Array[Byte]
+  def asString: String =
+    new String(data, Charset.`UTF-8`.nioCharset)
 }
 object ExecStream {
-  final case class StdOut(data: String) extends ExecStream
-  final case class StdErr(data: String) extends ExecStream
+  final case class StdOut(data: Array[Byte]) extends ExecStream
+  final case class StdErr(data: Array[Byte]) extends ExecStream
+}
+
+final case class ParseFailure(status: String)
+
+object NamespacedPodsApi {
+  type ErrorOrStatus = Either[ParseFailure, Status]
+}
+
+private[client] object ExecRouting {
+  val StdInId: Byte  = 0.byteValue
+  val StdOutId: Byte = 1.byteValue
+  val StdErrId: Byte = 2.byteValue
+  val StatusId: Byte = 3.byteValue
 }
 
 private[client] class NamespacedPodsApi[F[_]](
@@ -48,7 +72,8 @@ private[client] class NamespacedPodsApi[F[_]](
     val F: Async[F],
     val resourceEncoder: Encoder[Pod],
     val resourceDecoder: Decoder[Pod],
-    val listDecoder: Decoder[PodList]
+    val listDecoder: Decoder[PodList],
+    val logger: Logger[F]
 ) extends Creatable[F, Pod]
     with Replaceable[F, Pod]
     with Gettable[F, Pod]
@@ -71,50 +96,190 @@ private[client] class NamespacedPodsApi[F[_]](
       .replaceFirst("http", "ws")
   )
 
-  def exec[T: Monoid](
+  private def execRequest(
       podName: String,
-      flow: ExecStream => T,
-      container: Option[String] = None,
-      command: Seq[String] = Seq.empty,
+      commands: Seq[String],
+      container: Option[String],
       stdin: Boolean = false,
       stdout: Boolean = true,
       stderr: Boolean = true,
       tty: Boolean = false
-  ): F[(T, Either[String, Status])] = {
+  ) = {
     val uri = (webSocketAddress.resolve(resourceUri) / podName / "exec")
       .+?("stdin" -> stdin.toString)
       .+?("stdout" -> stdout.toString)
       .+?("stderr" -> stderr.toString)
       .+?("tty" -> tty.toString)
       .+??("container" -> container)
-      .++?("command" -> command)
+      .++?("command" -> commands)
 
-    val request = WSRequest(uri, execHeaders, Method.POST)
-    wsClient.connectHighLevel(request).use { connection =>
-      connection.receiveStream
-        .through(processWebSocketData)
-        .compile
-        .fold((Monoid.empty[T], "".asLeft[Status])) { case ((accEvents, accStatus), (events, status)) =>
-          (
-            events.foldLeft(accEvents) { case (acc, es) =>
-              Monoid.combine[T](acc, flow(es))
-            },
-            accStatus.orElse(status)
-          )
-        }
+    WSRequest(uri, execHeaders, Method.POST)
+  }
+
+  def downloadFile(
+      podName: String,
+      sourceFile: Path,
+      destinationFile: Path,
+      container: Option[String] = None
+  ): F[(List[StdErr], Option[ErrorOrStatus])] = {
+    val request     = execRequest(podName, Seq("sh", "-c", s"cat ${sourceFile.toString}"), container)
+    val destination = Resource.make(F.delay(new FileOutputStream(destinationFile.toFile)))(s => F.delay(s.close()))
+
+    destination.use { destFile =>
+      wsClient.connectHighLevel(request).use { connection =>
+        connection.receiveStream
+          .through(processWebSocketData)
+          .compile
+          .fold((List.empty[StdErr], none[ErrorOrStatus])) { case ((accEvents, accStatus), data) =>
+            val (errors, status) = data match {
+              case Left(StdOut(data)) =>
+                destFile.write(data)
+                List.empty[StdErr] -> none
+              case Left(e: StdErr) =>
+                List(e) -> none
+              case Right(statusOrError) =>
+                List.empty[StdErr] -> accStatus.orElse(statusOrError.some)
+            }
+
+            (accEvents ++ errors, status)
+          }
+      }
     }
   }
 
-  // first byte defines which stream incoming message belongs to
-  private def processWebSocketData: Pipe[F, WSDataFrame, (List[ExecStream], Either[String, Status])] =
+  def uploadFile(
+      podName: String,
+      sourceFile: Path,
+      destinationFile: Path,
+      container: Option[String] = None
+  ): F[(List[StdErr], Option[ErrorOrStatus])] = {
+    val destinationDir = Option(destinationFile.getParent)
+
+    val mkDirResult = destinationDir match {
+      case Some(dir) =>
+        val mkDirRequest = execRequest(
+          podName,
+          Seq("sh", "-c", s"mkdir -p $dir"),
+          container
+        )
+        wsClient
+          .connectHighLevel(mkDirRequest)
+          .map(conn => F.delay(conn.receiveStream.through(processWebSocketData)))
+          .use(_.flatMap(foldErrorStream))
+      case None =>
+        (List.empty -> None).pure
+    }
+
+    val uploadRequest = execRequest(
+      podName,
+      Seq("sh", "-c", s"cat - >$destinationFile"),
+      container,
+      stdin = true
+    )
+
+    val uploadFileResult = wsClient.connectHighLevel(uploadRequest).use { connection =>
+      val source = Files[F].readAll(sourceFile, 4096)
+      val sendData = source
+        .mapChunks(chunk => Chunk(WSFrame.Binary(ByteVector(chunk.toChain.prepend(StdInId).toVector))))
+        .through(connection.sendPipe)
+      val retryAttempts = 5
+      val sendWithRetry = Stream
+        .retry(sendData.compile.drain, delay = 500.millis, nextDelay = _ * 2, maxAttempts = retryAttempts)
+        .onError { case e =>
+          Stream.eval(Logger[F].error(e)(s"Failed send file data after $retryAttempts attempts"))
+        }
+
+      val result = for {
+        signal <- Stream.eval(SignallingRef[F, Boolean](false))
+        dataStream = sendWithRetry *> Stream.eval(signal.set(true))
+
+        output = connection.receiveStream
+          .through(
+            processWebSocketData
+          )
+          .interruptWhen(signal)
+          .concurrently(dataStream)
+
+        errors = foldErrorStream(
+          output
+        ).map { case (errors, _) => errors }
+      } yield errors
+
+      result.compile.lastOrError.flatten
+    }
+
+    for {
+      result <- mkDirResult
+      (errors, status) = result
+      uploadErrors <- uploadFileResult
+    } yield (errors ++ uploadErrors, status)
+  }
+
+  def execStream(
+      podName: String,
+      container: Option[String] = None,
+      command: Seq[String] = Seq.empty,
+      stdin: Boolean = false,
+      stdout: Boolean = true,
+      stderr: Boolean = true,
+      tty: Boolean = false
+  ): Resource[F, F[Stream[F, Either[ExecStream, ErrorOrStatus]]]] = {
+    val request = execRequest(podName, command, container, stdin, stdout, stderr, tty)
+
+    wsClient.connectHighLevel(request).map { connection =>
+      F.delay(connection.receiveStream.through(processWebSocketData))
+    }
+  }
+
+  def exec(
+      podName: String,
+      container: Option[String] = None,
+      command: Seq[String] = Seq.empty,
+      stdin: Boolean = false,
+      stdout: Boolean = true,
+      stderr: Boolean = true,
+      tty: Boolean = false
+  ): F[(List[ExecStream], Option[ErrorOrStatus])] =
+    execStream(podName, container, command, stdin, stdout, stderr, tty).use(_.flatMap(foldStream))
+
+  private def foldStream(
+      stdoutStream: Stream[F, Either[ExecStream, ErrorOrStatus]]
+  ) =
+    stdoutStream.compile.fold((List.empty[ExecStream], none[ErrorOrStatus])) { case ((accEvents, accStatus), data) =>
+      data match {
+        case Left(event) =>
+          (accEvents :+ event) -> accStatus
+        case Right(errorOrStatus) =>
+          accEvents -> accStatus.orElse(errorOrStatus.some)
+      }
+    }
+
+  private def foldErrorStream(
+      stdoutStream: Stream[F, Either[ExecStream, ErrorOrStatus]]
+  ) =
+    stdoutStream.compile.fold((List.empty[StdErr], none[ErrorOrStatus])) { case ((accEvents, accStatus), data) =>
+      data match {
+        case Left(event) =>
+          accEvents ++ (event match {
+            case e: StdErr => e.some
+            case _         => none[StdErr]
+          }).toList -> accStatus
+        case Right(errorOrStatus) =>
+          accEvents -> accStatus.orElse(errorOrStatus.some)
+      }
+    }
+
+  private def processWebSocketData: Pipe[F, WSDataFrame, Either[ExecStream, ErrorOrStatus]] =
     _.collect {
-      case WSFrame.Binary(data, _) if data.headOption.contains(1.toByte) =>
-        List(StdOut(convertToString(dropRoutingByte(data)))) -> "".asLeft
-      case WSFrame.Binary(data, _) if data.headOption.contains(2.toByte) =>
-        List(StdErr(convertToString(dropRoutingByte(data)))) -> "".asLeft
-      case WSFrame.Binary(data, _) if data.headOption.contains(3.toByte) =>
+      case WSFrame.Binary(data, _) if data.headOption.contains(StdOutId) =>
+        StdOut(dropRoutingByte(data).toArray).asLeft
+
+      case WSFrame.Binary(data, _) if data.headOption.contains(StdErrId) =>
+        StdErr(dropRoutingByte(data).toArray).asLeft
+
+      case WSFrame.Binary(data, _) if data.headOption.contains(StatusId) =>
         val json = convertToString(dropRoutingByte(data))
-        Nil -> decode[Status](json).left.flatMap(_ => json.asLeft[Status])
+        decode[Status](json).leftFlatMap(_ => ParseFailure(json).asLeft[Status]).asRight[ExecStream]
     }
 
   private def dropRoutingByte(data: ByteVector) =
