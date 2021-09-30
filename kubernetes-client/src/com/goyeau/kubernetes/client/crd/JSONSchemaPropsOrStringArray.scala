@@ -16,8 +16,8 @@ object JSONSchemaPropsOrStringArray {
   }
 
   implicit val decode: Decoder[JSONSchemaPropsOrStringArray] = cursor => {
-    val decodeSchema = cursor.as[JSONSchemaProps].map(SchemaNotStringArrayValue)
-    val decodeArray  = cursor.as[Array[String]].map(StringArrayValue)
+    val decodeSchema = cursor.as[JSONSchemaProps].map(SchemaNotStringArrayValue.apply)
+    val decodeArray  = cursor.as[Array[String]].map(StringArrayValue.apply)
     decodeSchema.leftFlatMap(_ => decodeArray)
   }
 }

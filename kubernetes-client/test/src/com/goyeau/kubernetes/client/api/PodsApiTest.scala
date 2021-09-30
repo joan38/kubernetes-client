@@ -36,8 +36,7 @@ class PodsApiTest
   val successStatus                    = Some(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
 
   override def api(implicit client: KubernetesClient[IO]) = client.pods
-
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): NamespacedPodsApi[IO] =
     client.pods.namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) =
