@@ -30,7 +30,7 @@ class PodsApiTest
   lazy val resourceName                = classOf[Pod].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]) = client.pods
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): NamespacedPodsApi[IO] =
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.pods.namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) =

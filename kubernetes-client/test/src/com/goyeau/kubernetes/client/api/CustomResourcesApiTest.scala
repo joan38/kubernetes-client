@@ -50,12 +50,7 @@ class CustomResourcesApiTest
   val cronSpec                         = "* * * * * *"
 
   override def api(implicit client: KubernetesClient[IO]) = client.customResources[CronTab, CronTabStatus](context)
-
-  override def namespacedApi(
-      namespaceName: String
-  )(implicit
-      client: KubernetesClient[IO]
-  ): NamespacedCustomResourcesApi[IO, CronTab, CronTabStatus] =
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
     client.customResources[CronTab, CronTabStatus](context).namespace(namespaceName)
 
   override def sampleResource(resourceName: String, labels: Map[String, String]) =

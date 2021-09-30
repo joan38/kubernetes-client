@@ -14,8 +14,8 @@ object IntOrString {
   }
 
   implicit val decode: Decoder[IntOrString] = cursor => {
-    val decodeInt    = cursor.as[Int].map(IntValue.apply)
-    val decodeString = cursor.as[String].map(StringValue.apply)
+    val decodeInt    = cursor.as[Int].map(IntValue)
+    val decodeString = cursor.as[String].map(StringValue)
     decodeInt.leftFlatMap(_ => decodeString)
   }
 }

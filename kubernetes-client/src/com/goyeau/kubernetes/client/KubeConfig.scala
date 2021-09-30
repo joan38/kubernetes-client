@@ -1,7 +1,8 @@
 package com.goyeau.kubernetes.client
 
 import java.io.File
-import cats.ApplicativeThrow
+
+import cats.ApplicativeError
 import cats.effect.Sync
 import com.goyeau.kubernetes.client.util.Yamls
 import org.typelevel.log4cats.Logger
@@ -32,7 +33,7 @@ object KubeConfig {
   def fromFile[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig] =
     Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 
-  def of[F[_]: ApplicativeThrow](
+  def of[F[_]: ApplicativeError[*[_], Throwable]](
       server: Uri,
       authorization: Option[Authorization] = None,
       caCertData: Option[String] = None,
@@ -70,6 +71,6 @@ object KubeConfig {
       clientKeyFile,
       clientKeyPass
     )
-    ApplicativeThrow[F].fromEither(configOrError)
+    ApplicativeError[F, Throwable].fromEither(configOrError)
   }
 }
