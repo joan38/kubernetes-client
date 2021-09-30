@@ -22,7 +22,6 @@ import io.circe.syntax._
   * stored in RawExtension, turning it into the correct object type, and storing it in the Object. (TODO: In the case
   * where the object is of an unknown type, a runtime.Unknown object will be created and stored.)
   */
-import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
 
 case class RawExtension(value: String)

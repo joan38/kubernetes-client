@@ -25,7 +25,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
     super.scalacOptions()
       .filter(_ != "-Wunused:imports")
       .filter(_ != "-Xfatal-warnings") ++
-      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
+      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty) ++ Seq("-Ywarn-unused")
 
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
