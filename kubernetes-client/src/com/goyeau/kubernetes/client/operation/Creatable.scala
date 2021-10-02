@@ -9,7 +9,7 @@ import com.goyeau.kubernetes.client.util.EnrichedStatus
 import io.circe._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s._
-import org.http4s.client.{Client, UnexpectedStatus}
+import org.http4s.client.Client
 import org.http4s.headers.`Content-Type`
 import org.http4s.Method._
 
@@ -27,9 +27,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
           .withEntity(resource)
           .withOptionalAuthorization(config.authorization)
       )
-      .use(
-        EnrichedStatus[F]
-      )
+      .use(EnrichedStatus[F])
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
@@ -51,12 +49,10 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       .flatMap {
         case status if status.isSuccess => update
         case Status.NotFound =>
-          create(resource)
-            .flatMap {
-              case Status.Conflict => F.raiseError[Status](UnexpectedStatus(Status.Conflict, GET, fullResourceUri))
-              case status          => F.pure(status)
-            }
-            .recoverWith { case UnexpectedStatus(Status.Conflict, _, _) => update }
+          create(resource).flatMap {
+            case Status.Conflict => update
+            case status          => F.pure(status)
+          }
         case status => F.pure(status)
       }
   }

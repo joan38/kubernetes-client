@@ -27,19 +27,21 @@ trait SwaggerModelGenerator extends JavaModule {
 
   override def generatedSources = T {
     super.generatedSources() ++
-      allSwaggerSourceFiles().flatMap(swagger => processSwaggerFile(swagger.path, T.ctx.dest, T.ctx.log)).map(PathRef(_))
+      allSwaggerSourceFiles()
+        .flatMap(swagger => processSwaggerFile(swagger.path, T.ctx.dest, T.ctx.log))
+        .map(PathRef(_))
   }
 }
 
 object SwaggerModelGenerator {
   val skipClasses = Set(
-      "io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent",
-      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrBool",
-      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrStringArray",
-      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrArray",
-      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSON",
-      "io.k8s.apimachinery.pkg.runtime.RawExtension"
-    )
+    "io.k8s.apimachinery.pkg.apis.meta.v1.WatchEvent",
+    "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrBool",
+    "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrStringArray",
+    "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaPropsOrArray",
+    "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSON",
+    "io.k8s.apimachinery.pkg.runtime.RawExtension"
+  )
 
   val existingClassesPrefix = "com.goyeau.kubernetes.client"
 
@@ -92,7 +94,7 @@ object SwaggerModelGenerator {
       case Definition(desc, required, properties, Some("object"), _) =>
         val description = generateDescription(desc)
         val attributes  = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
-        val caseClass   = s"""import io.circe._
+        val caseClass = s"""import io.circe._
                            |import io.circe.generic.semiauto._
                            |
                            |case class $className(
@@ -120,28 +122,30 @@ object SwaggerModelGenerator {
       case d => sys.error(s"Unsupported definition for $fullClassName: $d")
     }
 
-    write(output, s"""package $packageName
-                     |
-                     |$generatedClass""".stripMargin, createFolders = true)
+    write(
+      output,
+      s"""package $packageName
+         |
+         |$generatedClass""".stripMargin,
+      createFolders = true
+    )
     log.info(s"Generated $output")
     output
   }
 
   def generateAttributes(properties: Iterable[(String, Property)], required: Seq[String]): String =
     properties.toSeq
-      .sortBy {
-        case (name, _) =>
-          if (required.contains(name)) required.indexOf(name)
-          else Int.MaxValue
+      .sortBy { case (name, _) =>
+        if (required.contains(name)) required.indexOf(name)
+        else Int.MaxValue
       }
-      .map {
-        case (name, property) =>
-          val description = generateDescription(property.description)
-          val escapedName = escapeAttributeName(name)
-          val classPath =
-            if (required.contains(name)) generateType(property)
-            else s"Option[${generateType(property)}] = None"
-          s"""$description$escapedName: $classPath"""
+      .map { case (name, property) =>
+        val description = generateDescription(property.description)
+        val escapedName = escapeAttributeName(name)
+        val classPath =
+          if (required.contains(name)) generateType(property)
+          else s"Option[${generateType(property)}] = None"
+        s"""$description$escapedName: $classPath"""
       }
       .mkString(",\n")
 
@@ -152,6 +156,7 @@ object SwaggerModelGenerator {
         .replace("type", "`type`")
         .replace("class", "`class`")
         .replace("object", "`object`")
+        .replace("enum", "`enum`")
 
   def generateDescription(description: Option[String]): String =
     description.fold("")(d => s"/* ${d.replace("*/", "*&#47;").replace("/*", "&#47;*")} */\n")
