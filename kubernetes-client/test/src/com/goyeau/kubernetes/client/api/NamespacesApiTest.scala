@@ -53,8 +53,7 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
         )
         _ = assertEquals(status, Status.Ok)
         updatedNamespace <- getChecked(namespaceName)
-        _                <- client.namespaces.delete(namespaceName)
-        _ = assertEquals(updatedNamespace.metadata.flatMap(_.labels), labels)
+        _ = assert(updatedNamespace.metadata.flatMap(_.labels).exists(l => labels.get.toSet.subsetOf(l.toSet)))
       } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
     }
   }
@@ -136,13 +135,11 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
         _ <- createChecked(namespaceName)
         labels = Option(Map("some-label" -> "some-value"))
         status <- client.namespaces.replace(
-          Namespace(
-            metadata = Option(ObjectMeta(name = Option(namespaceName), labels = labels))
-          )
+          Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName), labels = labels)))
         )
         _ = assertEquals(status, Status.Ok)
         replacedNamespace <- getChecked(namespaceName)
-        _ = assertEquals(replacedNamespace.metadata.flatMap(_.labels), labels)
+        _ = assert(replacedNamespace.metadata.flatMap(_.labels).exists(l => labels.get.toSet.subsetOf(l.toSet)))
       } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
     }
   }

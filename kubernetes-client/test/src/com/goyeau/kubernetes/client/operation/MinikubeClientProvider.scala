@@ -12,10 +12,10 @@ import java.io.File
 trait MinikubeClientProvider[F[_]] {
   this: Suite =>
 
-  def unsafeRunSync[A](f: F[A]): A
-
   implicit def F: Async[F]
   implicit def logger: Logger[F]
+
+  def unsafeRunSync[A](f: F[A]): A
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
     val kubeConfig = KubeConfig.fromFile[F](
@@ -32,15 +32,13 @@ trait MinikubeClientProvider[F[_]] {
   protected val extraNamespace = Option.empty[String]
 
   protected def createNamespace(namespace: String): F[Unit] = kubernetesClient.use { implicit client =>
-    for {
-      _ <- client.namespaces.deleteTerminated(namespace)
-      _ <- NamespacesApiTest.createChecked[F](namespace)
-    } yield ()
-  }
+    client.namespaces.deleteTerminated(namespace) *>
+      NamespacesApiTest.createChecked[F](namespace)
+  }.void
 
   private def deleteNamespace(namespace: String) = kubernetesClient.use { client =>
-    client.namespaces.delete(namespace).void
-  }
+    client.namespaces.delete(namespace)
+  }.void
 
   override def beforeAll(): Unit =
     (defaultNamespace +: extraNamespace.toList).foreach(name => unsafeRunSync(createNamespace(name)))

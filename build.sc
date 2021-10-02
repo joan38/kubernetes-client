@@ -9,6 +9,7 @@ import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
+import mill.scalalib.TestModule.Munit
 import mill.scalalib._
 import mill.scalalib.api.Util.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
@@ -22,18 +23,20 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with SwaggerModelGenerator {
 
   override def scalacOptions =
-    super.scalacOptions()
+    super
+      .scalacOptions()
       .filter(_ != "-Wunused:imports")
       .filter(_ != "-Xfatal-warnings") ++
-      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty) ++ Seq("-Ywarn-unused")
+      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty) ++ Seq(
+        "-Ywarn-unused"
+      )
 
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
     (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.11.3"))
 
-  object test extends Tests {
-    def testFrameworks    = Seq("munit.Framework")
+  object test extends Tests with Munit {
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
     override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.26") ++ logback
   }

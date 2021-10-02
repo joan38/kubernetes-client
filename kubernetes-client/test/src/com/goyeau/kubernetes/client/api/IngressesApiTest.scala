@@ -5,7 +5,7 @@ import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.operation._
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.networking.v1beta1.{Ingress, IngressList, IngressRule, IngressSpec}
+import io.k8s.api.networking.v1.{Ingress, IngressList, IngressRule, IngressSpec}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 
