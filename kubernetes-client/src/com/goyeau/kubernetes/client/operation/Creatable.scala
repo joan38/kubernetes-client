@@ -27,9 +27,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
           .withEntity(resource)
           .withOptionalAuthorization(config.authorization)
       )
-      .use(
-        EnrichedStatus[F]
-      )
+      .use(EnrichedStatus[F])
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
@@ -50,8 +48,12 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       .use(EnrichedStatus.apply[F])
       .flatMap {
         case status if status.isSuccess => update
-        case Status.NotFound            => create(resource).recoverWith { case Status.Conflict => update }
-        case status                     => F.pure(status)
+        case Status.NotFound =>
+          create(resource).flatMap {
+            case Status.Conflict => update
+            case status          => F.pure(status)
+          }
+        case status => F.pure(status)
       }
   }
 }

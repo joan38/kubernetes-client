@@ -10,7 +10,6 @@ import org.http4s.implicits._
 import org.http4s.{Status, Uri}
 
 import java.util.Base64
-import scala.collection.compat._
 
 private[client] class SecretsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
@@ -48,5 +47,7 @@ private[client] class NamespacedSecretsApi[F[_]](
     createOrUpdate(encode(resource))
 
   private def encode(resource: Secret) =
-    resource.copy(data = resource.data.map(_.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap))
+    resource.copy(data = resource.data.map(_.map { case (k, v) =>
+      k -> Base64.getEncoder.encodeToString(v.getBytes)
+    }))
 }
