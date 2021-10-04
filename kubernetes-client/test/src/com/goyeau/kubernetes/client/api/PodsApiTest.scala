@@ -6,7 +6,7 @@ import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation._
-import fs2.io.file.Files
+import fs2.io.file.{Files, Path}
 import fs2.{text, Stream}
 import io.k8s.api.core.v1._
 import io.k8s.apimachinery.pkg.apis.meta.v1
@@ -15,8 +15,7 @@ import munit.FunSuite
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
-import java.nio.file.{Path, Paths, Files => NFiles}
+import java.nio.file.{Paths, Files => JFiles}
 import scala.util.Random
 
 class PodsApiTest
@@ -133,7 +132,7 @@ class PodsApiTest
   }
 
   private def tempFile =
-    F.delay(NFiles.createTempFile("test-file-", ".txt"))
+    F.delay(Path.fromNioPath(JFiles.createTempFile("test-file-", ".txt")))
 
   private def fileExists(podName: String, container: Option[String], targetPath: Path)(implicit
       client: KubernetesClient[IO]
@@ -154,8 +153,8 @@ class PodsApiTest
   ) = for {
     uploaded <- namespacedApi(defaultNamespace).uploadFile(
       podName,
-      sourcePath,
-      targetPath,
+      sourcePath.toNioPath,
+      targetPath.toNioPath,
       container
     )
     (messages, status) = uploaded
@@ -171,7 +170,7 @@ class PodsApiTest
     Stream
       .emit(Random.alphanumeric.take(200).mkString)
       .take(200)
-      .through(text.utf8Encode)
+      .through(text.utf8.encode)
       .through(Files[IO].writeAll(source))
       .compile
       .drain
@@ -181,8 +180,8 @@ class PodsApiTest
   ) = for {
     downloaded <- namespacedApi(defaultNamespace).downloadFile(
       podName,
-      targetPath,
-      downloadPath,
+      targetPath.toNioPath,
+      downloadPath.toNioPath,
       container
     )
     (errors, status) = downloaded
@@ -205,7 +204,7 @@ class PodsApiTest
           pod        <- waitUntilReady(defaultNamespace, podName)
           sourcePath <- tempFile
           _          <- writeTempFile(sourcePath)
-          targetPath = Paths.get("/upload", sourcePath.getFileName.toString)
+          targetPath = Path("/upload") / sourcePath.fileName
           container  = pod.spec.flatMap(_.containers.headOption.map(_.name))
           podName    = pod.metadata.get.name.get
 
@@ -216,11 +215,11 @@ class PodsApiTest
 
           localContent <-
             Files[IO]
-              .readAll(sourcePath, 4096)
-              .through(text.utf8Decode)
+              .readAll(sourcePath)
+              .through(text.utf8.decode)
               .compile
               .toList
-          downloadedContent <- Files[IO].readAll(downloadPath, 4096).through(text.utf8Decode).compile.toList
+          downloadedContent <- Files[IO].readAll(downloadPath).through(text.utf8.decode).compile.toList
 
           _ = assertEquals(
             downloadedContent.mkString,
