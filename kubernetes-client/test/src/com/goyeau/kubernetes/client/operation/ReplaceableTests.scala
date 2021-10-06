@@ -32,6 +32,12 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       _ = assertEquals(status, Status.Ok)
     } yield ()
 
+  def replaceReturningResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    for {
+      resource         <- getChecked(namespaceName, resourceName)
+      replacedResource <- namespacedApi(namespaceName).replaceReturningResource(modifyResource(resource))
+    } yield replacedResource
+
   test(s"replace a $resourceName") {
     usingMinikube { implicit client =>
       for {
@@ -41,6 +47,20 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         _             <- retry(replace(namespaceName, resourceName))
         replaced      <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(replaced)
+      } yield ()
+    }
+  }
+
+  test(s"replace a $resourceName returning resource") {
+    usingMinikube { implicit client =>
+      for {
+        namespaceName     <- Applicative[F].pure(resourceName.toLowerCase)
+        resourceName      <- Applicative[F].pure("some-resource-1")
+        _                 <- createChecked(namespaceName, resourceName)
+        replacedResource  <- retry(replaceReturningResource(namespaceName, resourceName))
+        retrievedResource <- getChecked(namespaceName, resourceName)
+        _ = checkUpdated(retrievedResource)
+        _ = assertEquals(replacedResource, retrievedResource)
       } yield ()
     }
   }
