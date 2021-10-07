@@ -22,7 +22,7 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   def replace(resource: Resource): F[Status] =
     httpClient.run(buildRequest(resource)).use(EnrichedStatus[F])
 
-  def replaceReturningResource(resource: Resource): F[Resource] =
+  def replaceWithResource(resource: Resource): F[Resource] =
     httpClient.expect[Resource](buildRequest(resource))
 
   private def buildRequest(resource: Resource) =

@@ -25,7 +25,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   def create(resource: Resource): F[Status] =
     httpClient.run(buildRequest(resource)).use(EnrichedStatus[F])
 
-  def createReturningResource(resource: Resource): F[Resource] =
+  def createWithResource(resource: Resource): F[Resource] =
     httpClient.expect[Resource](buildRequest(resource))
 
   private def buildRequest(resource: Resource) =
@@ -51,17 +51,17 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       }
   }
 
-  def createOrUpdateReturningResource(resource: Resource): F[Resource] = {
-    val fullResourceUri     = config.server.resolve(resourceUri) / resource.metadata.get.name.get
-    def updateReturningBody = httpClient.expect[Resource](buildRequest(resource, fullResourceUri))
+  def createOrUpdateWithResource(resource: Resource): F[Resource] = {
+    val fullResourceUri    = config.server.resolve(resourceUri) / resource.metadata.get.name.get
+    def updateWithResource = httpClient.expect[Resource](buildRequest(resource, fullResourceUri))
 
     httpClient
       .expectOption[Resource](Request[F](GET, fullResourceUri).withOptionalAuthorization(config.authorization))
       .flatMap {
-        case Some(resource) => updateReturningBody
+        case Some(_) => updateWithResource
         case None =>
-          createReturningResource(resource).recoverWith {
-            case UnexpectedStatus(status, _, _) if status === Status.Conflict => updateReturningBody
+          createWithResource(resource).recoverWith {
+            case UnexpectedStatus(status, _, _) if status === Status.Conflict => updateWithResource
           }
       }
   }

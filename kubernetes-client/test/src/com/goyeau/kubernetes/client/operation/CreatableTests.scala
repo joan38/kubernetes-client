@@ -22,9 +22,9 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       client: KubernetesClient[F]
   ): F[Resource] = createChecked(namespaceName, resourceName, Map.empty)
 
-  def createCheckedReturning(namespaceName: String, resourceName: String)(implicit
+  def createWithResourceChecked(namespaceName: String, resourceName: String)(implicit
       client: KubernetesClient[F]
-  ): F[Resource] = createCheckedReturning(namespaceName, resourceName, Map.empty)
+  ): F[Resource] = createWithResourceChecked(namespaceName, resourceName, Map.empty)
 
   def createChecked(namespaceName: String, resourceName: String, labels: Map[String, String])(implicit
       client: KubernetesClient[F]
@@ -37,12 +37,12 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     } yield resource
   }
 
-  def createCheckedReturning(namespaceName: String, resourceName: String, labels: Map[String, String])(implicit
+  def createWithResourceChecked(namespaceName: String, resourceName: String, labels: Map[String, String])(implicit
       client: KubernetesClient[F]
   ): F[Resource] = {
     val resource = sampleResource(resourceName, labels)
     for {
-      createdResource   <- namespacedApi(namespaceName).createReturningResource(resource)
+      createdResource   <- namespacedApi(namespaceName).createWithResource(resource)
       retrievedResource <- getChecked(namespaceName, resourceName)
       _ = assertEquals(createdResource, retrievedResource)
     } yield retrievedResource
@@ -54,9 +54,9 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     }
   }
 
-  test(s"create a $resourceName returning resource") {
+  test(s"create a $resourceName with resource") {
     usingMinikube { implicit client =>
-      createCheckedReturning(resourceName.toLowerCase, "create-resource-1")
+      createWithResourceChecked(resourceName.toLowerCase, "create-resource-1")
     }
   }
 
@@ -72,12 +72,12 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     }
   }
 
-  test(s"create a $resourceName returning resource") {
+  test(s"create a $resourceName with resource") {
     usingMinikube { implicit client =>
       for {
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
         resourceName = "create-update-resource-1"
-        createdResource   <- namespacedApi(namespaceName).createOrUpdateReturningResource(sampleResource(resourceName))
+        createdResource   <- namespacedApi(namespaceName).createOrUpdateWithResource(sampleResource(resourceName))
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = assertEquals(createdResource, retrievedResource)
       } yield ()
@@ -104,21 +104,21 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     }
   }
 
-  def createOrUpdateReturningResource(namespaceName: String, resourceName: String)(implicit
+  def createOrUpdateWithResource(namespaceName: String, resourceName: String)(implicit
       client: KubernetesClient[F]
   ) =
     for {
       retrievedResource <- getChecked(namespaceName, resourceName)
-      updatedResource <- namespacedApi(namespaceName).createOrUpdateReturningResource(modifyResource(retrievedResource))
+      updatedResource   <- namespacedApi(namespaceName).createOrUpdateWithResource(modifyResource(retrievedResource))
     } yield updatedResource
 
-  test(s"update a $resourceName already created returning resource") {
+  test(s"update a $resourceName already created with resource") {
     usingMinikube { implicit client =>
       for {
         namespaceName     <- Applicative[F].pure(resourceName.toLowerCase)
         resourceName      <- Applicative[F].pure("update-resource-1")
         _                 <- createChecked(namespaceName, resourceName)
-        updatedResource   <- retry(createOrUpdateReturningResource(namespaceName, resourceName))
+        updatedResource   <- retry(createOrUpdateWithResource(namespaceName, resourceName))
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(retrievedResource)
         _ = assertEquals(updatedResource, retrievedResource)
