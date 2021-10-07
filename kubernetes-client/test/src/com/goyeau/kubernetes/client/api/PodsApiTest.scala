@@ -15,7 +15,7 @@ import munit.FunSuite
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import java.nio.file.{Paths, Files => JFiles}
+import java.nio.file.{Files => JFiles, Paths}
 import scala.util.Random
 
 class PodsApiTest

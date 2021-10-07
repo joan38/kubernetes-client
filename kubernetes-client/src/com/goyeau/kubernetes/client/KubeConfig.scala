@@ -23,7 +23,7 @@ case class KubeConfig private (
 object KubeConfig {
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig]    = fromFile(kubeconfig)
+  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig] = fromFile(kubeconfig)
   def fromFile[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig] = Yamls.fromKubeConfigFile(kubeconfig, None)
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
