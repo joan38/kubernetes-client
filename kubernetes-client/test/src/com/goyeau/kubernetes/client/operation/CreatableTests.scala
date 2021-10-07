@@ -42,9 +42,8 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   ): F[Resource] = {
     val resource = sampleResource(resourceName, labels)
     for {
-      createdResource   <- namespacedApi(namespaceName).createWithResource(resource)
+      _                 <- namespacedApi(namespaceName).createWithResource(resource)
       retrievedResource <- getChecked(namespaceName, resourceName)
-      _ = assertEquals(createdResource, retrievedResource)
     } yield retrievedResource
   }
 
@@ -77,9 +76,8 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       for {
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
         resourceName = "create-update-resource-1"
-        createdResource   <- namespacedApi(namespaceName).createOrUpdateWithResource(sampleResource(resourceName))
-        retrievedResource <- getChecked(namespaceName, resourceName)
-        _ = assertEquals(createdResource, retrievedResource)
+        _ <- namespacedApi(namespaceName).createOrUpdateWithResource(sampleResource(resourceName))
+        _ <- getChecked(namespaceName, resourceName)
       } yield ()
     }
   }
