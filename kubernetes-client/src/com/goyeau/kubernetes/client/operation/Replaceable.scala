@@ -17,13 +17,16 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   protected def config: KubeConfig
   protected def resourceUri: Uri
   implicit protected def resourceEncoder: Encoder[Resource]
+  implicit protected def resourceDecoder: Decoder[Resource]
 
   def replace(resource: Resource): F[Status] =
-    httpClient
-      .run(
-        Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)
-          .withEntity(resource)
-          .withOptionalAuthorization(config.authorization)
-      )
-      .use(EnrichedStatus[F])
+    httpClient.run(buildRequest(resource)).use(EnrichedStatus[F])
+
+  def replaceWithResource(resource: Resource): F[Resource] =
+    httpClient.expect[Resource](buildRequest(resource))
+
+  private def buildRequest(resource: Resource) =
+    Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)
+      .withEntity(resource)
+      .withOptionalAuthorization(config.authorization)
 }
