@@ -38,7 +38,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
 
   object test extends Tests with Munit {
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
-    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.26") ++ logback
+    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.29") ++ logback
   }
 
   override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
