@@ -58,9 +58,9 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         resourceName      <- Applicative[F].pure("some-resource-1")
         _                 <- createChecked(namespaceName, resourceName)
         replacedResource  <- retry(replaceWithResource(namespaceName, resourceName))
+        _ = checkUpdated(replacedResource)
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(retrievedResource)
-        _ = assertEquals(replacedResource, retrievedResource)
       } yield ()
     }
   }

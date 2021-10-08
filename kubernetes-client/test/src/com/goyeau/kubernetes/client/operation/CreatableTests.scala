@@ -117,9 +117,9 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         resourceName      <- Applicative[F].pure("update-resource-1")
         _                 <- createChecked(namespaceName, resourceName)
         updatedResource   <- retry(createOrUpdateWithResource(namespaceName, resourceName))
+        _ = checkUpdated(updatedResource)
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(retrievedResource)
-        _ = assertEquals(updatedResource, retrievedResource)
       } yield ()
     }
   }
