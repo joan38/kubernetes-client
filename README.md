@@ -152,3 +152,7 @@ Cats and Http4s.
 Another benefit of Kubernetes Client is that (like the [Kubernetes Client for Java](https://github.com/kubernetes-client/java/#update-the-generated-code))
 it is generating all the payload case classes by just ingesting the swagger api provided by Kubernetes' main repo. That
 means this project will always remain up to date with the latest Kubernetes API.
+
+## Adopters/Projects
+
+* [Kerberos-Operator2](https://github.com/novakov-alexey/krb-operator2)
