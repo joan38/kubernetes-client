@@ -113,10 +113,10 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"update a $resourceName already created with resource") {
     usingMinikube { implicit client =>
       for {
-        namespaceName     <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName      <- Applicative[F].pure("update-resource-1")
-        _                 <- createChecked(namespaceName, resourceName)
-        updatedResource   <- retry(createOrUpdateWithResource(namespaceName, resourceName))
+        namespaceName   <- Applicative[F].pure(resourceName.toLowerCase)
+        resourceName    <- Applicative[F].pure("update-resource-1")
+        _               <- createChecked(namespaceName, resourceName)
+        updatedResource <- retry(createOrUpdateWithResource(namespaceName, resourceName))
         _ = checkUpdated(updatedResource)
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(retrievedResource)

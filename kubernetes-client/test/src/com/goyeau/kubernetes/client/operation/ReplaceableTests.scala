@@ -54,10 +54,10 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"replace a $resourceName with resource") {
     usingMinikube { implicit client =>
       for {
-        namespaceName     <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName      <- Applicative[F].pure("some-resource-1")
-        _                 <- createChecked(namespaceName, resourceName)
-        replacedResource  <- retry(replaceWithResource(namespaceName, resourceName))
+        namespaceName    <- Applicative[F].pure(resourceName.toLowerCase)
+        resourceName     <- Applicative[F].pure("some-resource-1")
+        _                <- createChecked(namespaceName, resourceName)
+        replacedResource <- retry(replaceWithResource(namespaceName, resourceName))
         _ = checkUpdated(replacedResource)
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(retrievedResource)
