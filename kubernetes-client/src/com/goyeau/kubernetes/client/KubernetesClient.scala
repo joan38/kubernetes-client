@@ -31,6 +31,7 @@ class KubernetesClient[F[_]: Async: Logger](httpClient: Client[F], wsClient: WSC
   lazy val podDisruptionBudgets      = new PodDisruptionBudgetsApi(httpClient, config)
   lazy val customResourceDefinitions = new CustomResourceDefinitionsApi(httpClient, config)
   lazy val ingresses                 = new IngressessApi(httpClient, config)
+  lazy val leases                    = new LeasesApi(httpClient, config)
 
   def customResources[A: Encoder: Decoder, B: Encoder: Decoder](context: CrdContext)(implicit
       listDecoder: Decoder[CustomResourceList[A, B]],
