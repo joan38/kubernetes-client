@@ -29,5 +29,5 @@ object Dependencies {
 
   lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.1.1")
 
-  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.2.7")
+  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.2.8")
 }
