@@ -1,14 +1,13 @@
 package com.goyeau.kubernetes.client.util
 
 import java.io.File
-
 import cats.effect.Sync
 import cats.implicits._
 import com.goyeau.kubernetes.client.KubeConfig
 
 import scala.io.Source
 import org.typelevel.log4cats.Logger
-import io.circe.{Decoder, Encoder}
+import io.circe.{Codec, Decoder, Encoder}
 import io.circe.generic.semiauto._
 import io.circe.yaml.parser._
 import org.http4s.Uri
@@ -36,7 +35,26 @@ case class AuthInfo(
     `client-certificate`: Option[String] = None,
     `client-certificate-data`: Option[String] = None,
     `client-key`: Option[String] = None,
-    `client-key-data`: Option[String] = None
+    `client-key-data`: Option[String] = None,
+    exec: Option[AuthInfoExec] = None
+)
+case class AuthInfoExec(
+    apiVersion: String,
+    command: String,
+    env: Option[Map[String, String]],
+    args: Option[Seq[String]],
+    installHint: Option[String],
+    provideClusterInfo: Option[Boolean],
+    interactiveMode: Option[String]
+)
+case class ExecCredential(
+    kind: String,
+    apiVersion: String,
+    status: ExecCredentialStatus
+)
+case class ExecCredentialStatus(
+    expirationTimestamp: String,
+    token: Option[String]
 )
 
 private[client] object Yamls {
@@ -73,7 +91,8 @@ private[client] object Yamls {
         clientCertData = user.`client-certificate-data`,
         clientCertFile = user.`client-certificate`.map(new File(_)),
         clientKeyData = user.`client-key-data`,
-        clientKeyFile = user.`client-key`.map(new File(_))
+        clientKeyFile = user.`client-key`.map(new File(_)),
+        authInfoExec = user.exec
       )
     } yield config
 
@@ -90,8 +109,11 @@ private[client] object Yamls {
   implicit lazy val namedContextDecoder: Decoder[NamedContext]          = deriveDecoder
   implicit lazy val namedContextEncoder: Encoder.AsObject[NamedContext] = deriveEncoder
 
-  implicit lazy val authInfoDecoder: Decoder[AuthInfo]                    = deriveDecoder
-  implicit lazy val authInfoEncoder: Encoder.AsObject[AuthInfo]           = deriveEncoder
-  implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo]          = deriveDecoder
-  implicit lazy val namedAuthInfoEncoder: Encoder.AsObject[NamedAuthInfo] = deriveEncoder
+  implicit lazy val authInfoDecoder: Decoder[AuthInfo]                     = deriveDecoder
+  implicit lazy val authInfoEncoder: Encoder.AsObject[AuthInfo]            = deriveEncoder
+  implicit lazy val authInfoExecCodec: Codec[AuthInfoExec]                 = deriveCodec
+  implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo]           = deriveDecoder
+  implicit lazy val namedAuthInfoEncoder: Encoder.AsObject[NamedAuthInfo]  = deriveEncoder
+  implicit lazy val execCredentialStatusCodec: Codec[ExecCredentialStatus] = deriveCodec
+  implicit lazy val execCredentialCodec: Codec[ExecCredential]             = deriveCodec
 }
