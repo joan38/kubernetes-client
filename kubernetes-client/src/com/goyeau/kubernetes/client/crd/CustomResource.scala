@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.crd
 
-import io.circe.generic.semiauto._
+import io.circe.generic.semiauto.*
 import io.circe.{Decoder, Encoder}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 

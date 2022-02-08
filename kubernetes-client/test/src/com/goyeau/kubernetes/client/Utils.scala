@@ -1,10 +1,10 @@
 package com.goyeau.kubernetes.client
 
 import cats.effect.Temporal
-import cats.implicits._
+import cats.implicits.*
 import cats.{ApplicativeError, Defer}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 object Utils {
   def retry[F[_], Result](f: F[Result], initialDelay: FiniteDuration = 500.millis, maxRetries: Int = 50)(implicit

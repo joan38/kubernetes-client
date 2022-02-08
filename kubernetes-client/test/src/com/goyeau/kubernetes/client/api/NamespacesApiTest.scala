@@ -1,9 +1,9 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.effect.{Async, IO, Sync}
-import cats.implicits._
+import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.Utils._
+import com.goyeau.kubernetes.client.Utils.*
 import com.goyeau.kubernetes.client.operation.MinikubeClientProvider
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -11,12 +11,12 @@ import io.k8s.api.core.v1.{Namespace, NamespaceList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.http4s.client.UnexpectedStatus
-import munit.Assertions._
+import munit.Assertions.*
 import munit.FunSuite
 
 class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
 
-  import NamespacesApiTest._
+  import NamespacesApiTest.*
 
   implicit lazy val F: Async[IO]       = IO.asyncForIO
   implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]

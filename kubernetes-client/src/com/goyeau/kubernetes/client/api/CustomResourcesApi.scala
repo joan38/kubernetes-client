@@ -3,13 +3,13 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
-import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.util.CirceEntityCodec._
+import com.goyeau.kubernetes.client.operation.*
+import com.goyeau.kubernetes.client.util.CirceEntityCodec.*
 import com.goyeau.kubernetes.client.util.EnrichedStatus
-import io.circe._
-import org.http4s.Method._
+import io.circe.*
+import org.http4s.Method.*
 import org.http4s.client.Client
-import org.http4s.implicits._
+import org.http4s.implicits.*
 import org.http4s.{Request, Status, Uri}
 
 private[client] class CustomResourcesApi[F[_], A, B](

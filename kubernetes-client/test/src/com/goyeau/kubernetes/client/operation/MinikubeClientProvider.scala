@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.effect._
-import cats.implicits._
+import cats.effect.*
+import cats.implicits.*
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
 import munit.Suite

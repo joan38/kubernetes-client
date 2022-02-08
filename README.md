@@ -21,14 +21,14 @@ or
 ### Client configuration example
 ```scala
 import cats.effect.IO
-import com.goyeau.kubernetes.client._
+import com.goyeau.kubernetes.client.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.io.File
 import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
-import org.http4s.implicits._
+import org.http4s.implicits.*
 import scala.concurrent.ExecutionContext
 import scala.io.Source
 
@@ -46,7 +46,7 @@ val kubernetesClient =
 
 ```scala
 import cats.effect.IO
-import com.goyeau.kubernetes.client._
+import com.goyeau.kubernetes.client.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.io.File
@@ -62,11 +62,11 @@ val kubernetesClient =
 
 ```scala
 import cats.effect.IO
-import com.goyeau.kubernetes.client._
+import com.goyeau.kubernetes.client.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.apps.v1._
-import io.k8s.api.core.v1._
+import io.k8s.api.apps.v1.*
+import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.api.resource.Quantity
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import java.io.File

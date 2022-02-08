@@ -1,29 +1,28 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.effect.{Async, Resource}
-import cats.syntax.all._
+import cats.syntax.all.*
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.api.NamespacedPodsApi.ErrorOrStatus
-import com.goyeau.kubernetes.client.api.ExecRouting._
-import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.api.ExecRouting.*
+import com.goyeau.kubernetes.client.operation.*
 import fs2.concurrent.SignallingRef
-import fs2.io.file.Files
+import fs2.io.file.{Files, Flags, Path}
 import fs2.{Chunk, Pipe, Stream}
-import io.circe._
+import io.circe.*
 import io.circe.parser.decode
 import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
-import org.http4s._
+import org.http4s.*
 import org.http4s.client.Client
-import org.http4s.implicits._
-import org.http4s.jdkhttpclient._
+import org.http4s.implicits.*
+import org.http4s.jdkhttpclient.*
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
-
 import java.io.FileOutputStream
-import java.nio.file.Path
+import java.nio.file.{Path => JPath}
 import scala.concurrent.duration.DurationInt
 
 private[client] class PodsApi[F[_]: Logger](val httpClient: Client[F], wsClient: WSClient[F], val config: KubeConfig)(
@@ -116,14 +115,24 @@ private[client] class NamespacedPodsApi[F[_]](
     WSRequest(uri, execHeaders, Method.POST)
   }
 
+  @deprecated("Use download() which uses fs2.io.file.Path", "0.8.2")
   def downloadFile(
+      podName: String,
+      sourceFile: JPath,
+      destinationFile: JPath,
+      container: Option[String] = None
+  ): F[(List[StdErr], Option[ErrorOrStatus])] =
+    download(podName, Path.fromNioPath(sourceFile), Path.fromNioPath(destinationFile), container)
+
+  def download(
       podName: String,
       sourceFile: Path,
       destinationFile: Path,
       container: Option[String] = None
   ): F[(List[StdErr], Option[ErrorOrStatus])] = {
-    val request     = execRequest(podName, Seq("sh", "-c", s"cat ${sourceFile.toString}"), container)
-    val destination = Resource.make(F.delay(new FileOutputStream(destinationFile.toFile)))(s => F.delay(s.close()))
+    val request = execRequest(podName, Seq("sh", "-c", s"cat ${sourceFile.toString}"), container)
+    val destination =
+      Resource.make(F.delay(new FileOutputStream(destinationFile.toNioPath.toFile)))(s => F.delay(s.close()))
 
     destination.use { destFile =>
       wsClient.connectHighLevel(request).use { connection =>
@@ -147,15 +156,22 @@ private[client] class NamespacedPodsApi[F[_]](
     }
   }
 
+  @deprecated("Use upload() which uses fs2.io.file.Path", "0.8.2")
   def uploadFile(
+      podName: String,
+      sourceFile: JPath,
+      destinationFile: JPath,
+      container: Option[String] = None
+  ): F[(List[StdErr], Option[ErrorOrStatus])] =
+    upload(podName, Path.fromNioPath(sourceFile), Path.fromNioPath(destinationFile), container)
+
+  def upload(
       podName: String,
       sourceFile: Path,
       destinationFile: Path,
       container: Option[String] = None
   ): F[(List[StdErr], Option[ErrorOrStatus])] = {
-    val destinationDir = Option(destinationFile.getParent)
-
-    val mkDirResult = destinationDir match {
+    val mkDirResult = destinationFile.parent match {
       case Some(dir) =>
         val mkDirRequest = execRequest(
           podName,
@@ -178,7 +194,7 @@ private[client] class NamespacedPodsApi[F[_]](
     )
 
     val uploadFileResult = wsClient.connectHighLevel(uploadRequest).use { connection =>
-      val source = Files[F].readAll(sourceFile, 4096)
+      val source = Files[F].readAll(sourceFile, 4096, Flags.Read)
       val sendData = source
         .mapChunks(chunk => Chunk(WSFrame.Binary(ByteVector(chunk.toChain.prepend(StdInId).toVector))))
         .through(connection.sendPipe)

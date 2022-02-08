@@ -2,12 +2,12 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
-import com.goyeau.kubernetes.client.operation._
-import io.circe._
+import com.goyeau.kubernetes.client.operation.*
+import io.circe.*
 import io.k8s.api.apps.v1.{StatefulSet, StatefulSetList}
 import org.http4s.Uri
 import org.http4s.client.Client
-import org.http4s.implicits._
+import org.http4s.implicits.*
 
 private[client] class StatefulSetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],

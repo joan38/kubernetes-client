@@ -2,7 +2,7 @@ package com.goyeau.kubernetes.client.operation
 
 import cats.Parallel
 import cats.effect.Ref
-import cats.implicits._
+import cats.implicits.*
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
@@ -11,7 +11,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.language.reflectiveCalls
 
 trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]

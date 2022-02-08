@@ -1,10 +1,10 @@
 package com.goyeau.kubernetes.client.util
 
-import cats.implicits._
+import cats.implicits.*
 import cats.effect.Async
 import io.k8s.apimachinery.pkg.apis.meta.v1
-import org.http4s._
-import org.http4s.circe.CirceEntityCodec._
+import org.http4s.*
+import org.http4s.circe.CirceEntityCodec.*
 
 private[client] object EnrichedStatus {
   def apply[F[_]](response: Response[F])(implicit F: Async[F]): F[Status] =

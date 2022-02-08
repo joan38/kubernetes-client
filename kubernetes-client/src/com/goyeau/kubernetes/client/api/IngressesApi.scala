@@ -2,12 +2,12 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
-import com.goyeau.kubernetes.client.operation._
-import io.circe._
+import com.goyeau.kubernetes.client.operation.*
+import io.circe.*
 import io.k8s.api.networking.v1.{Ingress, IngressList}
 import org.http4s.Uri
 import org.http4s.client.Client
-import org.http4s.implicits._
+import org.http4s.implicits.*
 
 private[client] class IngressessApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
     val F: Async[F],
