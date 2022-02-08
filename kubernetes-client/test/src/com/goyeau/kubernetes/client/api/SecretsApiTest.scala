@@ -2,7 +2,7 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{Secret, SecretList}
@@ -10,7 +10,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import java.util.Base64
 import munit.FunSuite
 import org.http4s.Status
-import scala.collection.compat._
+import scala.collection.compat.*
 
 class SecretsApiTest
     extends FunSuite

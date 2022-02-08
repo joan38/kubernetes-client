@@ -1,11 +1,11 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect._
-import cats.syntax.option._
+import cats.effect.*
+import cats.syntax.option.*
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest._
-import com.goyeau.kubernetes.client.operation._
-import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1._
+import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest.*
+import com.goyeau.kubernetes.client.operation.*
+import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status

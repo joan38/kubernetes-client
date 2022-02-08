@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.operation
 
 import cats.Applicative
-import cats.implicits._
+import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta

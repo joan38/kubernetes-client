@@ -1,6 +1,6 @@
-import $ivy.`com.goyeau::mill-git:0.2.0`
-import $ivy.`com.goyeau::mill-scalafix:0.2.4`
-import $ivy.`io.github.davidgregory084::mill-tpolecat:0.2.0`
+import $ivy.`com.goyeau::mill-git::0.2.3`
+import $ivy.`com.goyeau::mill-scalafix::0.2.8`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.0`
 import $file.project.Dependencies
 import Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
@@ -14,7 +14,7 @@ import mill.scalalib._
 import mill.scalalib.api.Util.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.0.1", "2.13.5", "2.12.12")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.1.1", "2.13.7", "2.12.15")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
     with TpolecatModule
@@ -25,20 +25,17 @@ class KubernetesClientModule(val crossScalaVersion: String)
   override def scalacOptions =
     super
       .scalacOptions()
-      .filter(_ != "-Wunused:imports")
-      .filter(_ != "-Xfatal-warnings") ++
-      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty) ++ Seq(
-        "-Ywarn-unused"
-      )
+      .filterNot(Set("-Xfatal-warnings")) ++
+      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
 
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
-    (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.11.3"))
+    (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
   object test extends Tests with Munit {
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
-    override def ivyDeps  = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit:0.7.29") ++ logback
+    override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
   }
 
   override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)

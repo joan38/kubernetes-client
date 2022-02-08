@@ -1,18 +1,18 @@
 package com.goyeau.kubernetes.client.operation
 
 import scala.language.reflectiveCalls
-import cats.implicits._
+import cats.implicits.*
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
-import com.goyeau.kubernetes.client.util.CirceEntityCodec._
+import com.goyeau.kubernetes.client.util.CirceEntityCodec.*
 import com.goyeau.kubernetes.client.util.EnrichedStatus
-import io.circe._
+import io.circe.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import org.http4s._
+import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.client.UnexpectedStatus
 import org.http4s.headers.`Content-Type`
-import org.http4s.Method._
+import org.http4s.Method.*
 
 private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def httpClient: Client[F]

@@ -1,16 +1,16 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect._
-import cats.syntax.option._
+import cats.effect.*
+import cats.syntax.option.*
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest._
+import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest.*
 import com.goyeau.kubernetes.client.api.CustomResourcesApiTest.{CronTabResource, CronTabResourceList}
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
-import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import io.circe._
-import io.circe.generic.semiauto._
+import io.circe.*
+import io.circe.generic.semiauto.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status

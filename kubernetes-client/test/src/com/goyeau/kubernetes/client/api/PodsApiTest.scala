@@ -5,17 +5,17 @@ import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
-import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.operation.*
 import fs2.io.file.{Files, Path}
 import fs2.{text, Stream}
-import io.k8s.api.core.v1._
+import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1
 import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
 import munit.FunSuite
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import java.nio.file.{Files => JFiles, Paths}
+import java.nio.file.{Files => JFiles}
 import scala.util.Random
 
 class PodsApiTest
@@ -101,7 +101,7 @@ class PodsApiTest
         o.asString
       }
       .mkString("")
-    val expectedDirs = List("dev", "etc", "home", "usr", "var").mkString("|").r
+    val expectedDirs = Seq("dev", "etc", "home", "usr", "var").mkString("|").r
 
     assert(expectedDirs.findFirstIn(stdOut).isDefined, stdOut)
 
@@ -117,10 +117,10 @@ class PodsApiTest
           status <- namespacedApi(defaultNamespace).create(testPod(podName))
           _ = assertEquals(status, Status.Created)
           pod <- waitUntilReady(defaultNamespace, podName)
-          res <- namespacedApi(defaultNamespace).downloadFile(
+          res <- namespacedApi(defaultNamespace).download(
             pod.metadata.get.name.get,
-            Paths.get("/etc/sysctl.conf"),
-            Paths.get("./out/sysctl.conf"),
+            Path("/etc/sysctl.conf"),
+            Path("./out/sysctl.conf"),
             pod.spec.flatMap(_.containers.headOption.map(_.name))
           )
         } yield res
@@ -151,10 +151,10 @@ class PodsApiTest
   private def uploadFile(podName: String, sourcePath: Path, targetPath: Path, container: Option[String])(implicit
       client: KubernetesClient[IO]
   ) = for {
-    uploaded <- namespacedApi(defaultNamespace).uploadFile(
+    uploaded <- namespacedApi(defaultNamespace).upload(
       podName,
-      sourcePath.toNioPath,
-      targetPath.toNioPath,
+      sourcePath,
+      targetPath,
       container
     )
     (messages, status) = uploaded
@@ -178,10 +178,10 @@ class PodsApiTest
   private def downloadFile(podName: String, targetPath: Path, downloadPath: Path, container: Option[String])(implicit
       client: KubernetesClient[IO]
   ) = for {
-    downloaded <- namespacedApi(defaultNamespace).downloadFile(
+    downloaded <- namespacedApi(defaultNamespace).download(
       podName,
-      targetPath.toNioPath,
-      downloadPath.toNioPath,
+      targetPath,
+      downloadPath,
       container
     )
     (errors, status) = downloaded

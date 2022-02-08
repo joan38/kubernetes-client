@@ -1,8 +1,8 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect._
+import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
