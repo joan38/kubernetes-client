@@ -9,9 +9,10 @@ import com.goyeau.mill.scalafix.StyleModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
 import mill.scalalib._
+import mill.scalalib.api.Util.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("2.13.4", "2.12.12")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.0.1", "2.13.5", "2.12.12")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
     with TpolecatModule
@@ -19,10 +20,16 @@ class KubernetesClientModule(val crossScalaVersion: String)
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
 
-  override def scalacOptions = super.scalacOptions().filter(_ != "-Wunused:imports")
+  override def scalacOptions =
+    super.scalacOptions()
+      .filter(_ != "-Wunused:imports")
+      .filter(_ != "-Xfatal-warnings") ++
+      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty) ++ Seq("-Ywarn-unused")
+
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
-  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++ Agg(ivy"org.typelevel:::kind-projector:0.11.3")
+  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
+    (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.11.3"))
 
   object test extends Tests {
     def testFrameworks    = Seq("munit.Framework")
