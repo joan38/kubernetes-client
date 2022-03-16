@@ -77,7 +77,7 @@ object SslContexts {
       val certificateFactory = CertificateFactory.getInstance("X509")
       val certificates       = certificateFactory.generateCertificates(certStream).asScala
       certificates
-        .map(_.asInstanceOf[X509Certificate])
+        .map(_.asInstanceOf[X509Certificate]) // scalafix:ok
         .zipWithIndex
         .foreach { case (certificate, i) =>
           val alias = s"${certificate.getSubjectX500Principal.getName}-$i"
