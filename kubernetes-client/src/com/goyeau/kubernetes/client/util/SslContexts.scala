@@ -9,6 +9,7 @@ import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
+import scala.jdk.CollectionConverters.*
 
 object SslContexts {
   private val TrustStoreSystemProperty         = "javax.net.ssl.trustStore"
@@ -74,8 +75,14 @@ object SslContexts {
 
     certDataStream.orElse(certFileStream).foreach { certStream =>
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
-      defaultTrustStore.setCertificateEntry(certificate.getSubjectX500Principal.getName, certificate)
+      val certificates       = certificateFactory.generateCertificates(certStream).asScala
+      certificates
+        .map(_.asInstanceOf[X509Certificate]) // scalafix:ok
+        .zipWithIndex
+        .foreach { case (certificate, i) =>
+          val alias = s"${certificate.getSubjectX500Principal.getName}-$i"
+          defaultTrustStore.setCertificateEntry(alias, certificate)
+        }
     }
 
     val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
