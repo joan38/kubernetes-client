@@ -18,13 +18,16 @@ import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.implicits.*
-import org.http4s.jdkhttpclient.*
+import org.http4s.client.websocket.WSClient
+import org.http4s.client.websocket.WSRequest
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
 
 import java.nio.file.Path as JPath
 import scala.concurrent.duration.DurationInt
+import org.http4s.client.websocket.WSFrame
+import org.http4s.client.websocket.WSDataFrame
 
 private[client] class PodsApi[F[_]: Logger](
     val httpClient: Client[F],
@@ -113,13 +116,11 @@ private[client] class NamespacedPodsApi[F[_]](
       ("container" -> container) ++?
       ("command"   -> commands)
 
-    WSRequest(uri, method = Method.POST)
+    WSRequest(uri, Headers.empty, Method.POST)
       .withOptionalAuthorization(authorization)
-      .map { r =>
-        r.copy(
-          headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
-        )
-      }
+      .map(r =>
+        r.withHeaders(headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io")))
+      )
   }
 
   @deprecated("Use download() which uses fs2.io.file.Path", "0.8.2")
