@@ -4,6 +4,7 @@ import cats.Parallel
 import cats.effect.Ref
 import cats.implicits.*
 import com.goyeau.kubernetes.client.Utils.retry
+import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
 import fs2.{Pipe, Stream}
@@ -73,12 +74,17 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   )(implicit
       client: KubernetesClient[F]
   ) = {
+    def isExpectedResource(we: WatchEvent[Resource]): Boolean = {
+      we.`object`.metadata.exists(_.name.exists(name => {
+        name == resourceName || name == CustomResourceDefinitionsApiTest.crdName(resourceName)
+      }))
+    }
     def processEvent(
         received: Ref[F, Map[String, Set[EventType]]],
         signal: SignallingRef[F, Boolean]
     ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
       _.flatMap {
-        case Right(we) if we.`object`.metadata.exists(_.name.exists(_ == resourceName)) =>
+        case Right(we) if isExpectedResource(we) =>
           Stream.eval {
             for {
               _ <- received.update(events =>
@@ -89,7 +95,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
                       case _                     => Set(we.`type`)
                     }
                     events.updated(namespace, updated)
-                  case _ => events
+                  case _ =>
+                    val crdNamespace = "customresourcedefinition"
+                    events.updated(crdNamespace, events.getOrElse(crdNamespace, Set.empty) + we.`type`)
                 }
               )
               allReceived <- received.get.map(_ == expected)
