@@ -99,22 +99,22 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         case _ => Stream.eval(F.unit)
       }
 
-    val watchStream = for {
-      signal         <- Stream.eval(SignallingRef[F, Boolean](false))
-      receivedEvents <- Stream.eval(Ref.of(Map.empty[String, Set[EventType]]))
-      watch <- watchingNamespace
+    val watchEvents = for {
+      signal         <- SignallingRef[F, Boolean](false)
+      receivedEvents <- Ref.of(Map.empty[String, Set[EventType]])
+      watchStream = watchingNamespace
         .map(watchApi)
         .getOrElse(api)
         .watch()
         .through(processEvent(receivedEvents, signal))
         .evalMap(_ => receivedEvents.get)
         .interruptWhen(signal)
-    } yield watch
+      _ <- watchStream.interruptAfter(60.seconds).compile.drain
+      events <- receivedEvents.get
+    } yield events
 
     for {
-      set <- watchStream.interruptAfter(60.seconds).compile.toList
-      result = set.headOption
-        .getOrElse(fail("stream should have at least one element with all received events"))
+      result <- watchEvents
       _ = assertEquals(result, expected)
     } yield ()
   }
@@ -132,7 +132,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         else
           Map(defaultNamespace -> expectedEvents)
 
-      (
+      List(
         watchEvents(expected, name, None),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parSequence
@@ -145,7 +145,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val name     = s"${resourceName.toLowerCase}-watch-single"
       val expected = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
 
-      (
+      List(
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parSequence
