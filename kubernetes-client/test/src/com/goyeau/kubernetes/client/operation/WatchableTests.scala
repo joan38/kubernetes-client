@@ -74,11 +74,10 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   )(implicit
       client: KubernetesClient[F]
   ) = {
-    def isExpectedResource(we: WatchEvent[Resource]): Boolean = {
-      we.`object`.metadata.exists(_.name.exists(name => {
+    def isExpectedResource(we: WatchEvent[Resource]): Boolean =
+      we.`object`.metadata.exists(_.name.exists { name =>
         name == resourceName || name == CustomResourceDefinitionsApiTest.crdName(resourceName)
-      }))
-    }
+      })
     def processEvent(
         received: Ref[F, Map[String, Set[EventType]]],
         signal: SignallingRef[F, Boolean]
@@ -117,7 +116,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         .through(processEvent(receivedEvents, signal))
         .evalMap(_ => receivedEvents.get)
         .interruptWhen(signal)
-      _ <- watchStream.interruptAfter(60.seconds).compile.drain
+      _      <- watchStream.interruptAfter(60.seconds).compile.drain
       events <- receivedEvents.get
     } yield events
 
@@ -140,10 +139,10 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         else
           Map(defaultNamespace -> expectedEvents)
 
-      List(
+      (
         watchEvents(expected, name, None),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
-      ).parSequence
+      ).parTupled
     }
   }
 
@@ -153,10 +152,10 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val name     = s"${resourceName.toLowerCase}-watch-single"
       val expected = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
 
-      List(
+      (
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
-      ).parSequence
+      ).parTupled
     }
   }
 }
