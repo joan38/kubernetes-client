@@ -1,6 +1,6 @@
 import $ivy.`com.goyeau::mill-git::0.2.3`
 import $ivy.`com.goyeau::mill-scalafix::0.2.8`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.0`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
 import $file.project.Dependencies
 import Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
@@ -14,7 +14,7 @@ import mill.scalalib._
 import mill.scalalib.api.Util.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.1.1", "2.13.7", "2.12.15")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.1.3", "2.13.8", "2.12.15")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
     with TpolecatModule
@@ -39,13 +39,12 @@ class KubernetesClientModule(val crossScalaVersion: String)
   }
 
   override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
-  def pomSettings =
-    PomSettings(
-      description = "A Kubernetes client for Scala",
-      organization = "com.goyeau",
-      url = "https://github.com/joan38/kubernetes-client",
-      licenses = Seq(License.`Apache-2.0`),
-      versionControl = VersionControl.github("joan38", "kubernetes-client"),
-      developers = Seq(Developer("joan38", "Joan Goyeau", "https://github.com/joan38"))
-    )
+  def pomSettings = PomSettings(
+    description = "A Kubernetes client for Scala",
+    organization = "com.goyeau",
+    url = "https://github.com/joan38/kubernetes-client",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("joan38", "kubernetes-client"),
+    developers = Seq(Developer("joan38", "Joan Goyeau", "https://github.com/joan38"))
+  )
 }
