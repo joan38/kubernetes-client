@@ -4,6 +4,7 @@ import cats.Parallel
 import cats.effect.Ref
 import cats.implicits.*
 import com.goyeau.kubernetes.client.Utils.retry
+import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
 import fs2.{Pipe, Stream}
@@ -73,12 +74,16 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   )(implicit
       client: KubernetesClient[F]
   ) = {
+    def isExpectedResource(we: WatchEvent[Resource]): Boolean =
+      we.`object`.metadata.exists(_.name.exists { name =>
+        name == resourceName || name == CustomResourceDefinitionsApiTest.crdName(resourceName)
+      })
     def processEvent(
         received: Ref[F, Map[String, Set[EventType]]],
         signal: SignallingRef[F, Boolean]
     ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
       _.flatMap {
-        case Right(we) if we.`object`.metadata.exists(_.name.exists(_ == resourceName)) =>
+        case Right(we) if isExpectedResource(we) =>
           Stream.eval {
             for {
               _ <- received.update(events =>
@@ -89,7 +94,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
                       case _                     => Set(we.`type`)
                     }
                     events.updated(namespace, updated)
-                  case _ => events
+                  case _ =>
+                    val crdNamespace = "customresourcedefinition"
+                    events.updated(crdNamespace, events.getOrElse(crdNamespace, Set.empty) + we.`type`)
                 }
               )
               allReceived <- received.get.map(_ == expected)
@@ -99,22 +106,22 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         case _ => Stream.eval(F.unit)
       }
 
-    val watchStream = for {
-      signal         <- Stream.eval(SignallingRef[F, Boolean](false))
-      receivedEvents <- Stream.eval(Ref.of(Map.empty[String, Set[EventType]]))
-      watch <- watchingNamespace
+    val watchEvents = for {
+      signal         <- SignallingRef[F, Boolean](false)
+      receivedEvents <- Ref.of(Map.empty[String, Set[EventType]])
+      watchStream = watchingNamespace
         .map(watchApi)
         .getOrElse(api)
         .watch()
         .through(processEvent(receivedEvents, signal))
         .evalMap(_ => receivedEvents.get)
         .interruptWhen(signal)
-    } yield watch
+      _      <- watchStream.interruptAfter(60.seconds).compile.drain
+      events <- receivedEvents.get
+    } yield events
 
     for {
-      set <- watchStream.interruptAfter(60.seconds).compile.toList
-      result = set.headOption
-        .getOrElse(fail("stream should have at least one element with all received events"))
+      result <- watchEvents
       _ = assertEquals(result, expected)
     } yield ()
   }
@@ -135,7 +142,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       (
         watchEvents(expected, name, None),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
-      ).parSequence
+      ).parTupled
     }
   }
 
@@ -148,7 +155,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       (
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
-      ).parSequence
+      ).parTupled
     }
   }
 }
