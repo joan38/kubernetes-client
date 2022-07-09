@@ -25,7 +25,7 @@ object Dependencies {
 
   lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk15on:1.70")
 
-  lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.6.0")
+  lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.8.0")
 
   lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.1.1")
 
