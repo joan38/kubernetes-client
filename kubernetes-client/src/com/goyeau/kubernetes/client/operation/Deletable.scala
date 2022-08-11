@@ -3,7 +3,7 @@ package com.goyeau.kubernetes.client.operation
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec._
-import com.goyeau.kubernetes.client.util.EnrichedStatus
+import com.goyeau.kubernetes.client.util.{CachedExecToken, EnrichedStatus}
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s._
 import org.http4s.Method._
@@ -14,6 +14,7 @@ private[client] trait Deletable[F[_]] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig
+  protected def cachedExecToken: Option[CachedExecToken[F]]
   protected def resourceUri: Uri
 
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None): F[Status] = {
@@ -23,10 +24,10 @@ private[client] trait Deletable[F[_]] {
       }
 
     httpClient
-      .run(
+      .runF(
         Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
-          .withOptionalAuthorization(config.authorization)
           .withEntity(deleteOptions)(encoder)
+          .withOptionalAuthorization(config.authorization, cachedExecToken)
       )
       .use(EnrichedStatus[F])
   }

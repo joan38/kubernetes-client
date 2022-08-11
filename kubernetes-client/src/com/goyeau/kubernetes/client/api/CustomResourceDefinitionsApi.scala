@@ -3,13 +3,18 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe.{Decoder, Encoder}
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.{CustomResourceDefinition, CustomResourceDefinitionList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] class CustomResourceDefinitionsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class CustomResourceDefinitionsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[CustomResourceDefinitionList],
     val resourceEncoder: Encoder[CustomResourceDefinition],

@@ -3,13 +3,18 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
 import io.k8s.api.apps.v1.{Deployment, DeploymentList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] class DeploymentsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class DeploymentsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[DeploymentList],
     val resourceDecoder: Decoder[Deployment],
@@ -19,12 +24,13 @@ private[client] class DeploymentsApi[F[_]](val httpClient: Client[F], val config
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "deployments"
 
   def namespace(namespace: String): NamespacedDeploymentsApi[F] =
-    new NamespacedDeploymentsApi(httpClient, config, namespace)
+    new NamespacedDeploymentsApi(httpClient, config, cachedExecToken, namespace)
 }
 
 private[client] class NamespacedDeploymentsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit
     val F: Async[F],
