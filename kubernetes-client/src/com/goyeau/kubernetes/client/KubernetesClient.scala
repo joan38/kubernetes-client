@@ -7,9 +7,9 @@ import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResou
 import com.goyeau.kubernetes.client.util.{CachedExecToken, SslContexts}
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
-import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
+import org.http4s.client.websocket.WSClient
+import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient}
 import org.typelevel.log4cats.Logger
-
 import java.net.http.HttpClient
 
 class KubernetesClient[F[_]: Async: Logger](

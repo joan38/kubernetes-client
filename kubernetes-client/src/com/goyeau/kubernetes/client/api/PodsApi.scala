@@ -18,7 +18,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.implicits.*
-import org.http4s.jdkhttpclient.*
+import org.http4s.client.websocket.{WSClient, WSDataFrame, WSFrame, WSRequest}
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
