@@ -6,7 +6,7 @@ on:
       - v*
   push:
     branches:
-      - master
+      - main
   pull_request:
 
 jobs:
@@ -128,7 +128,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Publish
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
         run: |
           echo "${{secrets.pgp_secret_key}}" > private.key
           gpg --batch --yes --import private.key
