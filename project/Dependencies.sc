@@ -12,7 +12,7 @@ object Dependencies {
   }
 
   lazy val http4s = {
-    val version          = "0.23.3"
+    val version          = "0.23.7"
     val jdkClientVersion = "0.5.0"
     Agg(
       ivy"org.http4s::http4s-dsl:$version",
@@ -23,13 +23,13 @@ object Dependencies {
 
   lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.14.1")
 
-  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk15on:1.70")
+  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.71")
 
-  lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.6.0")
+  lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.8.1")
 
-  lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.1.1")
+  lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.4.0")
 
-  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.2.9")
+  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.2.11")
 
   lazy val tests = Agg(ivy"org.scalameta::munit:0.7.29")
 }

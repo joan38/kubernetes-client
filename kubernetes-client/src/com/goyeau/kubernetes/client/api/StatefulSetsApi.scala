@@ -3,13 +3,18 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation.*
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe.*
 import io.k8s.api.apps.v1.{StatefulSet, StatefulSetList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits.*
 
-private[client] class StatefulSetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class StatefulSetsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[StatefulSetList],
     val resourceDecoder: Decoder[StatefulSet],
@@ -19,12 +24,13 @@ private[client] class StatefulSetsApi[F[_]](val httpClient: Client[F], val confi
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "statefulsets"
 
   def namespace(namespace: String): NamespacedStatefulSetsApi[F] =
-    new NamespacedStatefulSetsApi(httpClient, config, namespace)
+    new NamespacedStatefulSetsApi(httpClient, config, cachedExecToken, namespace)
 }
 
 private[client] class NamespacedStatefulSetsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit
     val F: Async[F],

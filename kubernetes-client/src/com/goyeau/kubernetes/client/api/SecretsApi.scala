@@ -3,6 +3,7 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
 import io.k8s.api.core.v1.{Secret, SecretList}
 import org.http4s.client.Client
@@ -11,7 +12,11 @@ import org.http4s.{Status, Uri}
 
 import java.util.Base64
 
-private[client] class SecretsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class SecretsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[SecretList],
     val resourceDecoder: Decoder[Secret],
@@ -20,12 +25,13 @@ private[client] class SecretsApi[F[_]](val httpClient: Client[F], val config: Ku
     with Watchable[F, Secret] {
   val resourceUri = uri"/api" / "v1" / "secrets"
 
-  def namespace(namespace: String) = new NamespacedSecretsApi(httpClient, config, namespace)
+  def namespace(namespace: String) = new NamespacedSecretsApi(httpClient, config, cachedExecToken, namespace)
 }
 
 private[client] class NamespacedSecretsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit
     val F: Async[F],

@@ -3,13 +3,18 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
 import io.k8s.api.autoscaling.v1.{HorizontalPodAutoscaler, HorizontalPodAutoscalerList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] class HorizontalPodAutoscalersApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class HorizontalPodAutoscalersApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[HorizontalPodAutoscalerList],
     val resourceDecoder: Decoder[HorizontalPodAutoscaler],
@@ -19,12 +24,13 @@ private[client] class HorizontalPodAutoscalersApi[F[_]](val httpClient: Client[F
   val resourceUri: Uri = uri"/apis" / "autoscaling" / "v1" / "horizontalpodautoscalers"
 
   def namespace(namespace: String): NamespacedHorizontalPodAutoscalersApi[F] =
-    new NamespacedHorizontalPodAutoscalersApi(httpClient, config, namespace)
+    new NamespacedHorizontalPodAutoscalersApi(httpClient, config, cachedExecToken, namespace)
 }
 
 private[client] class NamespacedHorizontalPodAutoscalersApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit
     val F: Async[F],

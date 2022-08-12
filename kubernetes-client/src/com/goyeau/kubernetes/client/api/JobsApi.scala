@@ -3,13 +3,18 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
 import io.k8s.api.batch.v1.{Job, JobList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] class JobsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class JobsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[JobList],
     val resourceDecoder: Decoder[Job],
@@ -18,12 +23,14 @@ private[client] class JobsApi[F[_]](val httpClient: Client[F], val config: KubeC
     with Watchable[F, Job] {
   val resourceUri: Uri = uri"/apis" / "batch" / "v1" / "jobs"
 
-  def namespace(namespace: String): NamespacedJobsApi[F] = new NamespacedJobsApi(httpClient, config, namespace)
+  def namespace(namespace: String): NamespacedJobsApi[F] =
+    new NamespacedJobsApi(httpClient, config, cachedExecToken, namespace)
 }
 
 private[client] class NamespacedJobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit
     val F: Async[F],

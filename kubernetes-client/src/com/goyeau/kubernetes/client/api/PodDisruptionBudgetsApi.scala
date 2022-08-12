@@ -3,13 +3,18 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
 import io.k8s.api.policy.v1beta1.{PodDisruptionBudget, PodDisruptionBudgetList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
 
-private[client] class PodDisruptionBudgetsApi[F[_]](val httpClient: Client[F], val config: KubeConfig)(implicit
+private[client] class PodDisruptionBudgetsApi[F[_]](
+    val httpClient: Client[F],
+    val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]]
+)(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodDisruptionBudgetList],
     val resourceDecoder: Decoder[PodDisruptionBudget],
@@ -19,12 +24,13 @@ private[client] class PodDisruptionBudgetsApi[F[_]](val httpClient: Client[F], v
   val resourceUri: Uri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
 
   def namespace(namespace: String): NamespacedPodDisruptionBudgetApi[F] =
-    new NamespacedPodDisruptionBudgetApi(httpClient, config, namespace)
+    new NamespacedPodDisruptionBudgetApi(httpClient, config, cachedExecToken, namespace)
 }
 
 private[client] class NamespacedPodDisruptionBudgetApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig,
+    val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit
     val F: Async[F],
