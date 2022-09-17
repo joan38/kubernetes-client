@@ -29,7 +29,7 @@ object Dependencies {
 
   lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.4.0")
 
-  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.0")
+  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.1")
 
   lazy val tests = Agg(ivy"org.scalameta::munit:0.7.29")
 }
