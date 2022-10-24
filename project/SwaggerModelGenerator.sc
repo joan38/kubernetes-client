@@ -51,8 +51,7 @@ object SwaggerModelGenerator {
       "io.k8s.api.core.v1",
       "io.k8s.api.rbac.v1",
       "io.k8s.api.batch.v1",
-      "io.k8s.kubernetes.pkg.apis.policy.v1beta1",
-      "io.k8s.api.policy.v1beta1",
+      "io.k8s.api.policy.v1",
       "io.k8s.apimachinery.pkg.runtime",
       "io.k8s.api.storage.v1",
       "io.k8s.api.autoscaling.v1",
@@ -68,6 +67,7 @@ object SwaggerModelGenerator {
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ExternalDocumentation",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.WebhookClientConfig",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ServiceReference",
+      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ValidationRule",
       "io.k8s.api.networking.v1",
       "io.k8s.api.coordination.v1"
     )
