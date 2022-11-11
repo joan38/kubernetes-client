@@ -14,16 +14,77 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Pull all history with tags for correct versionning
+        uses: actions/checkout@v3
+      - name: Pull all history with tags for correct versioning
         run: git fetch --prune --unshallow
       - name: Setup Java 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 11.0.x
           distribution: zulu
       - name: Style checks
         run: ./mill all __.checkStyle __.docJar
+
+# TODO These tests are not launching for some reasons
+#  integration-kubernetes-v1-25:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: false
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v3
+#      - name: Setup Minikube and start Kubernetes
+#        uses: medyagh/setup-minikube@v0.0.8
+#        with:
+#          minikube-version: 1.28.0
+#          kubernetes-version: v1.25.3
+#      - name: Setup Java 11
+#        uses: actions/setup-java@v3
+#        with:
+#          java-version: 11.0.x
+#          distribution: zulu
+#      - name: Test against Kubernetes v1.25
+#        run: ./mill __.test
+#
+#  integration-kubernetes-v1-24:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: false
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v3
+#      - name: Setup Minikube and start Kubernetes
+#        uses: medyagh/setup-minikube@v0.0.8
+#        with:
+#          minikube-version: 1.28.0
+#          kubernetes-version: v1.24.7
+#      - name: Setup Java 11
+#        uses: actions/setup-java@v3
+#        with:
+#          java-version: 11.0.x
+#          distribution: zulu
+#      - name: Test against Kubernetes v1.24
+#        run: ./mill __.test
+
+  integration-kubernetes-v1-23:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Minikube and start Kubernetes
+        uses: medyagh/setup-minikube@v0.0.8
+        with:
+          minikube-version: 1.28.0
+          kubernetes-version: v1.23.13
+      - name: Setup Java 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: 11.0.x
+          distribution: zulu
+      - name: Test against Kubernetes v1.23
+        run: ./mill __.test
 
   integration-kubernetes-v1-22:
     runs-on: ubuntu-latest
@@ -31,15 +92,14 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Minikube and start Kubernetes
-        uses: manusa/actions-setup-minikube@v2.4.2
+        uses: medyagh/setup-minikube@v0.0.8
         with:
-          minikube version: v1.23.2
-          kubernetes version: v1.22.1
-          github token: ${{ secrets.GITHUB_TOKEN }}
+          minikube-version: 1.28.0
+          kubernetes-version: v1.22.15
       - name: Setup Java 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 11.0.x
           distribution: zulu
@@ -52,78 +112,36 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Minikube and start Kubernetes
-        uses: manusa/actions-setup-minikube@v2.4.2
+        uses: medyagh/setup-minikube@v0.0.8
         with:
-          minikube version: v1.23.2
-          kubernetes version: v1.21.5
-          github token: ${{ secrets.GITHUB_TOKEN }}
+          minikube-version: 1.28.0
+          kubernetes-version: v1.21.14
       - name: Setup Java 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes v1.21
         run: ./mill __.test
 
-  integration-kubernetes-v1-20:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Minikube and start Kubernetes
-        uses: manusa/actions-setup-minikube@v2.4.2
-        with:
-          minikube version: v1.23.2
-          kubernetes version: v1.20.11
-          github token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Java 11
-        uses: actions/setup-java@v2
-        with:
-          java-version: 11.0.x
-          distribution: zulu
-      - name: Test against Kubernetes v1.20
-        run: ./mill __.test
-
-  integration-kubernetes-v1-19:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup Minikube and start Kubernetes
-        uses: manusa/actions-setup-minikube@v2.4.2
-        with:
-          minikube version: v1.23.2
-          kubernetes version: v1.19.15
-          github token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Java 11
-        uses: actions/setup-java@v2
-        with:
-          java-version: 11.0.x
-          distribution: zulu
-      - name: Test against Kubernetes v1.19
-        run: ./mill __.test
-
   publish:
     needs:
       - checks
+#      - integration-kubernetes-v1-25
+#      - integration-kubernetes-v1-24
+      - integration-kubernetes-v1-23
       - integration-kubernetes-v1-22
       - integration-kubernetes-v1-21
-      - integration-kubernetes-v1-20
-      - integration-kubernetes-v1-19
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Pull all history with tags for correct versionning
         run: git fetch --prune --unshallow
       - name: Setup Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: 11.0.x
           distribution: zulu

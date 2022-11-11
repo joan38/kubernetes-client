@@ -5,7 +5,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
 import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
-import io.k8s.api.batch.v1beta1.{CronJob, CronJobList}
+import io.k8s.api.batch.v1.{CronJob, CronJobList}
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.implicits._
