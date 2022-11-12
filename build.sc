@@ -1,4 +1,4 @@
-import $ivy.`com.goyeau::mill-git::0.2.3`
+import $ivy.`com.goyeau::mill-git::0.2.4`
 import $ivy.`com.goyeau::mill-scalafix::0.2.11`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
 import $file.project.Dependencies
