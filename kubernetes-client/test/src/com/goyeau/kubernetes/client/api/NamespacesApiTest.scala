@@ -15,7 +15,6 @@ import munit.Assertions.*
 import munit.FunSuite
 
 class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
-
   import NamespacesApiTest.*
 
   implicit lazy val F: Async[IO]       = IO.asyncForIO
@@ -156,7 +155,7 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
 
 object NamespacesApiTest {
 
-  def createChecked[F[_]: Async](
+  def createChecked[F[_]: Async: Logger](
       namespaceName: String
   )(implicit client: KubernetesClient[F]): F[Namespace] =
     for {
