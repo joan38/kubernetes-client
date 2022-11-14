@@ -21,15 +21,17 @@ class ReplicaSetsApiTest
     with WatchableTests[IO, ReplicaSet]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[ReplicaSet].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[ReplicaSet].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.replicaSets
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): ReplicaSetsApi[IO] = client.replicaSets
+  override def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): NamespacedReplicaSetsApi[IO] =
     client.replicaSets.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = {
+  override def sampleResource(resourceName: String, labels: Map[String, String]): ReplicaSet = {
     val label = Option(Map("app" -> "test"))
     ReplicaSet(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
@@ -46,12 +48,13 @@ class ReplicaSetsApiTest
       )
     )
   }
-  val replicas = Option(5)
-  override def modifyResource(resource: ReplicaSet) = resource.copy(
+
+  private val replicas = Option(5)
+  override def modifyResource(resource: ReplicaSet): ReplicaSet = resource.copy(
     metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
     spec = resource.spec.map(_.copy(replicas = replicas))
   )
-  override def checkUpdated(updatedResource: ReplicaSet) =
+  override def checkUpdated(updatedResource: ReplicaSet): Unit =
     assertEquals(updatedResource.spec.flatMap(_.replicas), replicas)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

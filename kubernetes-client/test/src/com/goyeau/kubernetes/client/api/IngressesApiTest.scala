@@ -19,15 +19,15 @@ class IngressesApiTest
     with WatchableTests[IO, Ingress]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[Ingress].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[Ingress].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.ingresses
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): IngressessApi[IO] = client.ingresses
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): NamespacedIngressesApi[IO] =
     client.ingresses.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) =
+  override def sampleResource(resourceName: String, labels: Map[String, String]): Ingress =
     Ingress(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
       spec = Option(
@@ -43,12 +43,12 @@ class IngressesApiTest
     )
   )
 
-  override def modifyResource(resource: Ingress) =
+  override def modifyResource(resource: Ingress): Ingress =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
       spec = updatedHost
     )
-  override def checkUpdated(updatedResource: Ingress) =
+  override def checkUpdated(updatedResource: Ingress): Unit =
     assertEquals(updatedResource.spec, updatedHost)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

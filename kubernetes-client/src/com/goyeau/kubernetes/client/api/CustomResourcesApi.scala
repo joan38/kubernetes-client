@@ -5,7 +5,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.operation.*
 import com.goyeau.kubernetes.client.util.CirceEntityCodec.*
-import com.goyeau.kubernetes.client.util.{CachedExecToken, EnrichedStatus}
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe.*
 import org.http4s.Method.*
 import org.http4s.client.Client
@@ -53,11 +53,9 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
   val resourceUri: Uri = uri"/apis" / context.group / context.version / "namespaces" / namespace / context.plural
 
   def updateStatus(name: String, resource: CustomResource[A, B]): F[Status] =
-    httpClient
-      .runF(
-        Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
-          .withEntity(resource)
-          .withOptionalAuthorization(config.authorization, cachedExecToken)
-      )
-      .use(EnrichedStatus[F])
+    httpClient.status(
+      Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
+        .withEntity(resource)
+        .withOptionalAuthorization(config.authorization, cachedExecToken)
+    )
 }

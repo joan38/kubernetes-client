@@ -22,23 +22,24 @@ class SecretsApiTest
     with WatchableTests[IO, Secret]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[Secret].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[Secret].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.secrets
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): SecretsApi[IO] = client.secrets
+  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): NamespacedSecretsApi[IO] =
     client.secrets.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) =
+  override def sampleResource(resourceName: String, labels: Map[String, String]): Secret =
     Secret(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
       data = Option(Map("test" -> "ZGF0YQ=="))
     )
-  val data = Option(Map("test" -> "dXBkYXRlZC1kYXRh"))
-  override def modifyResource(resource: Secret) =
+
+  private val data = Option(Map("test" -> "dXBkYXRlZC1kYXRh"))
+  override def modifyResource(resource: Secret): Secret =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))), data = data)
-  override def checkUpdated(updatedResource: Secret) = assertEquals(updatedResource.data, data)
+  override def checkUpdated(updatedResource: Secret): Unit = assertEquals(updatedResource.data, data)
 
   def createEncodeChecked(namespaceName: String, secretName: String)(implicit
       client: KubernetesClient[IO]

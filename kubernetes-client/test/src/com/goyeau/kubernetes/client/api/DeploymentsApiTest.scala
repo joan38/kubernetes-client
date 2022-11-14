@@ -21,15 +21,17 @@ class DeploymentsApiTest
     with WatchableTests[IO, Deployment]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[Deployment].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[Deployment].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.deployments
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): DeploymentsApi[IO] = client.deployments
+  override def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): NamespacedDeploymentsApi[IO] =
     client.deployments.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = {
+  override def sampleResource(resourceName: String, labels: Map[String, String]): Deployment = {
     val label = Option(Map("app" -> "test"))
     Deployment(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
@@ -44,18 +46,19 @@ class DeploymentsApiTest
       )
     )
   }
-  val strategy = Option(
+
+  private val strategy = Option(
     DeploymentStrategy(
       `type` = Option("RollingUpdate"),
       rollingUpdate =
         Option(RollingUpdateDeployment(maxSurge = Option(StringValue("25%")), maxUnavailable = Option(IntValue(10))))
     )
   )
-  override def modifyResource(resource: Deployment) = resource.copy(
+  override def modifyResource(resource: Deployment): Deployment = resource.copy(
     metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
     spec = resource.spec.map(_.copy(strategy = strategy))
   )
-  override def checkUpdated(updatedResource: Deployment) =
+  override def checkUpdated(updatedResource: Deployment): Unit =
     assertEquals(updatedResource.spec.flatMap(_.strategy), strategy)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

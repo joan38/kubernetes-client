@@ -3,7 +3,7 @@ package com.goyeau.kubernetes.client.operation
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec._
-import com.goyeau.kubernetes.client.util.{CachedExecToken, EnrichedStatus}
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s._
 import org.http4s.Method._
@@ -23,12 +23,10 @@ private[client] trait Deletable[F[_]] {
         maybeOptions.fold(Entity[F](EmptyBody.covary[F], Some(0L)))(EntityEncoder[F, DeleteOptions].toEntity(_))
       }
 
-    httpClient
-      .runF(
-        Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
-          .withEntity(deleteOptions)(encoder)
-          .withOptionalAuthorization(config.authorization, cachedExecToken)
-      )
-      .use(EnrichedStatus[F])
+    httpClient.status(
+      Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
+        .withEntity(deleteOptions)(encoder)
+        .withOptionalAuthorization(config.authorization, cachedExecToken)
+    )
   }
 }
