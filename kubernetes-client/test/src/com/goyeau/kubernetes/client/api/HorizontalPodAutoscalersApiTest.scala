@@ -24,26 +24,33 @@ class HorizontalPodAutoscalersApiTest
     with WatchableTests[IO, HorizontalPodAutoscaler]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[HorizontalPodAutoscaler].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[HorizontalPodAutoscaler].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.horizontalPodAutoscalers
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): HorizontalPodAutoscalersApi[IO] =
+    client.horizontalPodAutoscalers
+  override def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): NamespacedHorizontalPodAutoscalersApi[IO] =
     client.horizontalPodAutoscalers.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = HorizontalPodAutoscaler(
-    metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
-    spec =
-      Option(HorizontalPodAutoscalerSpec(scaleTargetRef = CrossVersionObjectReference("kind", "name"), maxReplicas = 2))
-  )
+  override def sampleResource(resourceName: String, labels: Map[String, String]): HorizontalPodAutoscaler =
+    HorizontalPodAutoscaler(
+      metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
+      spec = Option(
+        HorizontalPodAutoscalerSpec(scaleTargetRef = CrossVersionObjectReference("kind", "name"), maxReplicas = 2)
+      )
+    )
+
   val maxReplicas = 3
-  override def modifyResource(resource: HorizontalPodAutoscaler) =
+  override def modifyResource(resource: HorizontalPodAutoscaler): HorizontalPodAutoscaler =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
       spec = resource.spec.map(_.copy(maxReplicas = maxReplicas))
     )
-  override def checkUpdated(updatedResource: HorizontalPodAutoscaler) =
+
+  override def checkUpdated(updatedResource: HorizontalPodAutoscaler): Unit =
     assertEquals(updatedResource.spec.get.maxReplicas, maxReplicas)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

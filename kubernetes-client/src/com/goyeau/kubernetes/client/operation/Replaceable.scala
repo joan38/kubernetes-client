@@ -4,7 +4,7 @@ import scala.language.reflectiveCalls
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec._
-import com.goyeau.kubernetes.client.util.{CachedExecToken, EnrichedStatus}
+import com.goyeau.kubernetes.client.util.CachedExecToken
 import io.circe._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s._
@@ -21,7 +21,7 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   implicit protected def resourceDecoder: Decoder[Resource]
 
   def replace(resource: Resource): F[Status] =
-    httpClient.runF(buildRequest(resource)).use(EnrichedStatus[F])
+    httpClient.status(buildRequest(resource))
 
   def replaceWithResource(resource: Resource): F[Resource] =
     httpClient.expect[Resource](buildRequest(resource))

@@ -21,15 +21,17 @@ class StatefulSetsApiTest
     with WatchableTests[IO, StatefulSet]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[StatefulSet].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[StatefulSet].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.statefulSets
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): StatefulSetsApi[IO] = client.statefulSets
+  override def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): NamespacedStatefulSetsApi[IO] =
     client.statefulSets.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = {
+  override def sampleResource(resourceName: String, labels: Map[String, String]): StatefulSet = {
     val label = Option(Map("app" -> "test"))
     StatefulSet(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
@@ -45,18 +47,19 @@ class StatefulSetsApiTest
       )
     )
   }
-  val updateStrategy = Option(
+
+  private val updateStrategy = Option(
     StatefulSetUpdateStrategy(
       `type` = Option("RollingUpdate"),
       rollingUpdate = Option(RollingUpdateStatefulSetStrategy(partition = Option(10)))
     )
   )
-  override def modifyResource(resource: StatefulSet) =
+  override def modifyResource(resource: StatefulSet): StatefulSet =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
       spec = resource.spec.map(_.copy(updateStrategy = updateStrategy))
     )
-  override def checkUpdated(updatedResource: StatefulSet) =
+  override def checkUpdated(updatedResource: StatefulSet): Unit =
     assertEquals(updatedResource.spec.flatMap(_.updateStrategy), updateStrategy)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

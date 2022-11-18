@@ -14,7 +14,7 @@ import mill.scalalib._
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.8", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.10", "2.12.17")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
     with TpolecatModule

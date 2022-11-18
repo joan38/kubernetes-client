@@ -19,21 +19,25 @@ class ServiceAccountsApiTest
     with WatchableTests[IO, ServiceAccount]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[ServiceAccount].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[ServiceAccount].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.serviceAccounts
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): ServiceAccountsApi[IO] = client.serviceAccounts
+  override def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): NamespacedServiceAccountsApi[IO] =
     client.serviceAccounts.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = ServiceAccount(
+  override def sampleResource(resourceName: String, labels: Map[String, String]): ServiceAccount = ServiceAccount(
     metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels)))
   )
-  val labels = Option(Map("test" -> "updated-label"))
-  override def modifyResource(resource: ServiceAccount) =
+
+  private val labels = Option(Map("test" -> "updated-label"))
+  override def modifyResource(resource: ServiceAccount): ServiceAccount =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name), labels = labels)))
-  override def checkUpdated(updatedResource: ServiceAccount) =
+
+  override def checkUpdated(updatedResource: ServiceAccount): Unit =
     assertEquals(updatedResource.metadata.flatMap(_.labels), labels)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =

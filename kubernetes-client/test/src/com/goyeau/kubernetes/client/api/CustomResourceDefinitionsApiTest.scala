@@ -13,7 +13,6 @@ import munit.Assertions.*
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import scala.concurrent.duration.*
 
 class CustomResourceDefinitionsApiTest
     extends FunSuite
@@ -26,20 +25,23 @@ class CustomResourceDefinitionsApiTest
     with WatchableTests[IO, CustomResourceDefinition]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName: String        = classOf[CustomResourceDefinition].getSimpleName
-  override val resourceIsNamespaced    = false
-  override val watchIsNamespaced       = resourceIsNamespaced
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[CustomResourceDefinition].getSimpleName
+  override val resourceIsNamespaced             = false
+  override val watchIsNamespaced: Boolean       = resourceIsNamespaced
 
-  override def api(implicit client: KubernetesClient[IO]) = client.customResourceDefinitions
-  override def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): CustomResourceDefinitionsApi[IO] =
+    client.customResourceDefinitions
+  override def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[Status] =
     namespacedApi(namespaceName).delete(crdName(resourceName))
   override def deleteResource(namespaceName: String, resourceName: String)(implicit
       client: KubernetesClient[IO]
   ): IO[Status] =
     namespacedApi(namespaceName).delete(crdName(resourceName))
-  override def deleteTerminated(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
+  override def deleteTerminated(namespaceName: String, resourceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): IO[Status] =
     namespacedApi(namespaceName).deleteTerminated(crdName(resourceName))
 
   override def listContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String])(implicit
@@ -56,6 +58,7 @@ class CustomResourceDefinitionsApiTest
 
   def modifyResource(resource: CustomResourceDefinition): CustomResourceDefinition =
     resource.copy(spec = resource.spec.copy(versions = Seq(versions.copy(served = false))))
+
   def checkUpdated(updatedResource: CustomResourceDefinition): Unit =
     assertEquals(updatedResource.spec.versions.headOption, versions.copy(served = false).some)
 

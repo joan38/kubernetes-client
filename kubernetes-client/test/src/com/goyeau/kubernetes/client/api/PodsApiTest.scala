@@ -29,30 +29,28 @@ class PodsApiTest
     with WatchableTests[IO, Pod]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[Pod].getSimpleName
-  val successStatus                    = Some(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[Pod].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.pods
+  override def api(implicit client: KubernetesClient[IO]): PodsApi[IO] = client.pods
   override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): NamespacedPodsApi[IO] =
     client.pods.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) =
+  override def sampleResource(resourceName: String, labels: Map[String, String]): Pod =
     Pod(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
       spec = Option(PodSpec(containers = Seq(Container("test", image = Option("docker")))))
     )
 
-  val activeDeadlineSeconds = Option(5L)
-
-  override def modifyResource(resource: Pod) =
+  private val activeDeadlineSeconds = Option(5L)
+  override def modifyResource(resource: Pod): Pod =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
       spec = resource.spec.map(_.copy(activeDeadlineSeconds = activeDeadlineSeconds))
     )
 
-  override def checkUpdated(updatedResource: Pod) =
+  override def checkUpdated(updatedResource: Pod): Unit =
     assertEquals(updatedResource.spec.flatMap(_.activeDeadlineSeconds), activeDeadlineSeconds)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
@@ -61,7 +59,7 @@ class PodsApiTest
   override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Pod] =
     client.pods.namespace(namespaceName)
 
-  def testPod(podName: String) = Pod(
+  def testPod(podName: String): Pod = Pod(
     metadata = Option(ObjectMeta(name = Option(podName))),
     spec = Option(
       PodSpec(containers =
@@ -76,6 +74,7 @@ class PodsApiTest
     )
   )
 
+  private val successStatus = Some(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
   test("exec into pod") {
     val podName = s"${resourceName.toLowerCase}-exec"
     val (messages, status) = kubernetesClient
@@ -231,7 +230,7 @@ class PodsApiTest
       .unsafeRunSync()
   }
 
-  val podStatusCount = 4
+  private val podStatusCount = 4
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
     retry(for {
       pod <- getChecked(namespaceName, name)

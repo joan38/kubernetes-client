@@ -19,22 +19,26 @@ class ConfigMapsApiTest
     with WatchableTests[IO, ConfigMap]
     with ContextProvider {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
-  lazy val resourceName                = classOf[ConfigMap].getSimpleName
+  implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  override lazy val resourceName: String        = classOf[ConfigMap].getSimpleName
 
-  override def api(implicit client: KubernetesClient[IO]) = client.configMaps
-  override def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]) =
+  override def api(implicit client: KubernetesClient[IO]): ConfigMapsApi[IO] = client.configMaps
+  override def namespacedApi(namespaceName: String)(implicit
+      client: KubernetesClient[IO]
+  ): NamespacedConfigMapsApi[IO] =
     client.configMaps.namespace(namespaceName)
 
-  override def sampleResource(resourceName: String, labels: Map[String, String]) = ConfigMap(
+  override def sampleResource(resourceName: String, labels: Map[String, String]): ConfigMap = ConfigMap(
     metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
     data = Option(Map("test" -> "data"))
   )
-  val data = Option(Map("test" -> "updated-data"))
-  override def modifyResource(resource: ConfigMap) =
+
+  private val data = Option(Map("test" -> "updated-data"))
+  override def modifyResource(resource: ConfigMap): ConfigMap =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))), data = data)
-  override def checkUpdated(updatedResource: ConfigMap) = assertEquals(updatedResource.data, data)
+
+  override def checkUpdated(updatedResource: ConfigMap): Unit = assertEquals(updatedResource.data, data)
 
   override def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO] =
     client.configMaps.namespace(namespaceName)
