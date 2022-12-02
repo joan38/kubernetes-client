@@ -15,7 +15,7 @@ import java.net.http.HttpClient
 class KubernetesClient[F[_]: Async: Logger](
     httpClient: Client[F],
     wsClient: WSClient[F],
-    config: KubeConfig,
+    config: KubeConfig[F],
     cachedExecToken: Option[CachedExecToken[F]]
 ) {
   lazy val namespaces: NamespacesApi[F] = new NamespacesApi(httpClient, config, cachedExecToken)
@@ -60,7 +60,7 @@ class KubernetesClient[F[_]: Async: Logger](
 }
 
 object KubernetesClient {
-  def apply[F[_]: Async: Logger](config: KubeConfig): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Logger](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
     for {
       client <- Resource.eval {
         Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
@@ -75,6 +75,6 @@ object KubernetesClient {
       cachedExecToken
     )
 
-  def apply[F[_]: Async: Logger](config: F[KubeConfig]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Logger](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
     Resource.eval(config).flatMap(apply(_))
 }

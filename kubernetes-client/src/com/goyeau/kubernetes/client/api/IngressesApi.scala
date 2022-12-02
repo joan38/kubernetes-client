@@ -13,7 +13,7 @@ import org.http4s.implicits.*
 
 private[client] class IngressessApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]]
 )(implicit
     val F: Async[F],
@@ -30,7 +30,7 @@ private[client] class IngressessApi[F[_]](
 
 private[client] class NamespacedIngressesApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit

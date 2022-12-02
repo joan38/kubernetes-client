@@ -17,13 +17,13 @@ object SslContexts {
   private val KeyStoreSystemProperty           = "javax.net.ssl.keyStore"
   private val KeyStorePasswordSystemProperty   = "javax.net.ssl.keyStorePassword"
 
-  def fromConfig(config: KubeConfig): SSLContext = {
+  def fromConfig[F[_]](config: KubeConfig[F]): SSLContext = {
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagers(config), trustManagers(config), new SecureRandom)
     sslContext
   }
 
-  private def keyManagers(config: KubeConfig) = {
+  private def keyManagers[F[_]](config: KubeConfig[F]) = {
     // Client certificate
     val certDataStream = config.clientCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val certFileStream = config.clientCertFile.map(new FileInputStream(_))
@@ -69,7 +69,7 @@ object SslContexts {
     keyStore
   }
 
-  private def trustManagers(config: KubeConfig) = {
+  private def trustManagers[F[_]](config: KubeConfig[F]) = {
     val certDataStream = config.caCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val certFileStream = config.caCertFile.map(new FileInputStream(_))
 

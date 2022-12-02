@@ -17,7 +17,7 @@ import org.http4s.Method.*
 private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
-  protected def config: KubeConfig
+  protected def config: KubeConfig[F]
   protected def resourceUri: Uri
   protected def cachedExecToken: Option[CachedExecToken[F]]
   implicit protected def resourceEncoder: Encoder[Resource]
