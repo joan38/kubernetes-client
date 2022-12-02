@@ -26,11 +26,11 @@ object SslContexts {
   private def keyManagers[F[_]](config: KubeConfig[F]) = {
     // Client certificate
     val certDataStream = config.clientCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
-    val certFileStream = config.clientCertFile.map(new FileInputStream(_))
+    val certFileStream = config.clientCertFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
     // Client key
     val keyDataStream = config.clientKeyData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
-    val keyFileStream = config.clientKeyFile.map(new FileInputStream(_))
+    val keyFileStream = config.clientKeyFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
     for {
       keyStream  <- keyDataStream.orElse(keyFileStream)
@@ -71,7 +71,7 @@ object SslContexts {
 
   private def trustManagers[F[_]](config: KubeConfig[F]) = {
     val certDataStream = config.caCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
-    val certFileStream = config.caCertFile.map(new FileInputStream(_))
+    val certFileStream = config.caCertFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
     certDataStream.orElse(certFileStream).foreach { certStream =>
       val certificateFactory = CertificateFactory.getInstance("X509")

@@ -1,10 +1,11 @@
 package com.goyeau.kubernetes.client
 
 import cats.data.OptionT
-import cats.effect._
-import com.goyeau.kubernetes.client.api._
+import cats.effect.*
+import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
-import com.goyeau.kubernetes.client.util.{CachedExecToken, SslContexts}
+import com.goyeau.kubernetes.client.util.SslContexts
+import com.goyeau.kubernetes.client.util.cache.{AuthorizationCache, ExecTokenCache, TokenCache}
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
 import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
@@ -16,7 +17,7 @@ class KubernetesClient[F[_]: Async: Logger](
     httpClient: Client[F],
     wsClient: WSClient[F],
     config: KubeConfig[F],
-    cachedExecToken: Option[CachedExecToken[F]]
+    cachedExecToken: Option[TokenCache[F]]
 ) {
   lazy val namespaces: NamespacesApi[F] = new NamespacesApi(httpClient, config, cachedExecToken)
   lazy val pods: PodsApi[F] = new PodsApi(
@@ -65,9 +66,19 @@ object KubernetesClient {
       client <- Resource.eval {
         Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
       }
-      httpClient      <- JdkHttpClient[F](client)
-      wsClient        <- JdkWSClient[F](client)
-      cachedExecToken <- Resource.eval(OptionT.fromOption(config.authInfoExec).semiflatMap(CachedExecToken[F]).value)
+      httpClient <- JdkHttpClient[F](client)
+      wsClient   <- JdkWSClient[F](client)
+      cachedExecToken <- Resource.eval(
+        OptionT
+          .fromOption(config.authorization)
+          .semiflatMap(AuthorizationCache(_, config.refreshTokenBeforeExpiration))
+          .orElse {
+            OptionT
+              .fromOption(config.authInfoExec)
+              .semiflatMap(ExecTokenCache[F](_, config.refreshTokenBeforeExpiration))
+          }
+          .value
+      )
     } yield new KubernetesClient(
       httpClient,
       wsClient,

@@ -7,7 +7,7 @@ import com.goyeau.kubernetes.client.api.ExecRouting.*
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.api.NamespacedPodsApi.ErrorOrStatus
 import com.goyeau.kubernetes.client.operation.*
-import com.goyeau.kubernetes.client.util.CachedExecToken
+import com.goyeau.kubernetes.client.util.cache.TokenCache
 import fs2.concurrent.SignallingRef
 import fs2.io.file.{Files, Flags, Path}
 import fs2.{Chunk, Pipe, Stream}
@@ -30,7 +30,7 @@ private[client] class PodsApi[F[_]: Logger](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]]
+    val cachedExecToken: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
@@ -71,7 +71,7 @@ private[client] class NamespacedPodsApi[F[_]](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]],
+    val cachedExecToken: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],
@@ -89,14 +89,6 @@ private[client] class NamespacedPodsApi[F[_]](
     with GroupDeletable[F]
     with Watchable[F, Pod] {
   val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "pods"
-
-  private val execHeaders: F[Headers] =
-    config.authorization
-      .map { auth =>
-        auth.map(auth => Headers(auth))
-      }
-      .getOrElse(Headers.empty.pure[F])
-      .map(_.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io")))
 
   private val webSocketAddress: Uri = Uri.unsafeFromString(
     config.server
@@ -121,9 +113,13 @@ private[client] class NamespacedPodsApi[F[_]](
       .+??("container" -> container)
       .++?("command" -> commands)
 
-    execHeaders.map { execHeaders =>
-      WSRequest(uri, execHeaders, Method.POST)
-    }
+    WSRequest(uri, method = Method.POST)
+      .withOptionalAuthorization(cachedExecToken)
+      .map { r =>
+        r.copy(
+          headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
+        )
+      }
   }
 
   @deprecated("Use download() which uses fs2.io.file.Path", "0.8.2")

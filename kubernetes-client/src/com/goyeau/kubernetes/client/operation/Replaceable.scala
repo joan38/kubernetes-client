@@ -4,7 +4,7 @@ import scala.language.reflectiveCalls
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec._
-import com.goyeau.kubernetes.client.util.CachedExecToken
+import com.goyeau.kubernetes.client.util.cache.TokenCache
 import io.circe._
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s._
@@ -15,7 +15,7 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[CachedExecToken[F]]
+  protected def cachedExecToken: Option[TokenCache[F]]
   protected def resourceUri: Uri
   implicit protected def resourceEncoder: Encoder[Resource]
   implicit protected def resourceDecoder: Decoder[Resource]
@@ -29,5 +29,5 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   private def buildRequest(resource: Resource) =
     Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)
       .withEntity(resource)
-      .withOptionalAuthorization(config.authorization, cachedExecToken)
+      .withOptionalAuthorization(cachedExecToken)
 }

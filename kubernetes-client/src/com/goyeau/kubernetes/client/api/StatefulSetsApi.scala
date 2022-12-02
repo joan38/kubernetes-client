@@ -3,7 +3,7 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation.*
-import com.goyeau.kubernetes.client.util.CachedExecToken
+import com.goyeau.kubernetes.client.util.cache.TokenCache
 import io.circe.*
 import io.k8s.api.apps.v1.{StatefulSet, StatefulSetList}
 import org.http4s.Uri
@@ -13,7 +13,7 @@ import org.http4s.implicits.*
 private[client] class StatefulSetsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]]
+    val cachedExecToken: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[StatefulSetList],
@@ -30,7 +30,7 @@ private[client] class StatefulSetsApi[F[_]](
 private[client] class NamespacedStatefulSetsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]],
+    val cachedExecToken: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

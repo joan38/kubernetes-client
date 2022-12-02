@@ -5,7 +5,7 @@ import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.operation.*
 import com.goyeau.kubernetes.client.util.CirceEntityCodec.*
-import com.goyeau.kubernetes.client.util.CachedExecToken
+import com.goyeau.kubernetes.client.util.cache.TokenCache
 import io.circe.*
 import org.http4s.Method.*
 import org.http4s.client.Client
@@ -15,7 +15,7 @@ import org.http4s.{Request, Status, Uri}
 private[client] class CustomResourcesApi[F[_], A, B](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]],
+    val cachedExecToken: Option[TokenCache[F]],
     val context: CrdContext
 )(implicit
     val F: Async[F],
@@ -34,7 +34,7 @@ private[client] class CustomResourcesApi[F[_], A, B](
 private[client] class NamespacedCustomResourcesApi[F[_], A, B](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]],
+    val cachedExecToken: Option[TokenCache[F]],
     val context: CrdContext,
     namespace: String
 )(implicit
@@ -56,6 +56,6 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
     httpClient.status(
       Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
         .withEntity(resource)
-        .withOptionalAuthorization(config.authorization, cachedExecToken)
+        .withOptionalAuthorization(cachedExecToken)
     )
 }

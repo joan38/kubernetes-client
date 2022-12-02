@@ -3,7 +3,7 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.util.CachedExecToken
+import com.goyeau.kubernetes.client.util.cache.TokenCache
 import io.circe._
 import io.k8s.api.core.v1.{Service, ServiceList}
 import org.http4s.Uri
@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class ServicesApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]]
+    val cachedExecToken: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[ServiceList],
@@ -30,7 +30,7 @@ private[client] class ServicesApi[F[_]](
 private[client] class NamespacedServicesApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]],
+    val cachedExecToken: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],
