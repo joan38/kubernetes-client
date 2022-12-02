@@ -84,7 +84,6 @@ object KubeConfig {
     *   - /var/run/secrets/kubernetes.io/serviceaccount/token token file,
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed),
     *   - KUBERNETES_SERVICE_PORT env variable.
-    *
     */
   def clusterConfig[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
     findClusterConfig(refreshTokenBeforeExpiration = 1.minute).value
