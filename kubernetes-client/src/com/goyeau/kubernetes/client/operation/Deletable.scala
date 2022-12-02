@@ -14,7 +14,7 @@ private[client] trait Deletable[F[_]] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   protected def resourceUri: Uri
 
   def delete(name: String, deleteOptions: Option[DeleteOptions] = None): F[Status] = {
@@ -26,7 +26,7 @@ private[client] trait Deletable[F[_]] {
     httpClient.status(
       Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
         .withEntity(deleteOptions)(encoder)
-        .withOptionalAuthorization(cachedExecToken)
+        .withOptionalAuthorization(authCache)
     )
   }
 }

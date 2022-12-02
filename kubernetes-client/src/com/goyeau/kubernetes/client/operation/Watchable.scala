@@ -18,7 +18,7 @@ private[client] trait Watchable[F[_], Resource] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   protected def resourceUri: Uri
   protected def watchResourceUri: Uri = resourceUri
   implicit protected def resourceDecoder: Decoder[Resource]
@@ -28,7 +28,7 @@ private[client] trait Watchable[F[_], Resource] {
   def watch(labels: Map[String, String] = Map.empty): Stream[F, Either[String, WatchEvent[Resource]]] = {
     val uri = addLabels(labels, config.server.resolve(watchResourceUri))
     val req = Request[F](GET, uri.withQueryParam("watch", "1"))
-      .withOptionalAuthorization(cachedExecToken)
+      .withOptionalAuthorization(authCache)
     jsonStream(req).map(_.as[WatchEvent[Resource]].leftMap(_.getMessage))
   }
 

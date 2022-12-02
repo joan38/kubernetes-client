@@ -10,10 +10,8 @@ import org.http4s.{EntityDecoder, Request, Response}
 
 package object operation {
   implicit private[client] class KubernetesRequestOps[F[_]: Applicative](request: Request[F]) {
-    def withOptionalAuthorization(
-        authToken: Option[TokenCache[F]]
-    ): F[Request[F]] =
-      authToken.fold(request.pure[F]) { authCache =>
+    def withOptionalAuthorization(authCache: Option[TokenCache[F]]): F[Request[F]] =
+      authCache.fold(request.pure[F]) { authCache =>
         authCache.get.map { auth =>
           request.putHeaders(auth)
         }
@@ -21,10 +19,8 @@ package object operation {
   }
 
   implicit private[client] class KubernetesWsRequestOps[F[_]: Applicative](request: WSRequest) {
-    def withOptionalAuthorization(
-        authToken: Option[TokenCache[F]]
-    ): F[WSRequest] =
-      authToken.fold(request.pure[F]) { authCache =>
+    def withOptionalAuthorization(authCache: Option[TokenCache[F]]): F[WSRequest] =
+      authCache.fold(request.pure[F]) { authCache =>
         authCache.get.map { auth =>
           request.copy(headers = request.headers.put(auth))
         }

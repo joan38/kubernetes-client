@@ -14,14 +14,14 @@ private[client] trait Listable[F[_], Resource] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   protected def resourceUri: Uri
   implicit protected def listDecoder: Decoder[Resource]
 
   def list(labels: Map[String, String] = Map.empty): F[Resource] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
     httpClient.expectF[Resource](
-      Request[F](GET, uri).withOptionalAuthorization(cachedExecToken)
+      Request[F](GET, uri).withOptionalAuthorization(authCache)
     )
   }
 }

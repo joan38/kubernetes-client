@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class DeploymentsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[DeploymentList],
@@ -24,13 +24,13 @@ private[client] class DeploymentsApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "deployments"
 
   def namespace(namespace: String): NamespacedDeploymentsApi[F] =
-    new NamespacedDeploymentsApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedDeploymentsApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedDeploymentsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

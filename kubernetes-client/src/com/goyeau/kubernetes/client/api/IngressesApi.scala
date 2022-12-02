@@ -13,7 +13,7 @@ import org.http4s.implicits.*
 private[client] class IngressessApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[IngressList],
@@ -24,13 +24,13 @@ private[client] class IngressessApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "networking.k8s.io" / "v1" / "ingresses"
 
   def namespace(namespace: String): NamespacedIngressesApi[F] =
-    new NamespacedIngressesApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedIngressesApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedIngressesApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class ServiceAccountsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[ServiceAccountList],
@@ -24,13 +24,13 @@ private[client] class ServiceAccountsApi[F[_]](
   val resourceUri: Uri = uri"/api" / "v1" / "serviceaccounts"
 
   def namespace(namespace: String): NamespacedServiceAccountsApi[F] =
-    new NamespacedServiceAccountsApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedServiceAccountsApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedServiceAccountsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

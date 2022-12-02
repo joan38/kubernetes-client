@@ -15,7 +15,7 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   protected def resourceUri: Uri
   implicit protected def resourceEncoder: Encoder[Resource]
   implicit protected def resourceDecoder: Decoder[Resource]
@@ -29,5 +29,5 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   private def buildRequest(resource: Resource) =
     Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)
       .withEntity(resource)
-      .withOptionalAuthorization(cachedExecToken)
+      .withOptionalAuthorization(authCache)
 }

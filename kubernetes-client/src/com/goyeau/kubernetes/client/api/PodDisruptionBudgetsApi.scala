@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class PodDisruptionBudgetsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodDisruptionBudgetList],
@@ -24,13 +24,13 @@ private[client] class PodDisruptionBudgetsApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "policy" / "v1beta1" / "poddisruptionbudgets"
 
   def namespace(namespace: String): NamespacedPodDisruptionBudgetApi[F] =
-    new NamespacedPodDisruptionBudgetApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedPodDisruptionBudgetApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedPodDisruptionBudgetApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

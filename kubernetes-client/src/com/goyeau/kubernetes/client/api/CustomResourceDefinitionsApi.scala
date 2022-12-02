@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class CustomResourceDefinitionsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[CustomResourceDefinitionList],

@@ -30,7 +30,7 @@ private[client] class PodsApi[F[_]: Logger](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
@@ -41,7 +41,7 @@ private[client] class PodsApi[F[_]: Logger](
   val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
   def namespace(namespace: String): NamespacedPodsApi[F] =
-    new NamespacedPodsApi(httpClient, wsClient, config, cachedExecToken, namespace)
+    new NamespacedPodsApi(httpClient, wsClient, config, authCache, namespace)
 }
 
 sealed trait ExecStream {
@@ -71,7 +71,7 @@ private[client] class NamespacedPodsApi[F[_]](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],
@@ -114,7 +114,7 @@ private[client] class NamespacedPodsApi[F[_]](
       .++?("command" -> commands)
 
     WSRequest(uri, method = Method.POST)
-      .withOptionalAuthorization(cachedExecToken)
+      .withOptionalAuthorization(authCache)
       .map { r =>
         r.copy(
           headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))

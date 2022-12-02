@@ -13,7 +13,7 @@ import org.http4s.implicits.*
 private[client] class JobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[JobList],
@@ -24,13 +24,13 @@ private[client] class JobsApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "batch" / "v1" / "jobs"
 
   def namespace(namespace: String): NamespacedJobsApi[F] =
-    new NamespacedJobsApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedJobsApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedJobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

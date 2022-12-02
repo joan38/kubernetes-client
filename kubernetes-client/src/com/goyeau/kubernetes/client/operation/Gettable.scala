@@ -13,13 +13,13 @@ private[client] trait Gettable[F[_], Resource] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   protected def resourceUri: Uri
   implicit protected def resourceDecoder: Decoder[Resource]
 
   def get(name: String): F[Resource] =
     httpClient.expectF[Resource](
       Request[F](GET, config.server.resolve(resourceUri) / name)
-        .withOptionalAuthorization(cachedExecToken)
+        .withOptionalAuthorization(authCache)
     )
 }

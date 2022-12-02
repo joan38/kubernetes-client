@@ -15,7 +15,7 @@ import java.util.Base64
 private[client] class SecretsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[SecretList],
@@ -25,13 +25,13 @@ private[client] class SecretsApi[F[_]](
     with Watchable[F, Secret] {
   val resourceUri = uri"/api" / "v1" / "secrets"
 
-  def namespace(namespace: String) = new NamespacedSecretsApi(httpClient, config, cachedExecToken, namespace)
+  def namespace(namespace: String) = new NamespacedSecretsApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedSecretsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

@@ -13,7 +13,7 @@ import org.http4s.implicits.*
 private[client] class HorizontalPodAutoscalersApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[HorizontalPodAutoscalerList],
@@ -24,13 +24,13 @@ private[client] class HorizontalPodAutoscalersApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "autoscaling" / "v1" / "horizontalpodautoscalers"
 
   def namespace(namespace: String): NamespacedHorizontalPodAutoscalersApi[F] =
-    new NamespacedHorizontalPodAutoscalersApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedHorizontalPodAutoscalersApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedHorizontalPodAutoscalersApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

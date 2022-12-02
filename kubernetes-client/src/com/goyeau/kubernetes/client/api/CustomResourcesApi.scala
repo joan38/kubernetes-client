@@ -15,7 +15,7 @@ import org.http4s.{Request, Status, Uri}
 private[client] class CustomResourcesApi[F[_], A, B](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     val context: CrdContext
 )(implicit
     val F: Async[F],
@@ -28,13 +28,13 @@ private[client] class CustomResourcesApi[F[_], A, B](
   val resourceUri: Uri = uri"/apis" / context.group / context.version / context.plural
 
   def namespace(namespace: String): NamespacedCustomResourcesApi[F, A, B] =
-    new NamespacedCustomResourcesApi(httpClient, config, cachedExecToken, context, namespace)
+    new NamespacedCustomResourcesApi(httpClient, config, authCache, context, namespace)
 }
 
 private[client] class NamespacedCustomResourcesApi[F[_], A, B](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     val context: CrdContext,
     namespace: String
 )(implicit
@@ -56,6 +56,6 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
     httpClient.status(
       Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
         .withEntity(resource)
-        .withOptionalAuthorization(cachedExecToken)
+        .withOptionalAuthorization(authCache)
     )
 }

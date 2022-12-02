@@ -19,7 +19,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
   protected def resourceUri: Uri
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   implicit protected def resourceEncoder: Encoder[Resource]
   implicit protected def resourceDecoder: Decoder[Resource]
 
@@ -32,14 +32,14 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   private def buildRequest(resource: Resource) =
     Request[F](POST, config.server.resolve(resourceUri))
       .withEntity(resource)
-      .withOptionalAuthorization(cachedExecToken)
+      .withOptionalAuthorization(authCache)
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
     def update          = httpClient.status(buildRequest(resource, fullResourceUri))
 
     httpClient
-      .status(Request[F](GET, fullResourceUri).withOptionalAuthorization(cachedExecToken))
+      .status(Request[F](GET, fullResourceUri).withOptionalAuthorization(authCache))
       .flatMap {
         case status if status.isSuccess => update
         case Status.NotFound =>
@@ -57,7 +57,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
 
     httpClient
       .expectOptionF[Resource](
-        Request[F](GET, fullResourceUri).withOptionalAuthorization(cachedExecToken)
+        Request[F](GET, fullResourceUri).withOptionalAuthorization(authCache)
       )
       .flatMap {
         case Some(_) => updateWithResource
@@ -72,5 +72,5 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
     Request[F](PATCH, fullResourceUri)
       .withEntity(resource)
       .putHeaders(`Content-Type`(MediaType.application.`merge-patch+json`))
-      .withOptionalAuthorization(cachedExecToken)
+      .withOptionalAuthorization(authCache)
 }

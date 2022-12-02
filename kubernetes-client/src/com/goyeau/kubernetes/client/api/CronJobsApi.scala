@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class CronJobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[CronJobList],
@@ -24,13 +24,13 @@ private[client] class CronJobsApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
 
   def namespace(namespace: String): NamespacedCronJobsApi[F] =
-    new NamespacedCronJobsApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedCronJobsApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedCronJobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class LeasesApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[LeaseList],
@@ -25,14 +25,14 @@ private[client] class LeasesApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "coordination.k8s.io" / "v1" / "leases"
 
   def namespace(namespace: String): NamespacedLeasesApi[F] =
-    new NamespacedLeasesApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedLeasesApi(httpClient, config, authCache, namespace)
 
 }
 
 private[client] class NamespacedLeasesApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

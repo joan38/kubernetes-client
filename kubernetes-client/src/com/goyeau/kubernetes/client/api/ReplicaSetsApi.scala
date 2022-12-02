@@ -13,7 +13,7 @@ import org.http4s.implicits._
 private[client] class ReplicaSetsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]]
+    val authCache: Option[TokenCache[F]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[ReplicaSetList],
@@ -24,13 +24,13 @@ private[client] class ReplicaSetsApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "apps" / "v1" / "replicasets"
 
   def namespace(namespace: String): NamespacedReplicaSetsApi[F] =
-    new NamespacedReplicaSetsApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedReplicaSetsApi(httpClient, config, authCache, namespace)
 }
 
 private[client] class NamespacedReplicaSetsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[TokenCache[F]],
+    val authCache: Option[TokenCache[F]],
     namespace: String
 )(implicit
     val F: Async[F],

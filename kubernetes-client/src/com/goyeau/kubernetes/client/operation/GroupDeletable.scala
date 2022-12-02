@@ -12,11 +12,11 @@ private[client] trait GroupDeletable[F[_]] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
-  protected def cachedExecToken: Option[TokenCache[F]]
+  protected def authCache: Option[TokenCache[F]]
   protected def resourceUri: Uri
 
   def deleteAll(labels: Map[String, String] = Map.empty): F[Status] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
-    httpClient.status(Request[F](DELETE, uri).withOptionalAuthorization(cachedExecToken))
+    httpClient.status(Request[F](DELETE, uri).withOptionalAuthorization(authCache))
   }
 }

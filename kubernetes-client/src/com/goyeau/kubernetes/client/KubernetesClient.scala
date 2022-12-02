@@ -17,47 +17,47 @@ class KubernetesClient[F[_]: Async: Logger](
     httpClient: Client[F],
     wsClient: WSClient[F],
     config: KubeConfig[F],
-    cachedExecToken: Option[TokenCache[F]]
+    authCache: Option[TokenCache[F]]
 ) {
-  lazy val namespaces: NamespacesApi[F] = new NamespacesApi(httpClient, config, cachedExecToken)
+  lazy val namespaces: NamespacesApi[F] = new NamespacesApi(httpClient, config, authCache)
   lazy val pods: PodsApi[F] = new PodsApi(
     httpClient,
     wsClient,
     config,
-    cachedExecToken
+    authCache
   )
-  lazy val jobs: JobsApi[F]                       = new JobsApi(httpClient, config, cachedExecToken)
-  lazy val cronJobs: CronJobsApi[F]               = new CronJobsApi(httpClient, config, cachedExecToken)
-  lazy val deployments: DeploymentsApi[F]         = new DeploymentsApi(httpClient, config, cachedExecToken)
-  lazy val statefulSets: StatefulSetsApi[F]       = new StatefulSetsApi(httpClient, config, cachedExecToken)
-  lazy val replicaSets: ReplicaSetsApi[F]         = new ReplicaSetsApi(httpClient, config, cachedExecToken)
-  lazy val services: ServicesApi[F]               = new ServicesApi(httpClient, config, cachedExecToken)
-  lazy val serviceAccounts: ServiceAccountsApi[F] = new ServiceAccountsApi(httpClient, config, cachedExecToken)
-  lazy val configMaps: ConfigMapsApi[F]           = new ConfigMapsApi(httpClient, config, cachedExecToken)
-  lazy val secrets: SecretsApi[F]                 = new SecretsApi(httpClient, config, cachedExecToken)
+  lazy val jobs: JobsApi[F]                       = new JobsApi(httpClient, config, authCache)
+  lazy val cronJobs: CronJobsApi[F]               = new CronJobsApi(httpClient, config, authCache)
+  lazy val deployments: DeploymentsApi[F]         = new DeploymentsApi(httpClient, config, authCache)
+  lazy val statefulSets: StatefulSetsApi[F]       = new StatefulSetsApi(httpClient, config, authCache)
+  lazy val replicaSets: ReplicaSetsApi[F]         = new ReplicaSetsApi(httpClient, config, authCache)
+  lazy val services: ServicesApi[F]               = new ServicesApi(httpClient, config, authCache)
+  lazy val serviceAccounts: ServiceAccountsApi[F] = new ServiceAccountsApi(httpClient, config, authCache)
+  lazy val configMaps: ConfigMapsApi[F]           = new ConfigMapsApi(httpClient, config, authCache)
+  lazy val secrets: SecretsApi[F]                 = new SecretsApi(httpClient, config, authCache)
   lazy val horizontalPodAutoscalers: HorizontalPodAutoscalersApi[F] = new HorizontalPodAutoscalersApi(
     httpClient,
     config,
-    cachedExecToken
+    authCache
   )
   lazy val podDisruptionBudgets: PodDisruptionBudgetsApi[F] = new PodDisruptionBudgetsApi(
     httpClient,
     config,
-    cachedExecToken
+    authCache
   )
   lazy val customResourceDefinitions: CustomResourceDefinitionsApi[F] = new CustomResourceDefinitionsApi(
     httpClient,
     config,
-    cachedExecToken
+    authCache
   )
-  lazy val ingresses: IngressessApi[F] = new IngressessApi(httpClient, config, cachedExecToken)
-  lazy val leases: LeasesApi[F]        = new LeasesApi(httpClient, config, cachedExecToken)
+  lazy val ingresses: IngressessApi[F] = new IngressessApi(httpClient, config, authCache)
+  lazy val leases: LeasesApi[F]        = new LeasesApi(httpClient, config, authCache)
 
   def customResources[A: Encoder: Decoder, B: Encoder: Decoder](context: CrdContext)(implicit
       listDecoder: Decoder[CustomResourceList[A, B]],
       encoder: Encoder[CustomResource[A, B]],
       decoder: Decoder[CustomResource[A, B]]
-  ) = new CustomResourcesApi[F, A, B](httpClient, config, cachedExecToken, context)
+  ) = new CustomResourcesApi[F, A, B](httpClient, config, authCache, context)
 }
 
 object KubernetesClient {
@@ -68,7 +68,7 @@ object KubernetesClient {
       }
       httpClient <- JdkHttpClient[F](client)
       wsClient   <- JdkWSClient[F](client)
-      cachedExecToken <- Resource.eval(
+      authCache <- Resource.eval(
         OptionT
           .fromOption(config.authorization)
           .semiflatMap(AuthorizationCache(_, config.refreshTokenBeforeExpiration))
@@ -83,7 +83,7 @@ object KubernetesClient {
       httpClient,
       wsClient,
       config,
-      cachedExecToken
+      authCache
     )
 
   def apply[F[_]: Async: Logger](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
