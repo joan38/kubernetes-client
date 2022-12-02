@@ -12,7 +12,7 @@ import org.http4s.implicits._
 
 private[client] class ReplicaSetsApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]]
 )(implicit
     val F: Async[F],
@@ -29,7 +29,7 @@ private[client] class ReplicaSetsApi[F[_]](
 
 private[client] class NamespacedReplicaSetsApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit

@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client
 
-import cats.syntax.all._
+import cats.syntax.all.*
 import cats.{Applicative, FlatMap}
 import cats.effect.Resource
 import com.goyeau.kubernetes.client.util.CachedExecToken
@@ -12,11 +12,11 @@ import org.http4s.headers.Authorization
 package object operation {
   implicit private[client] class KubernetesRequestOps[F[_]: Applicative](request: Request[F]) {
     def withOptionalAuthorization(
-        auth: Option[Authorization],
+        auth: Option[F[Authorization]],
         cachedExecToken: Option[CachedExecToken[F]]
     ): F[Request[F]] =
       cachedExecToken match {
-        case None => auth.fold(request)(request.putHeaders(_)).pure[F]
+        case None => auth.fold(request.pure[F])(auth => auth.map(request.putHeaders(_)))
         case Some(cachedExecToken) =>
           cachedExecToken.get.map(token =>
             request.putHeaders(

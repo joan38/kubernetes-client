@@ -1,15 +1,15 @@
 package com.goyeau.kubernetes.client.util
 
 import java.io.File
-import cats.effect.Sync
-import cats.implicits._
+import cats.effect.{Resource, Sync}
+import cats.implicits.*
 import com.goyeau.kubernetes.client.KubeConfig
 
 import scala.io.Source
 import org.typelevel.log4cats.Logger
 import io.circe.{Codec, Decoder, Encoder}
-import io.circe.generic.semiauto._
-import io.circe.yaml.parser._
+import io.circe.generic.semiauto.*
+import io.circe.yaml.parser.*
 import org.http4s.Uri
 
 case class Config(
@@ -59,9 +59,13 @@ case class ExecCredentialStatus(
 
 private[client] object Yamls {
 
-  def fromKubeConfigFile[F[_]: Sync: Logger](kubeconfig: File, contextMaybe: Option[String]): F[KubeConfig] =
+  def fromKubeConfigFile[F[_]: Sync: Logger](kubeconfig: File, contextMaybe: Option[String]): F[KubeConfig[F]] =
     for {
-      configJson <- Sync[F].fromEither(parse(Source.fromFile(kubeconfig).mkString))
+      configString <-
+        Resource
+          .fromAutoCloseable(Sync[F].delay(Source.fromFile(kubeconfig)))
+          .use(source => Sync[F].delay(source.mkString))
+      configJson <- Sync[F].fromEither(parse(configString))
       config     <- Sync[F].fromEither(configJson.as[Config])
       contextName = contextMaybe.getOrElse(config.`current-context`)
       namedContext <-

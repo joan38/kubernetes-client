@@ -12,7 +12,7 @@ import org.http4s.implicits._
 
 private[client] class NamespacesApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]]
 )(implicit
     val F: Async[F],
