@@ -47,12 +47,11 @@ object KubeConfig {
   private val ENV_SERVICE_HOST          = "KUBERNETES_SERVICE_HOST"
   private val ENV_SERVICE_PORT          = "KUBERNETES_SERVICE_PORT"
 
-  private val DEFAULT_REFRESH_TOKEN_BEFORE_EXPIRATION = 1.minute
-
   /** Will try to find a k8s configuration in the following order:
     *
-    *   - if KUBECONFIG env variable is set, and the file exists - use it (with 'current-context')
-    *   - if ~/.kube/config file exists - use it (with 'current-context')
+    *   - if KUBECONFIG env variable is set, and the file exists - use it; uses the 'current-context' specified in the
+    *     file
+    *   - if ~/.kube/config file exists - use it; uses the 'current-context' specified in the file
     *   - if cluster configuration is found - use it
     *
     * Cluster configuration is defined by:
@@ -64,18 +63,27 @@ object KubeConfig {
     * @return
     *   a KubeConfig[F] if able to find one.
     */
-  def defaultConfig[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findFromEnv.orElse(findConfigInHomeDir).orElse(findClusterConfig(DEFAULT_REFRESH_TOKEN_BEFORE_EXPIRATION)).value
+  def standard[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
+    findFromEnv
+      .orElse(findConfigInHomeDir(none))
+      .orElse(findClusterConfig)
+      .value
 
-  /** Use the file specified in KUBECONFIG env variable, if exists (with 'current-context').
+  /** Use the file specified in KUBECONFIG env variable, if exists. Uses the 'current-context' specified in the file.
     */
-  def configFromEnv[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
+  def fromEnv[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
     findFromEnv.value
 
-  /** Uses the configuration from ~/.kube/config (with 'current-context'), if exists.
+  /** Uses the configuration from ~/.kube/config, if exists. Uses the 'current-context' specified in the file.
     */
-  def configInHomeDir[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findConfigInHomeDir.value
+  def inHomeDir[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
+    findConfigInHomeDir(none).value
+
+  /** Uses the configuration from ~/.kube/config, if exists. Uses the provided contextName (will fail if the context
+    * does not exist).
+    */
+  def inHomeDir[F[_]: Logger](contextName: String)(implicit F: Async[F]): F[Option[KubeConfig[F]]] =
+    findConfigInHomeDir(contextName.some).value
 
   /** Uses the cluster configuration, if found.
     *
@@ -85,26 +93,26 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed),
     *   - KUBERNETES_SERVICE_PORT env variable.
     */
-  def clusterConfig[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findClusterConfig(refreshTokenBeforeExpiration = 1.minute).value
+  def cluster[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
+    findClusterConfig.value
 
-  def clusterConfig[F[_]: Logger](refreshTokenBeforeExpiration: FiniteDuration)(implicit
-      F: Async[F]
-  ): F[Option[KubeConfig[F]]] =
-    findClusterConfig(refreshTokenBeforeExpiration).value
+  /** Read the configuration from the specified file. Uses the provided contextName (will fail if the context does not
+    * exist).
+    */
+  def fromFile[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] =
+    Yamls.fromKubeConfigFile(kubeconfig, None)
+
+  /** Read the configuration from the specified file. Uses the 'current-context' specified in the file.
+    */
+  def fromFile[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
+    Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
   def apply[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] = fromFile(kubeconfig)
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] =
-    Yamls.fromKubeConfigFile(kubeconfig, None)
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
   def apply[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
     fromFile(kubeconfig, contextName)
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
-    Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path, contextName: Option[String]): F[KubeConfig[F]] =
-    Yamls.fromKubeConfigFile(kubeconfig, contextName)
 
   def of[F[_]: ApplicativeThrow](
       server: Uri,
@@ -122,13 +130,13 @@ object KubeConfig {
     val configOrError =
       List(
         (caCertData, caCertFile).tupled.isDefined ->
-          "caCertData and caCertFile can't be set at the same time",
+          "caCertData and caCertFile cannot be specified at the same time",
         (clientCertData, clientCertFile).tupled.isDefined ->
-          "clientCertData and clientCertFile can't be set at the same time",
+          "clientCertData and clientCertFile cannot be specified at the same time",
         (clientKeyData, clientKeyFile).tupled.isDefined ->
-          "clientKeyData and clientKeyFile can't be set at the same time",
+          "clientKeyData and clientKeyFile cannot be specified at the same time",
         (authorization, authInfoExec).tupled.isDefined ->
-          "authorization and authInfoExec can't be set at the same time",
+          "authorization and authInfoExec cannot be specified at the same time",
         authInfoExec.exists(_.interactiveMode.contains("Always")) ->
           "interactiveMode=Always is not supported",
         authInfoExec.exists(_.provideClusterInfo.contains(true)) ->
@@ -161,15 +169,15 @@ object KubeConfig {
       .flatMapF(checkExists(_))
       .semiflatMap(fromFile(_))
 
-  private def findConfigInHomeDir[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  private def findConfigInHomeDir[F[_]: Logger](
+      contextName: Option[String]
+  )(implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     findHomeDir
       .map(homeDir => homeDir.resolve(KUBEDIR).resolve(KUBECONFIG))
       .flatMapF(checkExists(_))
-      .semiflatMap(fromFile(_))
+      .semiflatMap(path => contextName.fold(fromFile(path))(fromFile(path, _)))
 
-  private def findClusterConfig[F[_]: Logger](
-      refreshTokenBeforeExpiration: FiniteDuration
-  )(implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     (
       envPath(SERVICEACCOUNT_CA_PATH).flatMapF(checkExists(_)),
       env(ENV_SERVICE_HOST).mapFilter(IpAddress.fromString).map(Uri.Host.fromIpAddress),
