@@ -3,12 +3,10 @@ package cache
 
 import cats.effect.Async
 import cats.syntax.all.*
-import fs2.io.file.Path
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.*
 import org.http4s.{AuthScheme, Credentials}
-import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
 

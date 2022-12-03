@@ -24,7 +24,7 @@ case class KubeConfig[F[_]] private (
     clientKeyFile: Option[Path],
     clientKeyPass: Option[String],
     authInfoExec: Option[AuthInfoExec],
-    refreshTokenBeforeExpiration: FiniteDuration = 1.minute
+    refreshTokenBeforeExpiration: FiniteDuration
 ) {
 
   def withRefreshTokenBeforeExpiration(refreshTokenBeforeExpiration: FiniteDuration): KubeConfig[F] =
@@ -59,9 +59,6 @@ object KubeConfig {
     *   - /var/run/secrets/kubernetes.io/serviceaccount/token token file
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed)
     *   - KUBERNETES_SERVICE_PORT env variable
-    *
-    * @return
-    *   a KubeConfig[F] if able to find one.
     */
   def standard[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
     findFromEnv
@@ -224,6 +221,6 @@ object KubeConfig {
     env(name).map(Path(_))
 
   private def checkExists[F[_]: Async](path: Path): F[Option[Path]] =
-    Files[F].exists(path).map(Option.when(_)(path))
+    Files[F].exists(path).map(if (_) Option(path) else none) // Option.when does not exist in scala 2.12
 
 }
