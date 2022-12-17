@@ -91,6 +91,54 @@ val kubernetesClient =
   KubernetesClient[IO](KubeConfig.fromFile[IO](new File(s"${System.getProperty("user.home")}/.kube/config")))
 ```
 
+#### Authorization caching
+
+It is possible (and recommended) to configure the kubernetes client to cache the authorization (and renew it, when/if it
+expires).
+
+```scala
+import cats.effect.IO
+import com.goyeau.kubernetes.client.*
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+import scala.concurrent.duration._
+
+implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
+val kubernetesClient =
+  KubernetesClient[IO](
+    KubeConfig.standard[IO].withDefaultAuthorizationCache(5.minutes)
+  )
+```
+
+When authorization cache is configured, the client attempts to derive the expiration time of the token:
+
+* if it's a raw authorization header (provided directly, or from the token file inside the cluster), we attempt to
+  decode it as a JWT and take the `exp` field from it;
+* if authorization is provided by the auth plugin in the kube config file – the auth plugin provides the expiration
+  alongside the token.
+
+The cache works this way:
+
+The first time the token is "requested" by the client, it will unconditionally delegate to the underlying
+F[Authorization], and will cache the token.
+
+* if the underlying F[Authorization] "throws", the cache throws as well.
+
+When the token is requested subsequently:
+
+* if the expiration time is not present (the token was not a JWT, the auth plugin did not specify expiration, etc) the
+  cached authorization will be re-used forever
+* if the expiration time is present, but it's far enough into the future (later than now +
+  refreshTokenBeforeExpiration), the cached authorization will be re-used
+* if the expiration time is present, and it's soon enough (sooner than now + refreshTokenBeforeExpiration), the
+  underlying F[Authorization] will be evaluated
+  * if it's successful, the new authorization is cached
+  * if not, but the cached token is still valid, the cached token is re-used otherwise, it will raise an error.
+
+If the cache is not configured (which is by default), the authorization will never be updated and might expire
+eventually.
+
 ### Requests
 
 ```scala
