@@ -164,6 +164,12 @@ object KubeConfig {
   private def findFromEnv[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     envPath[F](ENV_KUBECONFIG)
       .flatMapF(checkExists(_))
+      .flatTapNone {
+        Logger[F].debug(s"$ENV_KUBECONFIG is not defined, or path does not exist")
+      }
+      .semiflatTap { _ =>
+        Logger[F].debug(s"using configuration specified in $ENV_KUBECONFIG")
+      }
       .semiflatMap(fromFile(_))
 
   private def findConfigInHomeDir[F[_]: Logger](
@@ -172,44 +178,86 @@ object KubeConfig {
     findHomeDir
       .map(homeDir => homeDir.resolve(KUBEDIR).resolve(KUBECONFIG))
       .flatMapF(checkExists(_))
+      .flatTapNone {
+        Logger[F].debug(s"~/$KUBEDIR/$KUBECONFIG does not exist")
+      }
+      .semiflatTap { _ =>
+        Logger[F].debug(s"using configuration specified in ~/$KUBEDIR/$KUBECONFIG")
+      }
       .semiflatMap(path => contextName.fold(fromFile(path))(fromFile(path, _)))
 
   private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     (
-      envPath(SERVICEACCOUNT_CA_PATH).flatMapF(checkExists(_)),
-      env(ENV_SERVICE_HOST).mapFilter(IpAddress.fromString).map(Uri.Host.fromIpAddress),
-      env(ENV_SERVICE_PORT).mapFilter(Port.fromString),
-      envPath(SERVICEACCOUNT_TOKEN_PATH).flatMapF(checkExists(_))
-    ).tupled.semiflatMap { case (caPath, serviceHost, servicePort, tokenPath) =>
-      of(
-        server = Uri(
-          scheme = Uri.Scheme.https.some,
-          authority = Uri.Authority(host = serviceHost, port = servicePort.value.some).some
-        ),
-        authorization =
-          Text.readFile(tokenPath).map(token => Authorization(Credentials.Token(AuthScheme.Bearer, token))).some,
-        caCertFile = caPath.some
-      )
-    }
+      envPath(SERVICEACCOUNT_CA_PATH)
+        .flatMapF(checkExists(_))
+        .flatTapNone {
+          Logger[F].debug(s"$SERVICEACCOUNT_CA_PATH is not defined, or path does not exist")
+        },
+      env(ENV_SERVICE_HOST)
+        .mapFilter(IpAddress.fromString)
+        .map(Uri.Host.fromIpAddress)
+        .flatTapNone {
+          Logger[F].debug(s"$ENV_SERVICE_HOST is not defined, or not a valid IP address")
+        },
+      env(ENV_SERVICE_PORT)
+        .mapFilter(Port.fromString)
+        .flatTapNone {
+          Logger[F].debug(s"$ENV_SERVICE_HOST is not defined, or not a valid port number")
+        },
+      envPath(SERVICEACCOUNT_TOKEN_PATH)
+        .flatMapF(checkExists(_))
+        .flatTapNone {
+          Logger[F].debug(s"$SERVICEACCOUNT_TOKEN_PATH is not defined, or path does not exist")
+        }
+    ).tupled
+      .semiflatTap { _ =>
+        Logger[F].debug(
+          s"using the in-cluster configuration specified by $SERVICEACCOUNT_CA_PATH, $ENV_SERVICE_HOST, $ENV_SERVICE_PORT and $SERVICEACCOUNT_TOKEN_PATH"
+        )
+      }
+      .semiflatMap { case (caPath, serviceHost, servicePort, tokenPath) =>
+        of(
+          server = Uri(
+            scheme = Uri.Scheme.https.some,
+            authority = Uri.Authority(host = serviceHost, port = servicePort.value.some).some
+          ),
+          authorization =
+            Text.readFile(tokenPath).map(token => Authorization(Credentials.Token(AuthScheme.Bearer, token))).some,
+          caCertFile = caPath.some
+        )
+      }
 
   private def findHomeDir[F[_]: Logger](implicit F: Async[F]): OptionT[F, Path] =
-    envPath(ENV_HOME) // if HOME env var is set, use it
-      .flatMapF(checkExists(_))
-      .orElse {
-        // otherwise, if it's a windows machine
-        sysProp("os.name")
-          .filter(_.toLowerCase().startsWith("windows"))
-          .flatMap { _ =>
-            // if HOMEDRIVE and HOMEPATH env vars are set and the path exists, use it
-            (env(ENV_HOMEDRIVE), envPath(ENV_HOMEPATH)).tupled
-              .map { case (homeDrive, homePath) => Path(homeDrive).resolve(homePath) }
-              .flatMapF(checkExists(_))
-              .orElse {
-                // otherwise, of USERPROFILE env var is set
-                envPath(ENV_USERPROFILE).flatMapF(checkExists(_))
-              }
-          }
-      }
+    OptionT.liftF(
+      Logger[F].debug(s"finding the home directory")
+    ) >>
+      envPath(ENV_HOME) // if HOME env var is set, use it
+        .flatMapF(checkExists(_))
+        .flatTapNone(
+          Logger[F].debug(s"$ENV_HOME is not defined, or path does not exist")
+        )
+        .orElse {
+          // otherwise, if it's a windows machine
+          sysProp("os.name")
+            .filter(_.toLowerCase().startsWith("windows"))
+            .flatMap { _ =>
+              // if HOMEDRIVE and HOMEPATH env vars are set and the path exists, use it
+              (env(ENV_HOMEDRIVE), envPath(ENV_HOMEPATH)).tupled
+                .map { case (homeDrive, homePath) => Path(homeDrive).resolve(homePath) }
+                .flatMapF(checkExists(_))
+                .flatTapNone(
+                  Logger[F].debug(s"$ENV_HOMEDRIVE and/or $ENV_HOMEPATH is not defined, or path does not exist")
+                )
+                .orElse {
+                  // otherwise, of USERPROFILE env var is set
+                  envPath(ENV_USERPROFILE)
+                    .flatMapF(checkExists(_))
+                    .flatTapNone(
+                      Logger[F].debug(s"$ENV_USERPROFILE is not defined, or path does not exist")
+                    )
+                }
+            }
+        }
 
   private def sysProp[F[_]](name: String)(implicit F: Async[F]): OptionT[F, String] =
     OptionT(F.delay(Option(System.getProperty(name)).filterNot(_.isEmpty)))
