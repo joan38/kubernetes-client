@@ -188,10 +188,10 @@ object KubeConfig {
 
   private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     (
-      envPath(SERVICEACCOUNT_CA_PATH)
+      path(SERVICEACCOUNT_CA_PATH)
         .flatMapF(checkExists(_))
         .flatTapNone {
-          Logger[F].debug(s"$SERVICEACCOUNT_CA_PATH is not defined, or path does not exist")
+          Logger[F].debug(s"$SERVICEACCOUNT_CA_PATH does not exist")
         },
       env(ENV_SERVICE_HOST)
         .mapFilter(IpAddress.fromString)
@@ -204,10 +204,10 @@ object KubeConfig {
         .flatTapNone {
           Logger[F].debug(s"$ENV_SERVICE_HOST is not defined, or not a valid port number")
         },
-      envPath(SERVICEACCOUNT_TOKEN_PATH)
+      path(SERVICEACCOUNT_TOKEN_PATH)
         .flatMapF(checkExists(_))
         .flatTapNone {
-          Logger[F].debug(s"$SERVICEACCOUNT_TOKEN_PATH is not defined, or path does not exist")
+          Logger[F].debug(s"$SERVICEACCOUNT_TOKEN_PATH does not exist")
         }
     ).tupled
       .semiflatTap { _ =>
@@ -264,6 +264,9 @@ object KubeConfig {
 
   private def env[F[_]](name: String)(implicit F: Async[F]): OptionT[F, String] =
     OptionT(F.delay(Option(System.getenv(name)).filterNot(_.isEmpty)))
+
+  private def path[F[_]: Async](path: String): OptionT[F, Path] =
+    OptionT.pure[F](Path(path))
 
   private def envPath[F[_]: Async](name: String): OptionT[F, Path] =
     env(name).map(Path(_))
