@@ -73,14 +73,24 @@ object KubernetesClient {
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)
+          // if the authorization is provided directly, we try to parse it as a JWT
+          // in order to get the expiration time
           .map(AuthorizationParse(_))
           .orElse {
             OptionT
               .fromOption(config.authInfoExec)
+              // if the authorization is provided via the auth plugin, we execute the plugin
+              // and get the expiration time along the token itself from the output of the plugin
               .map(ExecToken(_))
           }
           .semiflatMap { authorization =>
-            config.authorizationCache.mapApply(authorization).getOrElse(authorization.map(_.authorization).pure)
+            config.authorizationCache
+              // if authorizationCache is provided, we "wrap" the authorization using it
+              .mapApply(authorization)
+              // otherwise, we use the authorization as is and ignore the expiration time
+              .getOrElse(
+                authorization.map(_.authorization).pure
+              )
           }
           .value
       }
