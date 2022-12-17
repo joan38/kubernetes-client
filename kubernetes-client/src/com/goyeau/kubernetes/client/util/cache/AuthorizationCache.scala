@@ -3,54 +3,70 @@ package cache
 
 import cats.effect.Async
 import cats.syntax.all.*
-import io.circe.Codec
-import io.circe.generic.semiauto.deriveCodec
-import io.circe.parser.*
-import org.http4s.{AuthScheme, Credentials}
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
 
-import java.nio.charset.StandardCharsets
-import java.time.Instant
-import java.util.Base64
-import scala.concurrent.duration.FiniteDuration
-import scala.util.Try
+import scala.concurrent.duration.*
 
-private[util] case class JwtPayload(
-    exp: Option[Long]
-)
+private[client] trait AuthorizationCache[F[_]] {
+
+  def get: F[Authorization]
+
+}
 
 object AuthorizationCache {
 
-  implicit private val jwtPayloadCodec: Codec[JwtPayload] = deriveCodec
-
-  private val base64 = Base64.getDecoder
-
   def apply[F[_]: Logger](
-      retrieve: F[Authorization],
-      refreshBeforeExpiration: FiniteDuration
-  )(implicit F: Async[F]): F[TokenCache[F]] =
-    TokenCache[F](
-      retrieve = retrieve.map { token =>
-        val expirationTimestamp =
-          token match {
-            case Authorization(Credentials.Token(AuthScheme.Bearer, token)) =>
-              token.split('.') match {
-                case Array(_, payload, _) =>
-                  Try(new String(base64.decode(payload), StandardCharsets.US_ASCII)).toOption
-                    .flatMap(payload => decode[JwtPayload](payload).toOption)
-                    .flatMap(_.exp)
-                    .map(Instant.ofEpochSecond)
+      retrieve: F[AuthorizationWithExpiration],
+      refreshBeforeExpiration: FiniteDuration = 0.seconds
+  )(implicit F: Async[F]): F[AuthorizationCache[F]] =
+    F.ref(Option.empty[AuthorizationWithExpiration]).map { cache =>
+      new AuthorizationCache[F] {
 
-                case _ =>
-                  none
+        override def get: F[Authorization] = {
+          val getAndCacheToken: F[Option[AuthorizationWithExpiration]] =
+            retrieve.attempt
+              .flatMap {
+                case Right(token) =>
+                  cache.set(token.some).as(token.some)
+                case Left(error) =>
+                  Logger[F].warn(s"failed to retrieve the authorization token: ${error.getMessage}").as(none)
               }
-            case _ => none
-          }
 
-        CachedAuthorization(expirationTimestamp = expirationTimestamp, token = token)
-      },
-      refreshBeforeExpiration = refreshBeforeExpiration
-    )
+          cache.get
+            .flatMap {
+              case Some(cached) =>
+                F.realTimeInstant
+                  .flatMap { now =>
+                    val shouldRenew =
+                      cached.expirationTimestamp.exists(_.isBefore(now.minusSeconds(refreshBeforeExpiration.toSeconds)))
+                    if (shouldRenew) {
+                      getAndCacheToken.flatMap {
+                        case Some(token) => token.pure[F]
+                        case None =>
+                          val expired = cached.expirationTimestamp.exists(_.isBefore(now))
+                          Logger[F]
+                            .debug(s"using the cached token (expired: $expired)") >>
+                            F.raiseError[AuthorizationWithExpiration](
+                              new IllegalStateException(
+                                s"failed to retrieve a new authorization token, cached token has expired"
+                              )
+                            )
+                      }
+                    } else {
+                      cached.pure[F]
+                    }
+                  }
+              case None =>
+                getAndCacheToken.flatMap[AuthorizationWithExpiration] {
+                  case Some(token) => token.pure[F]
+                  case None        => F.raiseError(new IllegalStateException(s"no authorization token"))
+                }
+            }
+            .map(_.authorization)
+        }
+
+      }
+    }
 
 }

@@ -7,7 +7,6 @@ import com.goyeau.kubernetes.client.api.ExecRouting.*
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.api.NamespacedPodsApi.ErrorOrStatus
 import com.goyeau.kubernetes.client.operation.*
-import com.goyeau.kubernetes.client.util.cache.TokenCache
 import fs2.concurrent.SignallingRef
 import fs2.io.file.{Files, Flags, Path}
 import fs2.{Chunk, Pipe, Stream}
@@ -17,6 +16,7 @@ import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s.*
 import org.http4s.client.Client
+import org.http4s.headers.Authorization
 import org.http4s.implicits.*
 import org.http4s.jdkhttpclient.*
 import org.typelevel.ci.CIString
@@ -30,7 +30,7 @@ private[client] class PodsApi[F[_]: Logger](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
-    val authCache: Option[TokenCache[F]]
+    val authorization: Option[F[Authorization]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[PodList],
@@ -41,7 +41,7 @@ private[client] class PodsApi[F[_]: Logger](
   val resourceUri: Uri = uri"/api" / "v1" / "pods"
 
   def namespace(namespace: String): NamespacedPodsApi[F] =
-    new NamespacedPodsApi(httpClient, wsClient, config, authCache, namespace)
+    new NamespacedPodsApi(httpClient, wsClient, config, authorization, namespace)
 }
 
 sealed trait ExecStream {
@@ -71,7 +71,7 @@ private[client] class NamespacedPodsApi[F[_]](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
-    val authCache: Option[TokenCache[F]],
+    val authorization: Option[F[Authorization]],
     namespace: String
 )(implicit
     val F: Async[F],
@@ -114,7 +114,7 @@ private[client] class NamespacedPodsApi[F[_]](
       .++?("command" -> commands)
 
     WSRequest(uri, method = Method.POST)
-      .withOptionalAuthorization(authCache)
+      .withOptionalAuthorization(authorization)
       .map { r =>
         r.copy(
           headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))

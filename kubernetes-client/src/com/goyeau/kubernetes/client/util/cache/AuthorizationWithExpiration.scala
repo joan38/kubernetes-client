@@ -4,7 +4,7 @@ import org.http4s.headers.Authorization
 
 import java.time.Instant
 
-private[client] case class CachedAuthorization(
+case class AuthorizationWithExpiration(
     expirationTimestamp: Option[Instant],
-    token: Authorization
+    authorization: Authorization
 )

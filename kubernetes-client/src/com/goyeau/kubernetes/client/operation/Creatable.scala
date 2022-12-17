@@ -5,13 +5,12 @@ import cats.implicits.*
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec.*
-import com.goyeau.kubernetes.client.util.cache.TokenCache
 import io.circe.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.client.UnexpectedStatus
-import org.http4s.headers.`Content-Type`
+import org.http4s.headers.{Authorization, `Content-Type`}
 import org.http4s.Method.*
 
 private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] {
@@ -19,7 +18,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   implicit protected val F: Async[F]
   protected def config: KubeConfig[F]
   protected def resourceUri: Uri
-  protected def authCache: Option[TokenCache[F]]
+  protected def authorization: Option[F[Authorization]]
   implicit protected def resourceEncoder: Encoder[Resource]
   implicit protected def resourceDecoder: Decoder[Resource]
 
@@ -32,14 +31,14 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   private def buildRequest(resource: Resource) =
     Request[F](POST, config.server.resolve(resourceUri))
       .withEntity(resource)
-      .withOptionalAuthorization(authCache)
+      .withOptionalAuthorization(authorization)
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
     def update          = httpClient.status(buildRequest(resource, fullResourceUri))
 
     httpClient
-      .status(Request[F](GET, fullResourceUri).withOptionalAuthorization(authCache))
+      .status(Request[F](GET, fullResourceUri).withOptionalAuthorization(authorization))
       .flatMap {
         case status if status.isSuccess => update
         case Status.NotFound =>
@@ -57,7 +56,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
 
     httpClient
       .expectOptionF[Resource](
-        Request[F](GET, fullResourceUri).withOptionalAuthorization(authCache)
+        Request[F](GET, fullResourceUri).withOptionalAuthorization(authorization)
       )
       .flatMap {
         case Some(_) => updateWithResource
@@ -72,5 +71,5 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
     Request[F](PATCH, fullResourceUri)
       .withEntity(resource)
       .putHeaders(`Content-Type`(MediaType.application.`merge-patch+json`))
-      .withOptionalAuthorization(authCache)
+      .withOptionalAuthorization(authorization)
 }

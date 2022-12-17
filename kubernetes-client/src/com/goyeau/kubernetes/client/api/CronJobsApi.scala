@@ -2,18 +2,18 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
-import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.util.cache.TokenCache
-import io.circe._
+import com.goyeau.kubernetes.client.operation.*
+import io.circe.*
 import io.k8s.api.batch.v1.{CronJob, CronJobList}
 import org.http4s.Uri
 import org.http4s.client.Client
-import org.http4s.implicits._
+import org.http4s.headers.Authorization
+import org.http4s.implicits.*
 
 private[client] class CronJobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val authCache: Option[TokenCache[F]]
+    val authorization: Option[F[Authorization]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[CronJobList],
@@ -24,13 +24,13 @@ private[client] class CronJobsApi[F[_]](
   val resourceUri: Uri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
 
   def namespace(namespace: String): NamespacedCronJobsApi[F] =
-    new NamespacedCronJobsApi(httpClient, config, authCache, namespace)
+    new NamespacedCronJobsApi(httpClient, config, authorization, namespace)
 }
 
 private[client] class NamespacedCronJobsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val authCache: Option[TokenCache[F]],
+    val authorization: Option[F[Authorization]],
     namespace: String
 )(implicit
     val F: Async[F],

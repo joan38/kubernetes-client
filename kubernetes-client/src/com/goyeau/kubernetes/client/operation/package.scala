@@ -3,25 +3,25 @@ package com.goyeau.kubernetes.client
 import cats.effect.Resource
 import cats.syntax.all.*
 import cats.{Applicative, FlatMap}
-import com.goyeau.kubernetes.client.util.cache.TokenCache
 import org.http4s.client.Client
+import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.WSRequest
 import org.http4s.{EntityDecoder, Request, Response}
 
 package object operation {
   implicit private[client] class KubernetesRequestOps[F[_]: Applicative](request: Request[F]) {
-    def withOptionalAuthorization(authCache: Option[TokenCache[F]]): F[Request[F]] =
-      authCache.fold(request.pure[F]) { authCache =>
-        authCache.get.map { auth =>
+    def withOptionalAuthorization(authorization: Option[F[Authorization]]): F[Request[F]] =
+      authorization.fold(request.pure[F]) { authorization =>
+        authorization.map { auth =>
           request.putHeaders(auth)
         }
       }
   }
 
   implicit private[client] class KubernetesWsRequestOps[F[_]: Applicative](request: WSRequest) {
-    def withOptionalAuthorization(authCache: Option[TokenCache[F]]): F[WSRequest] =
-      authCache.fold(request.pure[F]) { authCache =>
-        authCache.get.map { auth =>
+    def withOptionalAuthorization(authorization: Option[F[Authorization]]): F[WSRequest] =
+      authorization.fold(request.pure[F]) { authorization =>
+        authorization.map { auth =>
           request.copy(headers = request.headers.put(auth))
         }
       }

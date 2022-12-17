@@ -5,6 +5,7 @@ import cats.data.{NonEmptyList, OptionT}
 import cats.effect.Async
 import cats.syntax.all.*
 import com.comcast.ip4s.{IpAddress, Port}
+import com.goyeau.kubernetes.client.util.cache.{AuthorizationWithExpiration, AuthorizationCache}
 import com.goyeau.kubernetes.client.util.{AuthInfoExec, Text, Yamls}
 import fs2.io.file.{Files, Path}
 import org.http4s.headers.Authorization
@@ -24,11 +25,27 @@ case class KubeConfig[F[_]] private (
     clientKeyFile: Option[Path],
     clientKeyPass: Option[String],
     authInfoExec: Option[AuthInfoExec],
-    refreshTokenBeforeExpiration: FiniteDuration
+    authorizationCache: Option[F[AuthorizationWithExpiration] => F[F[Authorization]]]
 ) {
 
-  def withRefreshTokenBeforeExpiration(refreshTokenBeforeExpiration: FiniteDuration): KubeConfig[F] =
-    this.copy(refreshTokenBeforeExpiration = refreshTokenBeforeExpiration)
+  def withAuthorizationCache(
+      authorizationCache: F[AuthorizationWithExpiration] => F[F[Authorization]]
+  ): KubeConfig[F] =
+    this.copy(authorizationCache = authorizationCache.some)
+
+  def withoutAuthorizationCache: KubeConfig[F] =
+    this.copy(authorizationCache = none)
+
+  def withDefaultAuthorizationCache(
+      refreshTokenBeforeExpiration: FiniteDuration = 5.minutes
+  )(implicit F: Async[F], L: Logger[F]): KubeConfig[F] = {
+    val addCache: F[AuthorizationWithExpiration] => F[F[Authorization]] =
+      retrieve => AuthorizationCache(retrieve, refreshTokenBeforeExpiration).map(_.get)
+
+    this.copy(
+      authorizationCache = addCache.some
+    )
+  }
 
 }
 
@@ -121,8 +138,7 @@ object KubeConfig {
       clientKeyData: Option[String] = None,
       clientKeyFile: Option[Path] = None,
       clientKeyPass: Option[String] = None,
-      authInfoExec: Option[AuthInfoExec] = None,
-      refreshTokenBeforeExpiration: FiniteDuration = 1.minute
+      authInfoExec: Option[AuthInfoExec] = None
   ): F[KubeConfig[F]] = {
     val configOrError =
       List(
@@ -154,7 +170,7 @@ object KubeConfig {
             clientKeyFile = clientKeyFile,
             clientKeyPass = clientKeyPass,
             authInfoExec = authInfoExec,
-            refreshTokenBeforeExpiration = refreshTokenBeforeExpiration
+            authorizationCache = none
           )
         }
 
