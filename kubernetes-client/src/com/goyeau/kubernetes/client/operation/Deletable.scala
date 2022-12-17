@@ -7,7 +7,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 import org.http4s.*
 import org.http4s.Method.*
 import org.http4s.client.Client
-import org.http4s.headers.{Authorization, `Content-Type`}
+import org.http4s.headers.{`Content-Type`, Authorization}
 
 private[client] trait Deletable[F[_]] {
   protected def httpClient: Client[F]

@@ -5,7 +5,7 @@ import cats.data.{NonEmptyList, OptionT}
 import cats.effect.Async
 import cats.syntax.all.*
 import com.comcast.ip4s.{IpAddress, Port}
-import com.goyeau.kubernetes.client.util.cache.{AuthorizationWithExpiration, AuthorizationCache}
+import com.goyeau.kubernetes.client.util.cache.{AuthorizationCache, AuthorizationWithExpiration}
 import com.goyeau.kubernetes.client.util.{AuthInfoExec, Text, Yamls}
 import fs2.io.file.{Files, Path}
 import org.http4s.headers.Authorization

@@ -10,7 +10,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.client.UnexpectedStatus
-import org.http4s.headers.{Authorization, `Content-Type`}
+import org.http4s.headers.{`Content-Type`, Authorization}
 import org.http4s.Method.*
 
 private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectMeta] }] {
