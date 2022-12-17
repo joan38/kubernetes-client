@@ -19,6 +19,39 @@ or
 ## Usage
 
 ### Client configuration example
+
+#### Standard configuration "chain"
+
+```scala
+import cats.effect.IO
+import com.goyeau.kubernetes.client.*
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+
+implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
+val kubernetesClient =
+  KubernetesClient[IO](
+    KubeConfig.standard[IO]
+  )
+```
+
+The `standard` configuration mimics the way `ClientBuilder.standard` from the official Java k8s client works:
+
+* if KUBECONFIG env variable is set, and the file exists - it will be used; the 'current-context' specified in the file
+  will be used
+* otherwise, if ~/.kube/config file exists - it will be used; the 'current-context' specified in the file will be used
+* otherwise, if cluster configuration is found - use it
+
+Cluster configuration is defined by:
+
+- `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` certificate file
+- `/var/run/secrets/kubernetes.io/serviceaccount/token` token file
+- `KUBERNETES_SERVICE_HOST` env variable (https protocol is assumed)
+- `KUBERNETES_SERVICE_PORT` env variable
+
+#### Manually providing the configuration
+
 ```scala
 import cats.effect.IO
 import com.goyeau.kubernetes.client.*
