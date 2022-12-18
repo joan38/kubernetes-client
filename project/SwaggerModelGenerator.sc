@@ -152,7 +152,7 @@ object SwaggerModelGenerator {
         val classPath =
           if (required.contains(name)) generateType(property)
           else s"Option[${generateType(property)}] = None"
-        s"""$description\n$escapedName: $classPath"""
+        s"""$escapedName: $classPath"""
       }
       .mkString(",\n")
 

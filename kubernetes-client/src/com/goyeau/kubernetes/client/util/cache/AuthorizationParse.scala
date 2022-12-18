@@ -25,7 +25,7 @@ object AuthorizationParse {
 
   private val base64 = Base64.getDecoder
 
-  def apply[F[_]: Logger](retrieve: F[Authorization])(implicit F: Async[F]): F[AuthorizationWithExpiration] =
+  def apply[F[_]](retrieve: F[Authorization])(implicit F: Async[F]): F[AuthorizationWithExpiration] =
     retrieve.map { token =>
       val expirationTimestamp =
         token match {
