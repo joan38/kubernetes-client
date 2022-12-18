@@ -183,8 +183,8 @@ object KubeConfig {
       .flatTapNone {
         Logger[F].debug(s"$ENV_KUBECONFIG is not defined, or path does not exist")
       }
-      .semiflatTap { _ =>
-        Logger[F].debug(s"using configuration specified in $ENV_KUBECONFIG")
+      .semiflatTap { path =>
+        Logger[F].debug(s"using configuration specified by $ENV_KUBECONFIG=$path")
       }
       .semiflatMap(fromFile(_))
 
@@ -197,13 +197,18 @@ object KubeConfig {
       .flatTapNone {
         Logger[F].debug(s"~/$KUBEDIR/$KUBECONFIG does not exist")
       }
-      .semiflatTap { _ =>
-        Logger[F].debug(s"using configuration specified in ~/$KUBEDIR/$KUBECONFIG")
+      .semiflatTap { path =>
+        Logger[F].debug(s"using configuration specified in $path")
       }
       .semiflatMap(path => contextName.fold(fromFile(path))(fromFile(path, _)))
 
   private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     (
+      path(SERVICEACCOUNT_TOKEN_PATH)
+        .flatMapF(checkExists(_))
+        .flatTapNone {
+          Logger[F].debug(s"$SERVICEACCOUNT_TOKEN_PATH does not exist")
+        },
       path(SERVICEACCOUNT_CA_PATH)
         .flatMapF(checkExists(_))
         .flatTapNone {
@@ -219,19 +224,14 @@ object KubeConfig {
         .mapFilter(Port.fromString)
         .flatTapNone {
           Logger[F].debug(s"$ENV_SERVICE_HOST is not defined, or not a valid port number")
-        },
-      path(SERVICEACCOUNT_TOKEN_PATH)
-        .flatMapF(checkExists(_))
-        .flatTapNone {
-          Logger[F].debug(s"$SERVICEACCOUNT_TOKEN_PATH does not exist")
         }
     ).tupled
-      .semiflatTap { _ =>
+      .semiflatTap { case (tokenPath, caPath, serviceHost, servicePort) =>
         Logger[F].debug(
-          s"using the in-cluster configuration specified by $SERVICEACCOUNT_CA_PATH, $ENV_SERVICE_HOST, $ENV_SERVICE_PORT and $SERVICEACCOUNT_TOKEN_PATH"
+          s"using the in-cluster configuration: $ENV_SERVICE_HOST=$serviceHost, $ENV_SERVICE_PORT=$servicePort, and $SERVICEACCOUNT_TOKEN_PATH=$tokenPath, $SERVICEACCOUNT_CA_PATH=$caPath"
         )
       }
-      .semiflatMap { case (caPath, serviceHost, servicePort, tokenPath) =>
+      .semiflatMap { case (tokenPath, caPath, serviceHost, servicePort) =>
         of(
           server = Uri(
             scheme = Uri.Scheme.https.some,
@@ -262,7 +262,7 @@ object KubeConfig {
                 .map { case (homeDrive, homePath) => Path(homeDrive).resolve(homePath) }
                 .flatMapF(checkExists(_))
                 .flatTapNone(
-                  Logger[F].debug(s"$ENV_HOMEDRIVE and/or $ENV_HOMEPATH is not defined, or path does not exist")
+                  Logger[F].debug(s"$ENV_HOMEDRIVE and/or $ENV_HOMEPATH is/are not defined, or path does not exist")
                 )
                 .orElse {
                   // otherwise, of USERPROFILE env var is set
