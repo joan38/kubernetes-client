@@ -46,7 +46,8 @@ trait DeletableTerminatedTests[F[
       for {
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
         status        <- deleteTerminated(namespaceName, "non-existing")
-        _ = assertEquals(status, Status.NotFound)
+        //  returns Ok status since Kubernetes 1.23.x, earlier versions return NotFound
+        _ = assert(Set(Status.NotFound, Status.Ok).contains(status))
       } yield ()
     }
   }

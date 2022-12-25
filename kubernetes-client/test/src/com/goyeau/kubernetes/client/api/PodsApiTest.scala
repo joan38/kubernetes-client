@@ -114,7 +114,7 @@ class PodsApiTest
       .use { implicit client =>
         for {
           status <- namespacedApi(defaultNamespace).create(testPod(podName))
-          _ = assertEquals(status, Status.Created)
+          _ = assertEquals(status, Status.Created, status.sanitizedReason)
           pod <- waitUntilReady(defaultNamespace, podName)
           res <- namespacedApi(defaultNamespace).download(
             pod.metadata.get.name.get,
@@ -199,7 +199,7 @@ class PodsApiTest
       .use { implicit client =>
         for {
           status <- namespacedApi(defaultNamespace).create(testPod(podName))
-          _ = assertEquals(status, Status.Created)
+          _ = assertEquals(status, Status.Created, status.sanitizedReason)
           pod        <- waitUntilReady(defaultNamespace, podName)
           sourcePath <- tempFile
           _          <- writeTempFile(sourcePath)

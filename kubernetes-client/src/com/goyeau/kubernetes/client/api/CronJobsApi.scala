@@ -21,7 +21,7 @@ private[client] class CronJobsApi[F[_]](
     encoder: Encoder[CronJob]
 ) extends Listable[F, CronJobList]
     with Watchable[F, CronJob] {
-  val resourceUri: Uri = uri"/apis" / "batch" / "v1beta1" / "cronjobs"
+  val resourceUri: Uri = uri"/apis" / "batch" / "v1" / "cronjobs"
 
   def namespace(namespace: String): NamespacedCronJobsApi[F] =
     new NamespacedCronJobsApi(httpClient, config, authorization, namespace)
@@ -45,5 +45,6 @@ private[client] class NamespacedCronJobsApi[F[_]](
     with DeletableTerminated[F]
     with GroupDeletable[F]
     with Watchable[F, CronJob] {
-  val resourceUri: Uri = uri"/apis" / "batch" / "v1beta1" / "namespaces" / namespace / "cronjobs"
+  val resourceUri: Uri =
+    uri"/apis" / "batch" / "v1" / "namespaces" / namespace / "cronjobs"
 }

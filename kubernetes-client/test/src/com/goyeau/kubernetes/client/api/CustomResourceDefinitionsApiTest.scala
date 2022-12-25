@@ -54,7 +54,7 @@ class CustomResourceDefinitionsApiTest
     CustomResourceDefinitionsApiTest.getChecked(resourceName)
 
   def sampleResource(resourceName: String, labels: Map[String, String]): CustomResourceDefinition =
-    CustomResourceDefinitionsApiTest.crd(resourceName, labels)
+    CustomResourceDefinitionsApiTest.crd(resourceName, labels ++ CustomResourceDefinitionsApiTest.crdLabel)
 
   def modifyResource(resource: CustomResourceDefinition): CustomResourceDefinition =
     resource.copy(spec = resource.spec.copy(versions = Seq(versions.copy(served = false))))
@@ -63,9 +63,14 @@ class CustomResourceDefinitionsApiTest
     assertEquals(updatedResource.spec.versions.headOption, versions.copy(served = false).some)
 
   override def afterAll(): Unit = {
+    usingMinikube { client =>
+      for {
+        status <- client.customResourceDefinitions.deleteAll(crdLabel)
+        _ = assertEquals(status, Status.Ok, status.sanitizedReason)
+        _ <- logger.info(s"All CRD with label '$crdLabel' are deleted.")
+      } yield ()
+    }
     super.afterAll()
-    val status = usingMinikube(_.customResourceDefinitions.deleteAll(crdLabel))
-    assertEquals(status, Status.Ok)
   }
 
   override def namespacedApi(namespaceName: String)(implicit
@@ -114,8 +119,10 @@ object CustomResourceDefinitionsApiTest {
   val crdLabel = Map("test" -> "kubernetes-client")
   val group    = "kubernetes.client.goyeau.com"
 
-  def plural(resourceName: String): String  = s"${resourceName.toLowerCase}s"
+  def plural(resourceName: String): String = s"${resourceName.toLowerCase}s"
+
   def crdName(resourceName: String): String = s"${plural(resourceName)}.$group"
+
   def crd(resourceName: String, labels: Map[String, String]): CustomResourceDefinition = CustomResourceDefinition(
     spec = CustomResourceDefinitionSpec(
       group = group,
@@ -129,17 +136,19 @@ object CustomResourceDefinitionsApiTest {
     apiVersion = "apiextensions.k8s.io/v1".some,
     metadata = ObjectMeta(
       name = crdName(resourceName).some,
-      labels = (labels ++ crdLabel).some
+      labels = labels.some
     ).some
   )
 
   def createChecked[F[_]: Async](
-      resourceName: String
+      resourceName: String,
+      labels: Map[String, String]
   )(implicit client: KubernetesClient[F]): F[CustomResourceDefinition] =
     for {
-      status <- client.customResourceDefinitions.create(crd(resourceName, Map.empty))
-      _ = assertEquals(status, Status.Created)
+      status <- client.customResourceDefinitions.create(crd(resourceName, labels))
+      _ = assertEquals(status, Status.Created, status.sanitizedReason)
       crd <- getChecked(resourceName)
+      _   <- Sync[F].delay(println(s"CRD '$resourceName' created, labels: $labels"))
     } yield crd
 
   def getChecked[F[_]: Async](

@@ -6,7 +6,8 @@ import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
-import scala.language.reflectiveCalls
+
+import scala.language.{higherKinds, reflectiveCalls}
 
 trait ListableTests[F[
     _
@@ -15,6 +16,10 @@ trait ListableTests[F[
     with MinikubeClientProvider[F] {
 
   val resourceIsNamespaced = true
+  val namespaceResourceNames =
+    (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i-list", s"list-all-${resourceName.toLowerCase}-$i")).toSet
+
+  override protected val extraNamespace = namespaceResourceNames.map(_._1).toList
 
   def api(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
   def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
@@ -43,7 +48,11 @@ trait ListableTests[F[
   ): F[ResourceList] =
     for {
       resourceList <- namespacedApi(namespaceName).list(labels)
-      _ = assert(resourceList.items.flatMap(_.metadata.flatMap(_.name)).forall(!resourceNames.contains(_)))
+      names = resourceList.items.flatMap(_.metadata.flatMap(_.name))
+      _ = assert(
+        names.forall(!resourceNames.contains(_)),
+        s"Actual names: $names, not expected names: $resourceNames, in namespace: $namespaceName, with labels: $labels"
+      )
     } yield resourceList
 
   test(s"list ${resourceName}s") {
@@ -77,11 +86,13 @@ trait ListableTests[F[
     usingMinikube { implicit client =>
       assume(resourceIsNamespaced)
       for {
-        namespaceResourceNames <- Applicative[F].pure(
-          (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i", s"list-all-${resourceName.toLowerCase}-$i")).toSet
-        )
         _ <- namespaceResourceNames.toList.traverse { case (namespaceName, resourceName) =>
-          NamespacesApiTest.createChecked[F](namespaceName) *> createChecked(namespaceName, resourceName)
+          client.namespaces.deleteTerminated(namespaceName) *> NamespacesApiTest.createChecked[F](
+            namespaceName
+          ) *> createChecked(
+            namespaceName,
+            resourceName
+          )
         }
         _ <- listAllContains(namespaceResourceNames.map(_._2))
         _ <- namespaceResourceNames.toList.traverse { case (namespaceName, _) =>

@@ -2,6 +2,7 @@ package com.goyeau.kubernetes.client.operation
 
 import cats.effect.*
 import cats.implicits.*
+import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
 import fs2.io.file.Path
@@ -28,22 +29,31 @@ trait MinikubeClientProvider[F[_]] {
 
   def defaultNamespace: String = resourceName.toLowerCase
 
-  protected val extraNamespace = Option.empty[String]
+  protected val extraNamespace = List.empty[String]
 
   protected def createNamespace(namespace: String): F[Unit] = kubernetesClient.use { implicit client =>
-    client.namespaces.deleteTerminated(namespace) *>
+    client.namespaces.deleteTerminated(namespace) *> retry(
       NamespacesApiTest.createChecked[F](namespace)
+    )
   }.void
 
   private def deleteNamespace(namespace: String) = kubernetesClient.use { client =>
     client.namespaces.delete(namespace)
   }.void
 
-  override def beforeAll(): Unit =
-    (defaultNamespace +: extraNamespace.toList).foreach(name => unsafeRunSync(createNamespace(name)))
+  protected def createNamespaces() = {
+    val ns = defaultNamespace +: extraNamespace.toList
+    ns.foreach(name => unsafeRunSync(createNamespace(name)))
+  }
 
-  override def afterAll(): Unit =
-    (defaultNamespace +: extraNamespace.toList).foreach(name => unsafeRunSync(deleteNamespace(name)))
+  override def beforeAll(): Unit =
+    createNamespaces()
+
+  override def afterAll(): Unit = {
+    val ns = defaultNamespace +: extraNamespace.toList
+    println(s"Deleting namespaces: $ns")
+    ns.foreach(name => unsafeRunSync(deleteNamespace(name)))
+  }
 
   def usingMinikube[T](body: KubernetesClient[F] => F[T]): T =
     unsafeRunSync(kubernetesClient.use(body))
