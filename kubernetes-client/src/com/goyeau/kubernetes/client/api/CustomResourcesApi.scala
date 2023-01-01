@@ -14,7 +14,7 @@ import org.http4s.{Request, Status, Uri}
 
 private[client] class CustomResourcesApi[F[_], A, B](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]],
     val context: CrdContext
 )(implicit
@@ -33,7 +33,7 @@ private[client] class CustomResourcesApi[F[_], A, B](
 
 private[client] class NamespacedCustomResourcesApi[F[_], A, B](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]],
     val context: CrdContext,
     namespace: String

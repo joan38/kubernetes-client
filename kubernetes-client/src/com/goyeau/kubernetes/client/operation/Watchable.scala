@@ -17,7 +17,7 @@ import org.typelevel.jawn.Facade
 private[client] trait Watchable[F[_], Resource] {
   protected def httpClient: Client[F]
   implicit protected val F: Async[F]
-  protected def config: KubeConfig
+  protected def config: KubeConfig[F]
   protected def cachedExecToken: Option[CachedExecToken[F]]
   protected def resourceUri: Uri
   protected def watchResourceUri: Uri = resourceUri

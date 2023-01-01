@@ -14,7 +14,7 @@ import java.util.Base64
 
 private[client] class SecretsApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]]
 )(implicit
     val F: Async[F],
@@ -30,7 +30,7 @@ private[client] class SecretsApi[F[_]](
 
 private[client] class NamespacedSecretsApi[F[_]](
     val httpClient: Client[F],
-    val config: KubeConfig,
+    val config: KubeConfig[F],
     val cachedExecToken: Option[CachedExecToken[F]],
     namespace: String
 )(implicit

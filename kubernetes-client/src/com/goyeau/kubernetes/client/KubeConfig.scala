@@ -2,15 +2,16 @@ package com.goyeau.kubernetes.client
 
 import java.io.File
 import cats.ApplicativeThrow
+import cats.data.OptionT
 import cats.effect.Sync
 import com.goyeau.kubernetes.client.util.{AuthInfoExec, Yamls}
 import org.typelevel.log4cats.Logger
 import org.http4s.Uri
 import org.http4s.headers.Authorization
 
-case class KubeConfig private (
+case class KubeConfig[F[_]] private (
     server: Uri,
-    authorization: Option[Authorization],
+    authorization: Option[F[Authorization]],
     caCertData: Option[String],
     caCertFile: Option[File],
     clientCertData: Option[String],
@@ -24,18 +25,18 @@ case class KubeConfig private (
 object KubeConfig {
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig]    = fromFile(kubeconfig)
-  def fromFile[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig] = Yamls.fromKubeConfigFile(kubeconfig, None)
+  def apply[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig[F]]    = fromFile(kubeconfig)
+  def fromFile[F[_]: Sync: Logger](kubeconfig: File): F[KubeConfig[F]] = Yamls.fromKubeConfigFile(kubeconfig, None)
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig] =
+  def apply[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig[F]] =
     fromFile(kubeconfig, contextName)
-  def fromFile[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig] =
+  def fromFile[F[_]: Sync: Logger](kubeconfig: File, contextName: String): F[KubeConfig[F]] =
     Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 
   def of[F[_]: ApplicativeThrow](
       server: Uri,
-      authorization: Option[Authorization] = None,
+      authorization: Option[F[Authorization]] = None,
       caCertData: Option[String] = None,
       caCertFile: Option[File] = None,
       clientCertData: Option[String] = None,
@@ -44,7 +45,7 @@ object KubeConfig {
       clientKeyFile: Option[File] = None,
       clientKeyPass: Option[String] = None,
       authInfoExec: Option[AuthInfoExec] = None
-  ): F[KubeConfig] = {
+  ): F[KubeConfig[F]] = {
     val configOrError = for {
       _ <- Either.cond(
         caCertData.isEmpty || caCertFile.isEmpty,
