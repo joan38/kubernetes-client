@@ -51,18 +51,18 @@ case class KubeConfig[F[_]] private (
 
 object KubeConfig {
 
-  private val ENV_KUBECONFIG            = "KUBECONFIG"
-  private val ENV_HOME                  = "HOME"
-  private val ENV_HOMEDRIVE             = "HOMEDRIVE"
-  private val ENV_HOMEPATH              = "HOMEPATH"
-  private val ENV_USERPROFILE           = "USERPROFILE"
-  private val KUBEDIR                   = ".kube"
-  private val KUBECONFIG                = "config"
-  private val SERVICEACCOUNT_ROOT       = "/var/run/secrets/kubernetes.io/serviceaccount"
-  private val SERVICEACCOUNT_CA_PATH    = SERVICEACCOUNT_ROOT + "/ca.crt"
-  private val SERVICEACCOUNT_TOKEN_PATH = SERVICEACCOUNT_ROOT + "/token"
-  private val ENV_SERVICE_HOST          = "KUBERNETES_SERVICE_HOST"
-  private val ENV_SERVICE_PORT          = "KUBERNETES_SERVICE_PORT"
+  private val EnvKubeConfig           = "KUBECONFIG"
+  private val EnvHome                 = "HOME"
+  private val EnvHomeDrive            = "HOMEDRIVE"
+  private val EnvHomePath             = "HOMEPATH"
+  private val EnvUserProfile          = "USERPROFILE"
+  private val KubeConfigDir           = ".kube"
+  private val KubeConfigFile          = "config"
+  private val ServiceAccountRoot      = "/var/run/secrets/kubernetes.io/serviceaccount"
+  private val ServiceAccountCAPath    = ServiceAccountRoot + "/ca.crt"
+  private val ServiceAccountTokenPath = ServiceAccountRoot + "/token"
+  private val EnvServiceHost          = "KUBERNETES_SERVICE_HOST"
+  private val EnvServicePort          = "KUBERNETES_SERVICE_PORT"
 
   /** Will try to find a k8s configuration in the following order:
     *
@@ -178,13 +178,13 @@ object KubeConfig {
   }
 
   private def findFromEnv[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
-    envPath[F](ENV_KUBECONFIG)
+    envPath[F](EnvKubeConfig)
       .flatMapF(checkExists(_))
       .flatTapNone {
-        Logger[F].debug(s"$ENV_KUBECONFIG is not defined, or path does not exist")
+        Logger[F].debug(s"$EnvKubeConfig is not defined, or path does not exist")
       }
       .semiflatTap { path =>
-        Logger[F].debug(s"using configuration specified by $ENV_KUBECONFIG=$path")
+        Logger[F].debug(s"using configuration specified by $EnvKubeConfig=$path")
       }
       .semiflatMap(fromFile(_))
 
@@ -192,10 +192,10 @@ object KubeConfig {
       contextName: Option[String]
   )(implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     findHomeDir
-      .map(homeDir => homeDir.resolve(KUBEDIR).resolve(KUBECONFIG))
+      .map(homeDir => homeDir.resolve(KubeConfigDir).resolve(KubeConfigFile))
       .flatMapF(checkExists(_))
       .flatTapNone {
-        Logger[F].debug(s"~/$KUBEDIR/$KUBECONFIG does not exist")
+        Logger[F].debug(s"~/$KubeConfigDir/$KubeConfigFile does not exist")
       }
       .semiflatTap { path =>
         Logger[F].debug(s"using configuration specified in $path")
@@ -204,31 +204,31 @@ object KubeConfig {
 
   private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     (
-      path(SERVICEACCOUNT_TOKEN_PATH)
+      path(ServiceAccountTokenPath)
         .flatMapF(checkExists(_))
         .flatTapNone {
-          Logger[F].debug(s"$SERVICEACCOUNT_TOKEN_PATH does not exist")
+          Logger[F].debug(s"$ServiceAccountTokenPath does not exist")
         },
-      path(SERVICEACCOUNT_CA_PATH)
+      path(ServiceAccountCAPath)
         .flatMapF(checkExists(_))
         .flatTapNone {
-          Logger[F].debug(s"$SERVICEACCOUNT_CA_PATH does not exist")
+          Logger[F].debug(s"$ServiceAccountCAPath does not exist")
         },
-      env(ENV_SERVICE_HOST)
+      env(EnvServiceHost)
         .mapFilter(IpAddress.fromString)
         .map(Uri.Host.fromIpAddress)
         .flatTapNone {
-          Logger[F].debug(s"$ENV_SERVICE_HOST is not defined, or not a valid IP address")
+          Logger[F].debug(s"$EnvServiceHost is not defined, or not a valid IP address")
         },
-      env(ENV_SERVICE_PORT)
+      env(EnvServicePort)
         .mapFilter(Port.fromString)
         .flatTapNone {
-          Logger[F].debug(s"$ENV_SERVICE_HOST is not defined, or not a valid port number")
+          Logger[F].debug(s"$EnvServicePort is not defined, or not a valid port number")
         }
     ).tupled
       .semiflatTap { case (tokenPath, caPath, serviceHost, servicePort) =>
         Logger[F].debug(
-          s"using the in-cluster configuration: $ENV_SERVICE_HOST=$serviceHost, $ENV_SERVICE_PORT=$servicePort, and $SERVICEACCOUNT_TOKEN_PATH=$tokenPath, $SERVICEACCOUNT_CA_PATH=$caPath"
+          s"using the in-cluster configuration: $EnvServiceHost=$serviceHost, $EnvServicePort=$servicePort, $ServiceAccountTokenPath=$tokenPath, $ServiceAccountCAPath=$caPath"
         )
       }
       .semiflatMap { case (tokenPath, caPath, serviceHost, servicePort) =>
@@ -247,10 +247,10 @@ object KubeConfig {
     OptionT.liftF(
       Logger[F].debug(s"finding the home directory")
     ) >>
-      envPath(ENV_HOME) // if HOME env var is set, use it
+      envPath(EnvHome) // if HOME env var is set, use it
         .flatMapF(checkExists(_))
         .flatTapNone(
-          Logger[F].debug(s"$ENV_HOME is not defined, or path does not exist")
+          Logger[F].debug(s"$EnvHome is not defined, or path does not exist")
         )
         .orElse {
           // otherwise, if it's a windows machine
@@ -258,18 +258,18 @@ object KubeConfig {
             .filter(_.toLowerCase().startsWith("windows"))
             .flatMap { _ =>
               // if HOMEDRIVE and HOMEPATH env vars are set and the path exists, use it
-              (env(ENV_HOMEDRIVE), envPath(ENV_HOMEPATH)).tupled
+              (env(EnvHomeDrive), envPath(EnvHomePath)).tupled
                 .map { case (homeDrive, homePath) => Path(homeDrive).resolve(homePath) }
                 .flatMapF(checkExists(_))
                 .flatTapNone(
-                  Logger[F].debug(s"$ENV_HOMEDRIVE and/or $ENV_HOMEPATH is/are not defined, or path does not exist")
+                  Logger[F].debug(s"$EnvHomeDrive and/or $EnvHomePath is/are not defined, or path does not exist")
                 )
                 .orElse {
                   // otherwise, of USERPROFILE env var is set
-                  envPath(ENV_USERPROFILE)
+                  envPath(EnvUserProfile)
                     .flatMapF(checkExists(_))
                     .flatTapNone(
-                      Logger[F].debug(s"$ENV_USERPROFILE is not defined, or path does not exist")
+                      Logger[F].debug(s"$EnvUserProfile is not defined, or path does not exist")
                     )
                 }
             }
