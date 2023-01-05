@@ -8,7 +8,6 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.*
 import org.http4s.{AuthScheme, Credentials}
 import org.http4s.headers.Authorization
-import org.typelevel.log4cats.Logger
 
 import java.nio.charset.StandardCharsets
 import java.time.Instant
