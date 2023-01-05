@@ -93,21 +93,26 @@ object SwaggerModelGenerator {
 
     val generatedClass = definitionJson.as[Definition].fold(throw _, identity) match {
       case Definition(desc, required, properties, Some("object"), _) =>
-        val description = generateDescription(desc)
-        val attributes  = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
-        val caseClass = s"""import io.circe.*
-                           |import io.circe.generic.semiauto.*
-                           |
-                           |case class $className(
-                           |  ${attributes.replace("\n", "\n  ")}
-                           |)
-                           |
-                           |object $className {
-                           |  implicit lazy val encoder: Encoder.AsObject[$className] = deriveEncoder
-                           |  implicit lazy val decoder: Decoder[$className] = deriveDecoder
-                           |}
-                           |""".stripMargin
-        s"$description$caseClass"
+        val description   = generateScalaDocDescription(desc)
+        val attributes    = generateAttributes(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
+        val scalaDocLines = generateScalaDocLines(properties.toSeq.flatten.sortBy(_._1), required.toSeq.flatten)
+        val scalaDoc      = scalaDocLines.mkString(" *  ", "\n *  ", "")
+        s"""import io.circe.*
+           |import io.circe.generic.semiauto.*
+           |
+           |/** $description
+           | *
+           |$scalaDoc
+           |*/
+           |case class $className(
+           |  ${attributes.replace("\n", "\n  ")}
+           |)
+           |
+           |object $className {
+           |  implicit lazy val encoder: Encoder.AsObject[$className] = deriveEncoder
+           |  implicit lazy val decoder: Decoder[$className] = deriveDecoder
+           |}
+           |""".stripMargin
 
       case Definition(_, None, None, Some(t), _) =>
         val scalaType = swaggerToScalaType(t)
@@ -141,14 +146,67 @@ object SwaggerModelGenerator {
         else Int.MaxValue
       }
       .map { case (name, property) =>
-        val description = generateDescription(property.description)
+        val description =
+          generateDescription(property.description).split("\n").map(_.trim).filterNot(_.isEmpty).mkString("\n")
         val escapedName = escapeAttributeName(name)
         val classPath =
           if (required.contains(name)) generateType(property)
           else s"Option[${generateType(property)}] = None"
-        s"""$description$escapedName: $classPath"""
+        s"""$escapedName: $classPath"""
       }
       .mkString(",\n")
+
+  def maxLength(s: String, maxLenFirst: Int, maxLenRest: Int): List[String] = {
+    var work  = s
+    val lines = scala.collection.mutable.ListBuffer.empty[String]
+    while (work.nonEmpty) {
+      val maxLen = if (lines.isEmpty) maxLenFirst else maxLenRest
+      if (work.length <= maxLen) {
+        lines.append(work)
+        work = ""
+      } else {
+        (2 to 20).flatMap { lookBehind =>
+          Seq(' ', ',', '.', ';')
+            .flatMap { c =>
+              val idx = work.indexOf(c, maxLen - lookBehind)
+              Option.when(
+                idx != -1 && (c.isWhitespace || idx == work.length - 1 || work(idx + 1).isWhitespace)
+              )(idx)
+            }
+        }.headOption match {
+          case Some(cutAt) =>
+            lines.append(work.substring(0, cutAt).trim)
+            work = work.substring(cutAt + 1).trim
+          case None =>
+            lines.append(work)
+            work = ""
+        }
+      }
+    }
+    lines.toList
+  }
+
+  def generateScalaDocLines(properties: Iterable[(String, Property)], required: Seq[String]): Seq[String] = {
+    val longestName = properties.map(_._1).map(escapeAttributeName).map(_.length).maxOption.getOrElse(0)
+    properties.toSeq
+      .sortBy { case (name, _) =>
+        if (required.contains(name)) required.indexOf(name)
+        else Int.MaxValue
+      }
+      .flatMap { case (name, property) =>
+        val description = generateScalaDocDescription(property.description)
+        val escapedName = escapeAttributeName(name).reverse.padTo(longestName, ' ').reverse
+        val prefix      = s"@param $escapedName "
+        val lines = s"""$prefix $description"""
+          .split('\n')
+          .toSeq
+          .map(_.trim)
+          .filterNot(_.isEmpty)
+          .zipWithIndex
+          .flatMap { case (l, idx) => maxLength(l, if (idx == 0) 120 else 120 - prefix.length, 120 - prefix.length) }
+        lines.take(1) ++ lines.drop(1).map(l => " " * (prefix.length + 1) + l)
+      }
+  }
 
   def escapeAttributeName(name: String): String =
     if (name.contains("x-")) s"`$name`"
@@ -161,6 +219,9 @@ object SwaggerModelGenerator {
 
   def generateDescription(description: Option[String]): String =
     description.fold("")(d => s"/* ${d.replace("*/", "*&#47;").replace("/*", "&#47;*")} */\n")
+
+  def generateScalaDocDescription(description: Option[String]): String =
+    description.fold("")(d => s"${d.replace("*/", "*&#47;").replace("/*", "&#47;*")}")
 
   def generateType(property: Property): String =
     (property.`type`, property.$ref) match {
