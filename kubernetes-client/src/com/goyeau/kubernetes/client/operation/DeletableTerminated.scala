@@ -1,10 +1,10 @@
 package com.goyeau.kubernetes.client.operation
 
-import scala.concurrent.duration._
-import cats.implicits.{catsSyntaxApply, toFlatMapOps}
+import cats.syntax.all.*
+import scala.concurrent.duration.*
 import cats.effect.Temporal
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
-import org.http4s._
+import org.http4s.*
 
 private[client] trait DeletableTerminated[F[_]] { this: Deletable[F] =>
 

@@ -4,10 +4,9 @@ import cats.effect.*
 import cats.implicits.*
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
+import fs2.io.file.Path
 import munit.Suite
 import org.typelevel.log4cats.Logger
-
-import java.io.File
 
 trait MinikubeClientProvider[F[_]] {
   this: Suite =>
@@ -19,7 +18,7 @@ trait MinikubeClientProvider[F[_]] {
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
     val kubeConfig = KubeConfig.fromFile[F](
-      new File(s"${System.getProperty("user.home")}/.kube/config"),
+      Path(s"${System.getProperty("user.home")}/.kube/config"),
       sys.env.getOrElse("KUBE_CONTEXT_NAME", "minikube")
     )
     KubernetesClient(kubeConfig)

@@ -2,18 +2,18 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
-import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.util.CachedExecToken
-import io.circe._
+import com.goyeau.kubernetes.client.operation.*
+import io.circe.*
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
 import org.http4s.Uri
 import org.http4s.client.Client
-import org.http4s.implicits._
+import org.http4s.headers.Authorization
+import org.http4s.implicits.*
 
 private[client] class ConfigMapsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]]
+    val authorization: Option[F[Authorization]]
 )(implicit
     val F: Async[F],
     val listDecoder: Decoder[ConfigMapList],
@@ -24,13 +24,13 @@ private[client] class ConfigMapsApi[F[_]](
   val resourceUri: Uri = uri"/api" / "v1" / "configmaps"
 
   def namespace(namespace: String): NamespacedConfigMapsApi[F] =
-    new NamespacedConfigMapsApi(httpClient, config, cachedExecToken, namespace)
+    new NamespacedConfigMapsApi(httpClient, config, authorization, namespace)
 }
 
 private[client] class NamespacedConfigMapsApi[F[_]](
     val httpClient: Client[F],
     val config: KubeConfig[F],
-    val cachedExecToken: Option[CachedExecToken[F]],
+    val authorization: Option[F[Authorization]],
     val namespace: String
 )(implicit
     val F: Async[F],

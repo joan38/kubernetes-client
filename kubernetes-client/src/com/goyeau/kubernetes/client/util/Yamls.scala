@@ -1,16 +1,14 @@
 package com.goyeau.kubernetes.client.util
 
-import java.io.File
-import cats.effect.{Resource, Sync}
+import cats.effect.Sync
 import cats.implicits.*
 import com.goyeau.kubernetes.client.KubeConfig
-
-import scala.io.Source
-import org.typelevel.log4cats.Logger
-import io.circe.{Codec, Decoder, Encoder}
+import fs2.io.file.{Files, Path}
 import io.circe.generic.semiauto.*
 import io.circe.yaml.parser.*
+import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.Uri
+import org.typelevel.log4cats.Logger
 
 case class Config(
     apiVersion: String,
@@ -59,14 +57,11 @@ case class ExecCredentialStatus(
 
 private[client] object Yamls {
 
-  def fromKubeConfigFile[F[_]: Sync: Logger](kubeconfig: File, contextMaybe: Option[String]): F[KubeConfig[F]] =
+  def fromKubeConfigFile[F[_]: Sync: Logger: Files](kubeconfig: Path, contextMaybe: Option[String]): F[KubeConfig[F]] =
     for {
-      configString <-
-        Resource
-          .fromAutoCloseable(Sync[F].delay(Source.fromFile(kubeconfig)))
-          .use(source => Sync[F].delay(source.mkString))
-      configJson <- Sync[F].fromEither(parse(configString))
-      config     <- Sync[F].fromEither(configJson.as[Config])
+      configString <- Text.readFile(kubeconfig)
+      configJson   <- Sync[F].fromEither(parse(configString))
+      config       <- Sync[F].fromEither(configJson.as[Config])
       contextName = contextMaybe.getOrElse(config.`current-context`)
       namedContext <-
         config.contexts
@@ -91,11 +86,11 @@ private[client] object Yamls {
       config <- KubeConfig.of[F](
         server = server,
         caCertData = cluster.`certificate-authority-data`,
-        caCertFile = cluster.`certificate-authority`.map(new File(_)),
+        caCertFile = cluster.`certificate-authority`.map(Path(_)),
         clientCertData = user.`client-certificate-data`,
-        clientCertFile = user.`client-certificate`.map(new File(_)),
+        clientCertFile = user.`client-certificate`.map(Path(_)),
         clientKeyData = user.`client-key-data`,
-        clientKeyFile = user.`client-key`.map(new File(_)),
+        clientKeyFile = user.`client-key`.map(Path(_)),
         authInfoExec = user.exec
       )
     } yield config
