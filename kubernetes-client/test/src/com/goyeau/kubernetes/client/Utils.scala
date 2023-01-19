@@ -7,8 +7,7 @@ import org.typelevel.log4cats.Logger
 import scala.concurrent.duration.*
 
 object Utils {
-  def retry[F[_], Result](f: F[Result], initialDelay: FiniteDuration = 500.millis, maxRetries: Int = 50)(
-      implicit
+  def retry[F[_], Result](f: F[Result], initialDelay: FiniteDuration = 500.millis, maxRetries: Int = 50)(implicit
       temporal: Temporal[F],
       F: ApplicativeError[F, Throwable],
       D: Defer[F],
@@ -17,7 +16,7 @@ object Utils {
     f.handleErrorWith { exception =>
       if (maxRetries > 0)
         log.info(s"Retrying in $initialDelay. Retries left: $maxRetries") *>
-        temporal.sleep(initialDelay) *>
+          temporal.sleep(initialDelay) *>
           D.defer(retry(f, initialDelay, maxRetries - 1))
       else F.raiseError(exception)
     }
