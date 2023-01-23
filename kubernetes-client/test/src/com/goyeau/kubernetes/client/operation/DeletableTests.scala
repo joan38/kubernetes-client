@@ -28,8 +28,13 @@ trait DeletableTests[F[
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
         resourceName  <- Applicative[F].pure("delete-resource")
         _             <- createChecked(namespaceName, resourceName)
-        _             <- delete(namespaceName, resourceName)
-        _             <- retry(listNotContains(namespaceName, Set(resourceName)), actionClue = Some("List not contains"))
+        status        <- delete(namespaceName, resourceName)
+        //  returns Ok status since Kubernetes 1.23.x, earlier versions return NotFound
+        _ = assert(Set(Status.NotFound, Status.Ok).contains(status))
+        _ <- retry(
+          listNotContains(namespaceName, Set(resourceName)),
+          actionClue = Some(s"List not contains: $resourceName")
+        )
       } yield ()
     }
   }

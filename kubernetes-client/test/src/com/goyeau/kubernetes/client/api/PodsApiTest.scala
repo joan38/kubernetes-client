@@ -75,6 +75,7 @@ class PodsApiTest
   )
 
   private val successStatus = Some(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
+
   test("exec into pod") {
     val podName = s"${resourceName.toLowerCase}-exec"
     val (messages, status) = kubernetesClient
@@ -231,6 +232,7 @@ class PodsApiTest
   }
 
   private val podStatusCount = 4
+  
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
     retry(for {
       pod <- getChecked(namespaceName, name)

@@ -43,8 +43,12 @@ trait ListableTests[F[
       _ = assert(resourceNames.subsetOf(resourceList.items.flatMap(_.metadata.flatMap(_.name)).toSet))
     } yield resourceList
 
-  def listNotContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String] = Map.empty)(
-      implicit client: KubernetesClient[F]
+  def listNotContains(
+      namespaceName: String,
+      resourceNames: Set[String],
+      labels: Map[String, String] = Map.empty
+  )(implicit
+      client: KubernetesClient[F]
   ): F[ResourceList] =
     for {
       resourceList <- namespacedApi(namespaceName).list(labels)
