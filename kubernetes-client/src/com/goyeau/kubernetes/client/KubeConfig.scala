@@ -77,27 +77,30 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed)
     *   - KUBERNETES_SERVICE_PORT env variable
     */
-  def standard[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
+  def standard[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
     findFromEnv
       .orElse(findConfigInHomeDir(none))
       .orElse(findClusterConfig)
-      .value
+      .getOrRaise(KubeConfigNotFoundError)
 
   /** Use the file specified in KUBECONFIG env variable, if exists. Uses the 'current-context' specified in the file.
     */
-  def fromEnv[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findFromEnv.value
+  def fromEnv[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+    findFromEnv
+      .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the configuration from ~/.kube/config, if exists. Uses the 'current-context' specified in the file.
     */
-  def inHomeDir[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findConfigInHomeDir(none).value
+  def inHomeDir[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+    findConfigInHomeDir(none)
+      .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the configuration from ~/.kube/config, if exists. Uses the provided contextName (will fail if the context
     * does not exist).
     */
-  def inHomeDir[F[_]: Logger](contextName: String)(implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findConfigInHomeDir(contextName.some).value
+  def inHomeDir[F[_]: Logger](contextName: String)(implicit F: Async[F]): F[KubeConfig[F]] =
+    findConfigInHomeDir(contextName.some)
+      .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the cluster configuration, if found.
     *
@@ -107,8 +110,9 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed),
     *   - KUBERNETES_SERVICE_PORT env variable.
     */
-  def cluster[F[_]: Logger](implicit F: Async[F]): F[Option[KubeConfig[F]]] =
-    findClusterConfig.value
+  def cluster[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+    findClusterConfig
+      .getOrRaise(KubeConfigNotFoundError)
 
   /** Read the configuration from the specified file. Uses the provided contextName (will fail if the context does not
     * exist).
