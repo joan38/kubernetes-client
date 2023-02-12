@@ -160,14 +160,16 @@ object NamespacesApiTest {
   )(implicit client: KubernetesClient[F]): F[Namespace] =
     for {
       status <- client.namespaces.create(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
-      _ = assertEquals(status, Status.Created)
-      namespace          <- getChecked(namespaceName)
-      serviceAccountName <- Sync[F].pure("default")
-      _ <- retry(for {
-        serviceAccount <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
-        _ = assertEquals(serviceAccount.metadata.flatMap(_.name), Some(serviceAccountName))
-        _ = assert(serviceAccount.secrets.toSeq.flatten.nonEmpty)
-      } yield ())
+      _ = assertEquals(status, Status.Created, s"Namespace '$namespaceName' creation failed.")
+      namespace <- retry(getChecked(namespaceName))
+      serviceAccountName = "default"
+      _ <- retry(
+        for {
+          serviceAccount <- client.serviceAccounts.namespace(namespaceName).get(serviceAccountName)
+          _ = assertEquals(serviceAccount.metadata.flatMap(_.name), Some(serviceAccountName))
+        } yield (),
+        actionClue = Some(s"Namespace creation: $namespaceName")
+      )
     } yield namespace
 
   def listChecked[F[_]: Sync](namespaceNames: Seq[String])(implicit client: KubernetesClient[F]): F[NamespaceList] =

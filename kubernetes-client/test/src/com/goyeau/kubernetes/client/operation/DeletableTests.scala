@@ -28,8 +28,13 @@ trait DeletableTests[F[
         namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
         resourceName  <- Applicative[F].pure("delete-resource")
         _             <- createChecked(namespaceName, resourceName)
-        _             <- delete(namespaceName, resourceName)
-        _             <- retry(listNotContains(namespaceName, Set(resourceName)))
+        status        <- delete(namespaceName, resourceName)
+        //  returns Ok status since Kubernetes 1.23.x, earlier versions return NotFound
+        _ = assert(Set(Status.NotFound, Status.Ok).contains(status))
+        _ <- retry(
+          listNotContains(namespaceName, Set(resourceName)),
+          actionClue = Some(s"List not contains: $resourceName")
+        )
       } yield ()
     }
   }
@@ -43,14 +48,14 @@ trait DeletableTests[F[
     }
   }
 
-//  This test seem to yield Ok status since Kubernetes 1.23.x, are we trying to be idempotent now?
-//  test(s"fail on non existing $resourceName") {
-//    usingMinikube { implicit client =>
-//      for {
-//        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-//        status        <- delete(namespaceName, "non-existing")
-//        _ = assertEquals(status, Status.NotFound)
-//      } yield ()
-//    }
-//  }
+  test(s"fail on non existing $resourceName") {
+    usingMinikube { implicit client =>
+      for {
+        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        status        <- delete(namespaceName, "non-existing")
+        //  returns Ok status since Kubernetes 1.23.x, earlier versions return NotFound
+        _ = assert(Set(Status.NotFound, Status.Ok).contains(status))
+      } yield ()
+    }
+  }
 }

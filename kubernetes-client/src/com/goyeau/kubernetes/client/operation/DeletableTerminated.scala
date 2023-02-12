@@ -22,7 +22,7 @@ private[client] trait DeletableTerminated[F[_]] { this: Deletable[F] =>
         case Status.Conflict            => retry()
         case response @ Status.NotFound =>
           if (firstTry) F.pure(response) else F.pure(Status.Ok)
-        case error => F.pure(error)
+        case status => F.pure(status)
       }
     }
 
