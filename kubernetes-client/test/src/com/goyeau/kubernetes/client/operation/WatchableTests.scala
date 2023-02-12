@@ -22,7 +22,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   val watchIsNamespaced = true
 
-  override protected val extraNamespace = Some("anothernamespace")
+  override protected val extraNamespace = List("anothernamespace-" + defaultNamespace)
 
   def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
 
@@ -55,16 +55,24 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
-      _      <- retry(create(namespace, resourceName), maxRetries = 3)
+      _ <- retry(
+        create(namespace, resourceName),
+        maxRetries = 30,
+        actionClue = Some(s"Creating $resourceName in $namespace ns")
+      )
       _      <- retry(update(namespace, resourceName))
       status <- deleteResource(namespace, resourceName)
-      _ = assertEquals(status, Status.Ok)
+      _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
 
   private def create(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
+      ns <- client.namespaces.get(namespace)
+      _ <- logger.info(
+        s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
+      )
       status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
-      _ = assertEquals(status, Status.Created)
+      _ = assertEquals(status, Status.Created, status.sanitizedReason)
     } yield ()
 
   private def watchEvents(
@@ -127,7 +135,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   }
 
   private def sendToAnotherNamespace(name: String)(implicit client: KubernetesClient[F]) =
-    F.whenA(watchIsNamespaced)(extraNamespace.map(sendEvents(_, name)).getOrElse(F.unit))
+    F.whenA(watchIsNamespaced)(
+      extraNamespace.map(sendEvents(_, name)).sequence
+    )
 
   test(s"watch $resourceName events in all namespaces") {
     usingMinikube { implicit client =>

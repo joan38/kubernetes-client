@@ -55,7 +55,7 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     usingMinikube { implicit client =>
       for {
         namespaceName    <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName     <- Applicative[F].pure("some-resource-1")
+        resourceName     <- Applicative[F].pure("some-with-resource")
         _                <- createChecked(namespaceName, resourceName)
         replacedResource <- retry(replaceWithResource(namespaceName, resourceName))
         _ = checkUpdated(replacedResource)
@@ -74,14 +74,14 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     }
   }
 
-//  This test seem to yield Created status since Kubernetes 1.23.x, are we trying to be idempotent now?
-//  test(s"fail on non existing $resourceName") {
-//    usingMinikube { implicit client =>
-//      for {
-//        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-//        status        <- namespacedApi(namespaceName).replace(sampleResource("non-existing"))
-//        _ = assert(Set(Status.NotFound, Status.InternalServerError).contains(status))
-//      } yield ()
-//    }
-//  }
+  // Returns Created status since Kubernetes 1.23.x, earlier versions return NotFound
+  test(s"fail on non existing $resourceName") {
+    usingMinikube { implicit client =>
+      for {
+        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        status        <- namespacedApi(namespaceName).replace(sampleResource("non-existing"))
+        _ = assert(Set(Status.NotFound, Status.Created).contains(status))
+      } yield ()
+    }
+  }
 }
