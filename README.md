@@ -107,7 +107,7 @@ implicit val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
 val kubernetesClient =
   KubernetesClient[IO](
-    KubeConfig.standard[IO].withDefaultAuthorizationCache(5.minutes)
+    KubeConfig.standard[IO].map(_.withDefaultAuthorizationCache(5.minutes))
   )
 ```
 
