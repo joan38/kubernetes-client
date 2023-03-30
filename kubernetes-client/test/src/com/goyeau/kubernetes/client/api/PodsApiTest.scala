@@ -232,7 +232,7 @@ class PodsApiTest
   }
 
   private val podStatusCount = 4
-  
+
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
     retry(for {
       pod <- getChecked(namespaceName, name)
