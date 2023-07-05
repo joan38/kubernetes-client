@@ -55,30 +55,26 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
-      _ <- retry(
-        create(namespace, resourceName),
-        maxRetries = 30,
-        actionClue = Some(s"Creating $resourceName in $namespace ns")
-      )
       _      <- retry(update(namespace, resourceName), actionClue = Some(s"Updating $resourceName"))
       status <- deleteResource(namespace, resourceName)
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
 
   private def create(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
-    for {
+    retry(for {
       ns <- client.namespaces.get(namespace)
       _ <- logger.info(
         s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
       )
       status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
       _ = assertEquals(status, Status.Created, status.sanitizedReason)
-    } yield ()
+    } yield ())
 
   private def watchEvents(
       expected: Map[String, Set[EventType]],
       resourceName: String,
-      watchingNamespace: Option[String]
+      watchingNamespace: Option[String],
+      resourceVersion: Option[String] = None
   )(implicit
       client: KubernetesClient[F]
   ) = {
@@ -120,7 +116,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       watchStream = watchingNamespace
         .map(watchApi)
         .getOrElse(api)
-        .watch()
+        .watch(resourceVersion = resourceVersion)
         .through(processEvent(receivedEvents, signal))
         .evalMap(_ => receivedEvents.get)
         .interruptWhen(signal)
@@ -145,13 +141,16 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val expectedEvents = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
       val expected =
         if (watchIsNamespaced)
-          (defaultNamespace +: extraNamespace.toList).map(_ -> expectedEvents).toMap
+          (defaultNamespace +: extraNamespace).map(_ -> expectedEvents).toMap
         else
           Map(defaultNamespace -> expectedEvents)
 
       (
         watchEvents(expected, name, None),
-        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+        F.sleep(100.millis) *>
+          create(defaultNamespace, name) *>
+          sendEvents(defaultNamespace, name) *>
+          sendToAnotherNamespace(name)
       ).parTupled
     }
   }
@@ -164,8 +163,30 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       (
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
-        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+        F.sleep(100.millis) *>
+          create(defaultNamespace, name) *>
+          sendEvents(defaultNamespace, name) *>
+          sendToAnotherNamespace(name)
       ).parTupled
+    }
+  }
+
+  test(s"watch $resourceName events from a given resourceVersion") {
+    usingMinikube { implicit client =>
+      val name     = s"${resourceName.toLowerCase}-watch-resource-version"
+      val expected = Set[EventType](EventType.MODIFIED, EventType.DELETED)
+
+      for {
+        resourceVersion <- create(defaultNamespace, name)
+        resource        <- retry(getChecked(defaultNamespace, resourceName))
+        resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
+        _ <- (
+          watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
+          F.sleep(100.millis) *>
+            sendEvents(defaultNamespace, name) *>
+            sendToAnotherNamespace(name)
+        ).parTupled
+      } yield ()
     }
   }
 }
