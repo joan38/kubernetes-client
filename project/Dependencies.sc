@@ -23,7 +23,7 @@ object Dependencies {
 
   lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.14.2")
 
-  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.73")
+  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.76")
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.10.0")
 
