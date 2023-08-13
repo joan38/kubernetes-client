@@ -1,6 +1,6 @@
 import $ivy.`com.goyeau::mill-git::0.2.4`
 import $ivy.`com.goyeau::mill-scalafix::0.2.11`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.2`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.5`
 import $file.project.Dependencies
 import Dependencies.Dependencies._
 import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
