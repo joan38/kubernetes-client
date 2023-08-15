@@ -23,13 +23,13 @@ object Dependencies {
 
   lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.14.2")
 
-  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.73")
+  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.76")
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.10.0")
 
   lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.6.0")
 
-  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.7")
+  lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.11")
 
   lazy val tests = Agg(ivy"org.scalameta::munit:0.7.29")
 }
