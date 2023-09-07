@@ -93,7 +93,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         namespaceName   <- Applicative[F].pure(resourceName.toLowerCase)
         resourceName    <- Applicative[F].pure("update-resource")
         _               <- createChecked(namespaceName, resourceName)
-        _               <- retry(createOrUpdate(namespaceName, resourceName))
+        _               <- retry(createOrUpdate(namespaceName, resourceName), actionClue = Some("Updating resource"))
         updatedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(updatedResource)
       } yield ()

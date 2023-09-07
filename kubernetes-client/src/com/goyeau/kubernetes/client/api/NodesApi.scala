@@ -3,8 +3,10 @@ package com.goyeau.kubernetes.client.api
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation.*
-import io.circe.{Decoder, Encoder}
-import io.k8s.api.core.v1.{Namespace, Node, NodeList}
+import io.circe.Decoder
+import io.circe.Encoder
+import io.k8s.api.core.v1.Node
+import io.k8s.api.core.v1.NodeList
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.headers.Authorization

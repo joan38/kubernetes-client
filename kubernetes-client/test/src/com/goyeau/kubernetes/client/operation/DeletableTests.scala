@@ -7,6 +7,7 @@ import com.goyeau.kubernetes.client.Utils.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
+import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 
 trait DeletableTests[F[
     _
@@ -19,8 +20,10 @@ trait DeletableTests[F[
   def listNotContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String] = Map.empty)(
       implicit client: KubernetesClient[F]
   ): F[ResourceList]
-  def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
-    namespacedApi(namespaceName).delete(resourceName)
+  def delete(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] = {
+    val deleteOptions = DeleteOptions(gracePeriodSeconds = Some(0L))
+    namespacedApi(namespaceName).delete(resourceName, deleteOptions.some)
+  }
 
   test(s"delete a $resourceName") {
     usingMinikube { implicit client =>
