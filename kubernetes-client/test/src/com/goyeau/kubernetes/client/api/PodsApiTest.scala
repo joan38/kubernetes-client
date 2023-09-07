@@ -29,6 +29,7 @@ class PodsApiTest
     with WatchableTests[IO, Pod]
     with ContextProvider {
 
+
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[Pod].getSimpleName
@@ -59,11 +60,11 @@ class PodsApiTest
   override def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, Pod] =
     client.pods.namespace(namespaceName)
 
-  def testPod(podName: String): Pod = Pod(
-    metadata = Option(ObjectMeta(name = Option(podName))),
+  def testPod(podName: String, labels: Map[String, String] = Map.empty): Pod = Pod(
+    metadata = Option(ObjectMeta(name = Option(podName), labels = Option(labels))),
     spec = Option(
-      PodSpec(containers =
-        Seq(
+      PodSpec(
+        containers = Seq(
           Container(
             "test",
             image = Option("docker"),
@@ -234,13 +235,16 @@ class PodsApiTest
   private val podStatusCount = 4
 
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
-    retry(for {
-      pod <- getChecked(namespaceName, name)
-      notStarted  = pod.status.flatMap(_.conditions.map(_.exists(c => c.status == "False"))).getOrElse(false)
-      statusCount = pod.status.flatMap(_.conditions.map(_.length)).getOrElse(0)
-      _ <-
-        if (notStarted || statusCount != podStatusCount)
-          IO.raiseError(new RuntimeException("Pod is not started"))
-        else IO.unit
-    } yield pod)
+    retry(
+      for {
+        pod <- getChecked(namespaceName, name)
+        notStarted  = pod.status.flatMap(_.conditions.map(_.exists(c => c.status == "False"))).getOrElse(false)
+        statusCount = pod.status.flatMap(_.conditions.map(_.length)).getOrElse(0)
+        _ <-
+          if (notStarted || statusCount != podStatusCount)
+            IO.raiseError(new RuntimeException("Pod is not started"))
+          else IO.unit
+      } yield pod,
+      actionClue = Some(s"Waiting for pod $name to be ready")
+    )
 }

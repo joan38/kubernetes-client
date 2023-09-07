@@ -60,7 +60,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         maxRetries = 30,
         actionClue = Some(s"Creating $resourceName in $namespace ns")
       )
-      _      <- retry(update(namespace, resourceName))
+      _      <- retry(update(namespace, resourceName), actionClue = Some(s"Updating $resourceName"))
       status <- deleteResource(namespace, resourceName)
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()

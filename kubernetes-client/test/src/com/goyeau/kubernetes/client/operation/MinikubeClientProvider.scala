@@ -8,6 +8,7 @@ import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
 import fs2.io.file.Path
 import munit.Suite
 import org.typelevel.log4cats.Logger
+import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
 
 trait MinikubeClientProvider[F[_]] {
   this: Suite =>
@@ -33,16 +34,21 @@ trait MinikubeClientProvider[F[_]] {
 
   protected def createNamespace(namespace: String): F[Unit] = kubernetesClient.use { implicit client =>
     client.namespaces.deleteTerminated(namespace) *> retry(
-      NamespacesApiTest.createChecked[F](namespace)
+      NamespacesApiTest.createChecked[F](namespace),
+      actionClue = Some(s"Creating '$namespace' namespace")
     )
   }.void
 
   private def deleteNamespace(namespace: String) = kubernetesClient.use { client =>
-    client.namespaces.delete(namespace)
+    client.namespaces.deleteTerminated(
+      namespace,
+      DeleteOptions(gracePeriodSeconds = Some(0L)).some
+    )
   }.void
 
   protected def createNamespaces() = {
     val ns = defaultNamespace +: extraNamespace.toList
+    println(s"Creating namespaces: $ns")
     ns.foreach(name => unsafeRunSync(createNamespace(name)))
   }
 
