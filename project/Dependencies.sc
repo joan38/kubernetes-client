@@ -3,7 +3,7 @@ import mill.scalalib._
 
 object Dependencies {
   lazy val circe = {
-    val version = "0.14.5"
+    val version = "0.14.6"
     Agg(
       ivy"io.circe::circe-core:$version",
       ivy"io.circe::circe-generic:$version",
