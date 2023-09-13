@@ -29,7 +29,6 @@ class PodsApiTest
     with WatchableTests[IO, Pod]
     with ContextProvider {
 
-
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[Pod].getSimpleName
@@ -69,6 +68,27 @@ class PodsApiTest
             "test",
             image = Option("docker"),
             command = Option(Seq("sh", "-c", "tail -f /dev/null"))
+          )
+        )
+      )
+    )
+  )
+
+  def testPodWithLogs(podName: String, labels: Map[String, String] = Map.empty): Pod = Pod(
+    metadata = Option(ObjectMeta(name = Option(podName), labels = Option(labels))),
+    spec = Option(
+      PodSpec(
+        containers = Seq(
+          Container(
+            "test",
+            image = Option("docker"),
+            command = Option(
+              Seq(
+                "sh",
+                "-c",
+                "echo line 1; sleep 1; echo line 2; sleep 2; echo line 3; echo line 4; echo line 5; echo line 6"
+              )
+            )
           )
         )
       )
@@ -226,6 +246,47 @@ class PodsApiTest
             downloadedContent.mkString,
             localContent.mkString,
             s"Files at $sourcePath and $downloadPath paths are not equal"
+          )
+        } yield ()
+      }
+      .unsafeRunSync()
+  }
+
+  test("watch the logs") {
+    val podName = s"${resourceName.toLowerCase}-logs"
+
+    kubernetesClient
+      .use { implicit client =>
+        for {
+          status <- namespacedApi(defaultNamespace).create(testPodWithLogs(podName))
+          _ = assertEquals(status, Status.Created, status.sanitizedReason)
+          pod <- waitUntilReady(defaultNamespace, podName)
+          container = pod.spec.flatMap(_.containers.headOption.map(_.name))
+          podName   = pod.metadata.get.name.get
+
+          receivedLogs <- namespacedApi(defaultNamespace)
+            .log(
+              podName,
+              container = container,
+              follow = true
+            )
+            .flatMap { response =>
+              response.body
+            }
+            .through(fs2.text.utf8.decode)
+            .compile
+            .foldMonoid
+
+          _ = assertEquals(
+            receivedLogs,
+            """line 1
+              |line 2
+              |line 3
+              |line 4
+              |line 5
+              |line 6
+              |""".stripMargin,
+            s"Received log doesn't match the expected log"
           )
         } yield ()
       }
