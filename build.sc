@@ -10,6 +10,7 @@ import com.goyeau.mill.scalafix.StyleModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
 import mill.scalalib._
+import mill.scalajslib._
 import mill.scalanativelib._
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
@@ -54,6 +55,11 @@ trait KubernetesClientModule extends Cross.Module[String] {
 
   object jvm extends Shared {
     object test extends ScalaTests with SharedTestModule
+  }
+
+  object js extends Shared with ScalaJSModule {
+    def scalaJSVersion = "1.13.2"
+    object test extends ScalaJSTests with SharedTestModule
   }
 
   object native extends Shared with ScalaNativeModule {
