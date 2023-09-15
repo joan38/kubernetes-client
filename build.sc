@@ -9,42 +9,55 @@ import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
 import io.github.davidgregory084.TpolecatModule
 import mill._
-import mill.scalalib.TestModule.Munit
 import mill.scalalib._
+import mill.scalanativelib._
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
 object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.10", "2.12.17")
-trait KubernetesClientModule
-    extends CrossScalaModule
-    with TpolecatModule
-    with StyleModule
-    with GitVersionedPublishModule
-    with SwaggerModelGenerator {
+trait KubernetesClientModule extends Cross.Module[String] {
+  trait Shared
+      extends CrossScalaModule
+      with CrossValue
+      with PlatformScalaModule
+      with TpolecatModule
+      with StyleModule
+      with GitVersionedPublishModule
+      with SwaggerModelGenerator {
 
-  override def scalacOptions =
-    super
-      .scalacOptions()
-      .filterNot(Set("-Xfatal-warnings")) ++
-      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
+    override def scalacOptions =
+      super
+        .scalacOptions()
+        .filterNot(Set("-Xfatal-warnings")) ++
+        (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
 
-  override def ivyDeps =
-    super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
-  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
-    (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
+    override def ivyDeps =
+      super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
+    override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
+      (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
-  object test extends ScalaTests with Munit {
-    override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
+    override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
+    def pomSettings = PomSettings(
+      description = "A Kubernetes client for Scala",
+      organization = "com.goyeau",
+      url = "https://github.com/joan38/kubernetes-client",
+      licenses = Seq(License.`Apache-2.0`),
+      versionControl = VersionControl.github("joan38", "kubernetes-client"),
+      developers = Seq(Developer("joan38", "Joan Goyeau", "https://github.com/joan38"))
+    )
+  }
+
+  trait SharedTestModule extends ScalaModule with TestModule.Munit {
+    override def forkArgs = T { super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2" }
     override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
   }
 
-  override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
-  def pomSettings = PomSettings(
-    description = "A Kubernetes client for Scala",
-    organization = "com.goyeau",
-    url = "https://github.com/joan38/kubernetes-client",
-    licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("joan38", "kubernetes-client"),
-    developers = Seq(Developer("joan38", "Joan Goyeau", "https://github.com/joan38"))
-  )
+  object jvm extends Shared {
+    object test extends ScalaTests with SharedTestModule
+  }
+
+  object native extends Shared with ScalaNativeModule {
+    def scalaNativeVersion = "0.4.15"
+    object test extends ScalaNativeTests with SharedTestModule
+  }
 }
