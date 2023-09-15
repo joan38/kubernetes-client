@@ -43,7 +43,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes v1.25
-        run: ./mill __[3.2.1].test
+        run: ./mill _[3.2.1].__.test
 
   integration-kubernetes-v1-24:
     runs-on: ubuntu-latest
@@ -63,7 +63,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes v1.24
-        run: ./mill __[3.2.1].test
+        run: ./mill _[3.2.1].__.test
 
   integration-kubernetes-v1-23:
     runs-on: ubuntu-latest
@@ -83,7 +83,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes v1.23
-        run: ./mill __[3.2.1].test
+        run: ./mill _[3.2.1].__.test
 
   integration-kubernetes-v1-22:
     runs-on: ubuntu-latest
@@ -103,7 +103,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes v1.22
-        run: ./mill __[3.2.1].test
+        run: ./mill _[3.2.1].__.test
 
   integration-kubernetes-v1-21:
     runs-on: ubuntu-latest
@@ -123,7 +123,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes v1.21
-        run: ./mill __[3.2.1].test
+        run: ./mill _[3.2.1].__.test
 
   publish:
     needs:
