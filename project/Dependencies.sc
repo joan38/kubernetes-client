@@ -5,9 +5,9 @@ object Dependencies {
   lazy val circe = {
     val version = "0.14.5"
     Agg(
-      ivy"io.circe::circe-core:$version",
-      ivy"io.circe::circe-generic:$version",
-      ivy"io.circe::circe-parser:$version"
+      ivy"io.circe::circe-core::$version",
+      ivy"io.circe::circe-generic::$version",
+      ivy"io.circe::circe-parser::$version"
     )
   }
 
@@ -15,8 +15,8 @@ object Dependencies {
     val version          = "0.23.18"
     val jdkClientVersion = "0.5.0"
     Agg(
-      ivy"org.http4s::http4s-dsl:$version",
-      ivy"org.http4s::http4s-circe:$version",
+      ivy"org.http4s::http4s-dsl::$version",
+      ivy"org.http4s::http4s-circe::$version",
       ivy"org.http4s::http4s-jdk-http-client:$jdkClientVersion"
     )
   }
@@ -31,5 +31,5 @@ object Dependencies {
 
   lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.11")
 
-  lazy val tests = Agg(ivy"org.scalameta::munit:0.7.29")
+  lazy val tests = Agg(ivy"org.scalameta::munit::0.7.29")
 }
