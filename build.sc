@@ -1,5 +1,5 @@
-import $ivy.`com.goyeau::mill-git::0.2.4`
-import $ivy.`com.goyeau::mill-scalafix::0.2.11`
+import $ivy.`com.goyeau::mill-git::0.2.5`
+import $ivy.`com.goyeau::mill-scalafix::0.3.1`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.5`
 import $file.project.Dependencies
 import Dependencies.Dependencies._
@@ -15,7 +15,7 @@ import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 
 object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.10", "2.12.17")
-class KubernetesClientModule(val crossScalaVersion: String)
+trait KubernetesClientModule
     extends CrossScalaModule
     with TpolecatModule
     with StyleModule
@@ -33,7 +33,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
     (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
-  object test extends Tests with Munit {
+  object test extends ScalaTests with Munit {
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
     override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
   }
