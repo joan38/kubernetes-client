@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.crd
 
-import io.circe.syntax._
+import io.circe.syntax.*
 
 /** RawExtension is used to hold extensions in external versions.
   *

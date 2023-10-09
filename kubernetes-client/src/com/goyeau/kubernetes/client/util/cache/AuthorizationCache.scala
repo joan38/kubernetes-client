@@ -40,7 +40,7 @@ object AuthorizationCache {
                   .flatMap { now =>
                     val shouldRenew =
                       cached.expirationTimestamp.exists(_.isBefore(now.minusSeconds(refreshBeforeExpiration.toSeconds)))
-                    if (shouldRenew) {
+                    if (shouldRenew)
                       getAndCacheToken.flatMap {
                         case Some(token) => token.pure[F]
                         case None =>
@@ -53,9 +53,8 @@ object AuthorizationCache {
                               )
                             )
                       }
-                    } else {
+                    else
                       cached.pure[F]
-                    }
                   }
               case None =>
                 getAndCacheToken.flatMap[AuthorizationWithExpiration] {
@@ -68,5 +67,4 @@ object AuthorizationCache {
 
       }
     }
-
 }
