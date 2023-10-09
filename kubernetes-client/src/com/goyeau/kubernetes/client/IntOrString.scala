@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client
 
 import io.circe.{Decoder, Encoder, Json}
-import cats.implicits._
+import cats.implicits.*
 
 trait IntOrString
 case class IntValue(value: Int)       extends IntOrString

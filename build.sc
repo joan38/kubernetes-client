@@ -1,32 +1,38 @@
 import $ivy.`com.goyeau::mill-git::0.2.4`
 import $ivy.`com.goyeau::mill-scalafix::0.2.11`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.5`
+import $ivy.`org.typelevel::scalac-options:0.1.4`
+
 import $file.project.Dependencies
 import Dependencies.Dependencies._
 import $file.project.SwaggerModelGenerator
 import SwaggerModelGenerator.SwaggerModelGenerator
 import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
-import io.github.davidgregory084.TpolecatModule
 import mill._
 import mill.scalalib.TestModule.Munit
 import mill.scalalib._
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
+import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
+import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.10", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10", "2.12.17")
 class KubernetesClientModule(val crossScalaVersion: String)
     extends CrossScalaModule
-    with TpolecatModule
     with StyleModule
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
-
-  override def scalacOptions =
-    super
-      .scalacOptions()
-      .filterNot(Set("-Xfatal-warnings")) ++
-      (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
+  lazy val jvmVersion       = "11"
+  override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
+  override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
+    scalaVersion() match {
+      case "3.3.1"   => ScalaVersion.V3_3_1
+      case "2.13.10" => ScalaVersion.V2_13_9
+      case "2.12.17" => ScalaVersion.V2_12_13
+    },
+    ScalacOptions.default + release(jvmVersion) + source3 +
+      advancedOption("max-inlines", List("50"), _.isAtLeast(ScalaVersion.V3_0_0)) // ++ fatalWarningOptions
+  )
 
   override def ivyDeps =
     super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
