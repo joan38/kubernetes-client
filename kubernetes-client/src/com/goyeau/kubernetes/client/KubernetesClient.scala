@@ -7,12 +7,10 @@ import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
-import com.goyeau.kubernetes.client.operation.*
 import io.circe.{Decoder, Encoder}
-import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
-import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient, WSRequest}
+import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
 import org.typelevel.log4cats.Logger
 
 import java.net.http.HttpClient
@@ -63,24 +61,6 @@ class KubernetesClient[F[_]: Async: Logger](
       encoder: Encoder[CustomResource[A, B]],
       decoder: Decoder[CustomResource[A, B]]
   ) = new CustomResourcesApi[F, A, B](httpClient, config, authorization, context)
-
-  def customRequest(
-      request: Request[F]
-  ): F[Request[F]] =
-    Request[F](
-      method = request.method,
-      uri = config.server.resolve(request.uri),
-      httpVersion = request.httpVersion,
-      headers = request.headers,
-      body = request.body,
-      attributes = request.attributes
-    ).withOptionalAuthorization(authorization)
-
-  def customRequest(request: WSRequest): F[WSRequest] =
-    request
-      .copy(uri = config.server.resolve(request.uri))
-      .withOptionalAuthorization(authorization)
-
 }
 
 object KubernetesClient {
