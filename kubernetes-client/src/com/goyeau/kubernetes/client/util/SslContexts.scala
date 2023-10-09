@@ -23,6 +23,7 @@ object SslContexts {
     sslContext
   }
 
+  @SuppressWarnings(Array("scalafix:DisableSyntax.asInstanceOf"))
   private def keyManagers[F[_]](config: KubeConfig[F]) = {
     // Client certificate
     val certDataStream = config.clientCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
@@ -38,11 +39,11 @@ object SslContexts {
     } yield {
       Security.addProvider(new BouncyCastleProvider())
       val pemKeyPair =
-        new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair] // scalafix:ok
+        new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair]
       val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
       val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate] // scalafix:ok
+      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
 
       defaultKeyStore.setKeyEntry(
         certificate.getSubjectX500Principal.getName,

@@ -1,5 +1,5 @@
 import $ivy.`com.goyeau::mill-git::0.2.5`
-import $ivy.`com.goyeau::mill-scalafix::0.2.11`
+import $ivy.`com.goyeau::mill-scalafix::0.3.1`
 import $ivy.`org.typelevel::scalac-options:0.1.4`
 
 import $file.project.Dependencies
