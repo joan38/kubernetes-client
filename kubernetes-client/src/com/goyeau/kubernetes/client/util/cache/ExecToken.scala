@@ -20,7 +20,7 @@ private[client] object ExecToken {
   def apply[F[_]: Logger](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] =
     F
       .blocking {
-        val env: Seq[(String, String)] = exec.env.fold(Seq.empty[(String, String)])(_.toSeq)
+        val env = exec.env.getOrElse(Seq.empty).map(e => e.name -> e.value)
         val cmd = Seq.concat(
           Seq(exec.command),
           exec.args.getOrElse(Seq.empty)

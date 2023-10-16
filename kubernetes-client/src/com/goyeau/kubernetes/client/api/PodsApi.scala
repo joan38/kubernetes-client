@@ -105,13 +105,13 @@ private[client] class NamespacedPodsApi[F[_]](
       stderr: Boolean = true,
       tty: Boolean = false
   ): F[WSRequest] = {
-    val uri = (webSocketAddress.resolve(resourceUri) / podName / "exec")
-      .+?("stdin" -> stdin.toString)
-      .+?("stdout" -> stdout.toString)
-      .+?("stderr" -> stderr.toString)
-      .+?("tty" -> tty.toString)
-      .+??("container" -> container)
-      .++?("command" -> commands)
+    val uri = (webSocketAddress.resolve(resourceUri) / podName / "exec") +?
+      ("stdin"     -> stdin.toString) +?
+      ("stdout"    -> stdout.toString) +?
+      ("stderr"    -> stderr.toString) +?
+      ("tty"       -> tty.toString) +??
+      ("container" -> container) ++?
+      ("command"   -> commands)
 
     WSRequest(uri, method = Method.POST)
       .withOptionalAuthorization(authorization)

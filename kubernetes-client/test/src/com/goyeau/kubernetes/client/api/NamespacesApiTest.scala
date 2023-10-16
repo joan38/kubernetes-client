@@ -89,10 +89,13 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
         namespaceName <- IO.pure(resourceName.toLowerCase + "-delete")
         _             <- createChecked(namespaceName)
         _             <- client.namespaces.delete(namespaceName)
-        _ <- retry(for {
-          namespaces <- client.namespaces.list()
-          _ = assert(!namespaces.items.flatMap(_.metadata).flatMap(_.name).contains(namespaceName))
-        } yield ())
+        _ <- retry(
+          for {
+            namespaces <- client.namespaces.list()
+            _ = assert(!namespaces.items.flatMap(_.metadata).flatMap(_.name).contains(namespaceName))
+          } yield (),
+          actionClue = Some(s"Namespace deletion: $namespaceName")
+        )
       } yield ()
     }
   }
