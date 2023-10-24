@@ -1,5 +1,5 @@
-import mill._
-import mill.scalalib._
+import mill.*
+import mill.scalalib.*
 
 object Dependencies {
   lazy val circe = {
