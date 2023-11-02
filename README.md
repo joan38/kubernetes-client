@@ -71,7 +71,7 @@ val kubernetesClient =
   KubernetesClient[IO](
     KubeConfig.of[IO](
       server = uri"https://k8s.goyeau.com",
-      authorization = Option(Authorization(Token(AuthScheme.Bearer, Source.fromFile("/var/run/secrets/kubernetes.io/serviceaccount/token").mkString))),
+      authorization = Option(IO.pure(Authorization(Token(AuthScheme.Bearer, Source.fromFile("/var/run/secrets/kubernetes.io/serviceaccount/token").mkString)))),
       caCertFile = Option(new File("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"))
     )
   )
