@@ -41,34 +41,23 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
     deleteApi(namespaceName).delete(resourceName)
 
-  private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
-    for {
-      resource <- getChecked(namespaceName, resourceName)
-      status   <- createOrUpdate(namespaceName, resource)
-      _ = assertEquals(status, Status.Ok)
-    } yield ()
-
   private def createOrUpdate(namespaceName: String, resource: Resource)(implicit
       client: KubernetesClient[F]
-  ): F[Status] =
-    namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
-
-  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+  ): F[Unit] =
     for {
-      _      <- retry(update(namespace, resourceName), actionClue = Some(s"Updating $resourceName"))
+      status <- namespacedApi(namespaceName).createOrUpdate(resource)
+      _ = assertEquals(status.isSuccess, true, status.sanitizedReason)
+    } yield ()
+
+  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) = {
+    val resource = sampleResource(resourceName, Map.empty)
+    for {
+      _      <- retry(createOrUpdate(namespace, resource), actionClue = Some(s"CreateOrUpdate $resourceName"))
+      _      <- createOrUpdate(namespace, modifyResource(resource))
       status <- deleteResource(namespace, resourceName)
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
-
-  private def create(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
-    retry(for {
-      ns <- client.namespaces.get(namespace)
-      _ <- logger.info(
-        s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
-      )
-      status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
-      _ = assertEquals(status, Status.Created, status.sanitizedReason)
-    } yield ())
+  }
 
   private def watchEvents(
       expected: Map[String, Set[EventType]],
@@ -148,7 +137,6 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       (
         watchEvents(expected, name, None),
         F.sleep(100.millis) *>
-          create(defaultNamespace, name) *>
           sendEvents(defaultNamespace, name) *>
           sendToAnotherNamespace(name)
       ).parTupled
@@ -164,7 +152,6 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       (
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
         F.sleep(100.millis) *>
-          create(defaultNamespace, name) *>
           sendEvents(defaultNamespace, name) *>
           sendToAnotherNamespace(name)
       ).parTupled
@@ -177,8 +164,8 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val expected = Set[EventType](EventType.MODIFIED, EventType.DELETED)
 
       for {
-        resourceVersion <- create(defaultNamespace, name)
-        resource        <- retry(getChecked(defaultNamespace, resourceName))
+        _ <- createOrUpdate(defaultNamespace, sampleResource(name, Map.empty))
+        resource        <- retry(getChecked(defaultNamespace, name), actionClue = Some(s"get ${defaultNamespace}/${name}"))
         resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
         _ <- (
           watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
