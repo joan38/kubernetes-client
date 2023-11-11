@@ -14,6 +14,7 @@ import org.http4s.Status
 
 import scala.concurrent.duration.*
 import scala.language.reflectiveCalls
+import org.http4s.client.UnexpectedStatus
 
 trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     extends FunSuite
@@ -24,7 +25,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   override protected val extraNamespace = List("anothernamespace-" + defaultNamespace)
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource] with Gettable[F, Resource]
 
   def sampleResource(resourceName: String, labels: Map[String, String]): Resource
 
@@ -44,26 +45,39 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
       resource <- getChecked(namespaceName, resourceName)
-      _ <- createOrUpdate(namespaceName, resource)
+      status   <- createOrUpdate(namespaceName, modifyResource(resource))
+      _ = assertEquals(status, Status.Ok)
     } yield ()
 
   private def createOrUpdate(namespaceName: String, resource: Resource)(implicit
-    client: KubernetesClient[F]
-  ) =
-    for {
-      status <- namespacedApi(namespaceName).createOrUpdate(resource)
-      _ = assertEquals(status.isSuccess, true, status.sanitizedReason)
-    } yield ()
+      client: KubernetesClient[F]
+  ): F[Status] =
+    namespacedApi(namespaceName).createOrUpdate(resource)
 
-  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) = {
-    val resource = sampleResource(resourceName, Map.empty)
+  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
-      _      <- retry(createOrUpdate(namespace, resource), actionClue = Some(s"CreateOrUpdate $resourceName"))
-      _      <- update(namespace, resourceName)
+      _ <- retry(
+        createIfMissing(namespace, resourceName),
+        maxRetries = 30,
+        actionClue = Some(s"Creating $resourceName in $namespace ns")
+      )
+      _      <- retry(update(namespace, resourceName), actionClue = Some(s"Updating $resourceName"))
       status <- deleteResource(namespace, resourceName)
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
-  }
+
+  private def createIfMissing(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    namespacedApi(namespace).get(resourceName).as(()).recoverWith {
+      case err: UnexpectedStatus if err.status == Status.NotFound =>
+        for {
+          ns <- client.namespaces.get(namespace)
+          _ <- logger.info(
+            s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
+          )
+          status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
+          _ = assertEquals(status, Status.Ok, status.sanitizedReason)
+        } yield ()
+    }
 
   private def watchEvents(
       expected: Map[String, Set[EventType]],
@@ -166,14 +180,12 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val expected = Set[EventType](EventType.MODIFIED, EventType.DELETED)
 
       for {
-        _ <- createOrUpdate(defaultNamespace, sampleResource(name, Map.empty))
-        resource        <- retry(getChecked(defaultNamespace, name), actionClue = Some(s"get ${defaultNamespace}/${name}"))
+        _ <- retry(createIfMissing(defaultNamespace, name), actionClue = Some(s"createIfMissing ${defaultNamespace}/${name}"))
+        resource        <- getChecked(defaultNamespace, name)
         resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
         _ <- (
           watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
-          F.sleep(100.millis) *>
-            sendEvents(defaultNamespace, name) *>
-            sendToAnotherNamespace(name)
+          F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
         ).parTupled
       } yield ()
     }
