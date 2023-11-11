@@ -41,9 +41,15 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
     deleteApi(namespaceName).delete(resourceName)
 
+  private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    for {
+      resource <- getChecked(namespaceName, resourceName)
+      _ <- createOrUpdate(namespaceName, resource)
+    } yield ()
+
   private def createOrUpdate(namespaceName: String, resource: Resource)(implicit
-      client: KubernetesClient[F]
-  ): F[Unit] =
+    client: KubernetesClient[F]
+  ) =
     for {
       status <- namespacedApi(namespaceName).createOrUpdate(resource)
       _ = assertEquals(status.isSuccess, true, status.sanitizedReason)
@@ -53,7 +59,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     val resource = sampleResource(resourceName, Map.empty)
     for {
       _      <- retry(createOrUpdate(namespace, resource), actionClue = Some(s"CreateOrUpdate $resourceName"))
-      _      <- createOrUpdate(namespace, modifyResource(resource))
+      _      <- update(namespace, resourceName)
       status <- deleteResource(namespace, resourceName)
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
@@ -136,9 +142,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       (
         watchEvents(expected, name, None),
-        F.sleep(100.millis) *>
-          sendEvents(defaultNamespace, name) *>
-          sendToAnotherNamespace(name)
+        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parTupled
     }
   }
@@ -151,9 +155,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       (
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
-        F.sleep(100.millis) *>
-          sendEvents(defaultNamespace, name) *>
-          sendToAnotherNamespace(name)
+        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parTupled
     }
   }
