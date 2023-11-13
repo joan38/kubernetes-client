@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.effect.{Async, IO}
-import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -41,7 +41,7 @@ class ReplicaSetsApiTest
           template = Option(
             PodTemplateSpec(
               metadata = Option(ObjectMeta(name = Option(resourceName), labels = label)),
-              spec = Option(PodSpec(containers = Seq(Container("test", image = Option("docker")))))
+              spec = Option(TestPodSpec.alpine)
             )
           )
         )

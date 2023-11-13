@@ -1,8 +1,9 @@
 package com.goyeau.kubernetes.client.api
 
+import cats.syntax.all.*
 import cats.effect.{Async, IO}
 import com.goyeau.kubernetes.client.operation.*
-import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.batch.v1.{CronJob, CronJobList, CronJobSpec, JobSpec, JobTemplateSpec}
@@ -40,12 +41,7 @@ class CronJobsApiTest
               JobSpec(
                 template = PodTemplateSpec(
                   metadata = Option(ObjectMeta(name = Option(resourceName))),
-                  spec = Option(
-                    PodSpec(
-                      containers = Seq(Container("test", image = Option("docker"))),
-                      restartPolicy = Option("Never")
-                    )
-                  )
+                  spec = TestPodSpec.alpine.copy(restartPolicy = "Never".some).some
                 )
               )
             )

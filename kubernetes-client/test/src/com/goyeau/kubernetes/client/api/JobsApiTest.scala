@@ -1,12 +1,13 @@
 package com.goyeau.kubernetes.client.api
 
+import cats.syntax.all.*
 import cats.effect.{Async, IO}
-import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.operation.*
+import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.batch.v1.{Job, JobList, JobSpec}
-import io.k8s.api.core.v1._
+import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 
@@ -37,7 +38,9 @@ class JobsApiTest
           template = PodTemplateSpec(
             metadata = Option(ObjectMeta(name = Option(resourceName))),
             spec = Option(
-              PodSpec(containers = Seq(Container("test", image = Option("docker"))), restartPolicy = Option("Never"))
+              TestPodSpec.alpine.copy(
+                restartPolicy = "Never".some
+              )
             )
           )
         )
