@@ -25,7 +25,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
   override protected val extraNamespace = List("anothernamespace-" + defaultNamespace)
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource] with Gettable[F, Resource]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
 
   def sampleResource(resourceName: String, labels: Map[String, String]): Resource
 
@@ -67,7 +67,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     } yield ()
 
   private def createIfMissing(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
-    namespacedApi(namespace).get(resourceName).as(()).recoverWith {
+    getChecked(namespace, resourceName).as(()).recoverWith {
       case err: UnexpectedStatus if err.status == Status.NotFound =>
         for {
           ns <- client.namespaces.get(namespace)
@@ -75,7 +75,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
             s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
           )
           status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
-          _ = assertEquals(status, Status.Ok, status.sanitizedReason)
+          _ = assertEquals(status.isSuccess, true, s"${status.sanitizedReason} should be success")
         } yield ()
     }
 
