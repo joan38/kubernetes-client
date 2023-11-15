@@ -1,5 +1,5 @@
-import mill._
-import mill.scalalib._
+import mill.*
+import mill.scalalib.*
 
 object Dependencies {
   lazy val circe = {
@@ -23,7 +23,7 @@ object Dependencies {
 
   lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.14.2")
 
-  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.76")
+  lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.77")
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.11.0")
 
