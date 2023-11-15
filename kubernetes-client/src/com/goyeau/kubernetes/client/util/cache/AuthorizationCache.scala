@@ -38,8 +38,8 @@ object AuthorizationCache {
               case Some(cached) =>
                 F.realTimeInstant
                   .flatMap { now =>
-                    val shouldRenew =
-                      cached.expirationTimestamp.exists(_.isBefore(now.minusSeconds(refreshBeforeExpiration.toSeconds)))
+                    val minExpiry   = now.plusSeconds(refreshBeforeExpiration.toSeconds)
+                    val shouldRenew = cached.expirationTimestamp.exists(_.isBefore(minExpiry))
                     if (shouldRenew)
                       getAndCacheToken.flatMap {
                         case Some(token) => token.pure[F]
