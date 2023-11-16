@@ -6,11 +6,16 @@ import io.k8s.apimachinery.pkg.api.resource.Quantity
 
 object TestPodSpec {
 
-  val alpine: PodSpec = PodSpec(
+  val alpine: PodSpec = alpine(None)
+
+  def alpine(command: Seq[String]): PodSpec = alpine(command.some)
+  
+  private def alpine(command: Option[Seq[String]]): PodSpec = PodSpec(
     containers = Seq(
       Container(
         name = "test",
         image = "alpine".some,
+        command = command,
         imagePullPolicy = "IfNotPresent".some,
         resources = ResourceRequirements(
           requests = Map(

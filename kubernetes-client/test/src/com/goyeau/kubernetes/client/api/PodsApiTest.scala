@@ -63,32 +63,18 @@ class PodsApiTest
 
   def testPod(podName: String, labels: Map[String, String] = Map.empty): Pod = Pod(
     metadata = Option(ObjectMeta(name = Option(podName), labels = Option(labels))),
-    spec = TestPodSpec.alpine
-      .copy(
-        containers = TestPodSpec.alpine.containers.map { container =>
-          container.copy(
-            command = Option(Seq("sh", "-c", "sleep 120"))
-          )
-        }
-      )
-      .some
+    spec = TestPodSpec.alpine(command = Seq("sh", "-c", "sleep 120")).some
   )
 
   def testPodWithLogs(podName: String, labels: Map[String, String] = Map.empty): Pod = Pod(
     metadata = Option(ObjectMeta(name = Option(podName), labels = Option(labels))),
-    spec = TestPodSpec.alpine
-      .copy(
-        containers = TestPodSpec.alpine.containers.map { container =>
-          container.copy(
-            command = Option(
-              Seq(
-                "sh",
-                "-c",
-                "echo line 1; sleep 1; echo line 2; sleep 2; echo line 3; echo line 4; echo line 5; echo line 6"
-              )
-            )
-          )
-        }
+    spec = TestPodSpec
+      .alpine(command =
+        Seq(
+          "sh",
+          "-c",
+          "echo line 1; sleep 1; echo line 2; sleep 2; echo line 3; echo line 4; echo line 5; echo line 6"
+        )
       )
       .some
   )

@@ -38,9 +38,7 @@ class JobsApiTest
           template = PodTemplateSpec(
             metadata = Option(ObjectMeta(name = Option(resourceName))),
             spec = Option(
-              TestPodSpec.alpine.copy(
-                restartPolicy = "Never".some
-              )
+              TestPodSpec.alpine.copy(restartPolicy = "Never".some)
             )
           )
         )
