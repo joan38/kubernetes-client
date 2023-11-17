@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.operation
 
 import cats.Applicative
-import cats.implicits._
+import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils.retry
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
@@ -54,10 +54,13 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"replace a $resourceName with resource") {
     usingMinikube { implicit client =>
       for {
-        namespaceName    <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName     <- Applicative[F].pure("some-with-resource")
-        _                <- createChecked(namespaceName, resourceName)
-        replacedResource <- retry(replaceWithResource(namespaceName, resourceName), actionClue = Some("Replacing resource with resource"))
+        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        resourceName  <- Applicative[F].pure("some-with-resource")
+        _             <- createChecked(namespaceName, resourceName)
+        replacedResource <- retry(
+          replaceWithResource(namespaceName, resourceName),
+          actionClue = Some("Replacing resource with resource")
+        )
         _ = checkUpdated(replacedResource)
         retrievedResource <- getChecked(namespaceName, resourceName)
         _ = checkUpdated(retrievedResource)

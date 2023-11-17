@@ -3,14 +3,14 @@ import $ivy.`com.goyeau::mill-scalafix::0.3.1`
 import $ivy.`org.typelevel::scalac-options:0.1.4`
 
 import $file.project.Dependencies
-import Dependencies.Dependencies._
+import Dependencies.Dependencies.*
 import $file.project.SwaggerModelGenerator
 import SwaggerModelGenerator.SwaggerModelGenerator
 import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
-import mill._
+import mill.*
 import mill.scalalib.TestModule.Munit
-import mill.scalalib._
+import mill.scalalib.*
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}

@@ -2,17 +2,17 @@ import $file.Model, Model.{Definition, Property}
 import $ivy.`io.circe::circe-core:0.14.0`
 import $ivy.`io.circe::circe-generic:0.14.0`
 import $ivy.`io.circe::circe-parser:0.14.0`
-import mill._
+import mill.*
 import mill.api.Logger
 import mill.define.Sources
-import mill.scalalib._
-import io.circe._
-import io.circe.generic.auto._
-import io.circe.parser._
-import os._
+import mill.scalalib.*
+import io.circe.*
+import io.circe.generic.auto.*
+import io.circe.parser.*
+import os.*
 
 trait SwaggerModelGenerator extends JavaModule {
-  import SwaggerModelGenerator._
+  import SwaggerModelGenerator.*
 
   def swaggerSources: Sources = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
   def allSwaggerSourceFiles: T[Seq[PathRef]] = T {
@@ -164,7 +164,7 @@ object SwaggerModelGenerator {
       if (work.length <= maxLen) {
         lines.append(work)
         work = ""
-      } else {
+      } else
         (2 to 20).flatMap { lookBehind =>
           Seq(' ', ',', '.', ';')
             .flatMap { c =>
@@ -181,7 +181,6 @@ object SwaggerModelGenerator {
             lines.append(work)
             work = ""
         }
-      }
     }
     lines.toList
   }
