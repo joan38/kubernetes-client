@@ -42,7 +42,7 @@ trait MinikubeClientProvider[F[_]] {
   private def deleteNamespace(namespace: String) = kubernetesClient.use { client =>
     client.namespaces.delete(
       namespace,
-      DeleteOptions(gracePeriodSeconds = 0L.some, propagationPolicy = "Background".some).some
+      DeleteOptions(gracePeriodSeconds = 0L.some, propagationPolicy = "Foreground".some).some
     )
   }.void
 
