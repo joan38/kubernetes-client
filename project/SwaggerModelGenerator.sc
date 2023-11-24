@@ -2,17 +2,17 @@ import $file.Model, Model.{Definition, Property}
 import $ivy.`io.circe::circe-core:0.14.0`
 import $ivy.`io.circe::circe-generic:0.14.0`
 import $ivy.`io.circe::circe-parser:0.14.0`
-import mill.*
+import mill._
 import mill.api.Logger
 import mill.define.Sources
-import mill.scalalib.*
-import io.circe.*
-import io.circe.generic.auto.*
-import io.circe.parser.*
-import os.*
+import mill.scalalib._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import os._
 
 trait SwaggerModelGenerator extends JavaModule {
-  import SwaggerModelGenerator.*
+  import SwaggerModelGenerator._
 
   def swaggerSources: Sources = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
   def allSwaggerSourceFiles: T[Seq[PathRef]] = T {
