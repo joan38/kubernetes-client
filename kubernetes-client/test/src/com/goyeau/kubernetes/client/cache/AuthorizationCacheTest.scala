@@ -10,6 +10,7 @@ import org.http4s.{AuthScheme, Credentials}
 import org.http4s.headers.Authorization
 import cats.effect.unsafe.implicits.global
 import java.time.Instant
+import scala.concurrent.duration.*
 
 class AuthorizationCacheTest extends FunSuite {
 
@@ -66,6 +67,21 @@ class AuthorizationCacheTest extends FunSuite {
         token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
       )
       cache    <- AuthorizationCache[IO](retrieve = auth)
+      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
+    } yield obtained.foreach { case (obtained, i) =>
+      assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")))
+    }
+    io.unsafeRunSync()
+  }
+
+  test(s"retrieve the token when it's going to expire within refreshBeforeExpiration") {
+    val io = for {
+      counter <- IO.ref(1)
+      auth = mkAuthorization(
+        expirationTimestamp = IO.realTimeInstant.map(_.plusSeconds(40).some),
+        token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
+      )
+      cache    <- AuthorizationCache[IO](retrieve = auth, refreshBeforeExpiration = 1.minute)
       obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
     } yield obtained.foreach { case (obtained, i) =>
       assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")))
