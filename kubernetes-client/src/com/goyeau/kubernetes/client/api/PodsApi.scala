@@ -312,4 +312,94 @@ private[client] class NamespacedPodsApi[F[_]](
 
   private def convertToString(data: ByteVector) =
     new String(data.toArray, Charset.`UTF-8`.nioCharset)
+
+  /** @param podName
+    *   The pod for which to stream logs.
+    * @param container
+    *   The container for which to stream logs. Defaults to only container if there is one container in the pod.
+    * @param follow
+    *   Follow the log stream of the pod. Defaults to false.
+    * @param insecureSkipTLSVerifyBackend
+    *   indicates that the apiserver should not confirm the validity of the serving certificate of the backend it is
+    *   connecting to. This will make the HTTPS connection between the apiserver and the backend insecure. This means
+    *   the apiserver cannot verify the log data it is receiving came from the real kubelet. If the kubelet is
+    *   configured to verify the apiserver's TLS credentials, it does not mean the connection to the real kubelet is
+    *   vulnerable to a man in the middle attack (e.g. an attacker could not intercept the actual log data coming from
+    *   the real kubelet).
+    * @param limitBytes
+    *   If set, the number of bytes to read from the server before terminating the log output. This may not display a
+    *   complete final line of logging, and may return slightly more or slightly less than the specified limit.
+    * @param pretty
+    *   If 'true', then the output is pretty printed. Defaults to false.
+    * @param previous
+    *   Return previous terminated container logs. Defaults to false.
+    * @param sinceSeconds
+    *   A relative time in seconds before the current time from which to show logs. If this value precedes the time a
+    *   pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be
+    *   returned. Only one of sinceSeconds or sinceTime may be specified.
+    * @param tailLines
+    *   If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation
+    *   of the container or sinceSeconds or sinceTime
+    * @param timestamps
+    *   If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to
+    *   false.
+    * @return
+    */
+  private def logRequest(
+      podName: String,
+      container: Option[String],
+      follow: Boolean,
+      insecureSkipTLSVerifyBackend: Boolean,
+      limitBytes: Option[Long],
+      pretty: Boolean,
+      previous: Boolean,
+      sinceSeconds: Option[Long],
+      tailLines: Option[Long],
+      timestamps: Boolean
+  ): F[Request[F]] = {
+    val uri = (config.server.resolve(resourceUri) / podName / "log")
+      .+??("container" -> container)
+      .+?("follow" -> follow.toString)
+      .+?("insecureSkipTLSVerifyBackend" -> insecureSkipTLSVerifyBackend.toString)
+      .+??("limitBytes" -> limitBytes.map(_.toString))
+      .+?("pretty" -> pretty.toString)
+      .+?("previous" -> previous.toString)
+      .+??("sinceSeconds" -> sinceSeconds.map(_.toString))
+      .+??("tailLines" -> tailLines.map(_.toString))
+      .+?("timestamps" -> timestamps.toString)
+
+    Request[F](method = Method.GET, uri = uri).withOptionalAuthorization(authorization)
+  }
+
+  def log(
+      podName: String,
+      container: Option[String] = None,
+      follow: Boolean = false,
+      insecureSkipTLSVerifyBackend: Boolean = false,
+      limitBytes: Option[Long] = None,
+      pretty: Boolean = false,
+      previous: Boolean = false,
+      sinceSeconds: Option[Long] = None,
+      tailLines: Option[Long] = None,
+      timestamps: Boolean = false
+  ): Stream[F, Response[F]] =
+    fs2.Stream
+      .eval(
+        logRequest(
+          podName,
+          container,
+          follow,
+          insecureSkipTLSVerifyBackend,
+          limitBytes,
+          pretty,
+          previous,
+          sinceSeconds,
+          tailLines,
+          timestamps
+        )
+      )
+      .flatMap { request =>
+        httpClient.stream(request)
+      }
+
 }
