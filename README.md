@@ -211,6 +211,51 @@ kubernetesClient.use { client =>
 }
 ```
 
+### Raw requests
+
+In case a particular K8S API endpoint is not explicitly supported by this library, there is an escape hatch 
+that you can use in order to run a raw request or open a raw WS connection.
+
+Here's an example of how you can get a list of nodes using a raw request: 
+
+```scala
+import cats.effect.*
+import org.http4s.implicits.*
+import com.goyeau.kubernetes.client.*
+import org.http4s.*
+
+val kubernetesClient: KubernetesClient[IO] = ???
+
+val response: IO[(Status, String)] =
+  kubernetesClient
+          .raw.runRequest(
+            Request[IO](
+              uri = uri"/api" / "v1" / "nodes"
+            )
+          )
+          .use { response =>
+            response.bodyText.foldMonoid.compile.lastOrError.map { body =>
+              (response.status, body)
+            }
+          }
+```
+
+Similarly, you can open a WS connection (`org.http4s.jdkhttpclient.WSConnectionHighLevel`):
+
+```scala
+import cats.effect.*
+import org.http4s.implicits.*
+import com.goyeau.kubernetes.client.*
+import org.http4s.*
+import org.http4s.jdkhttpclient.*
+
+val connection: Resource[IO, WSConnectionHighLevel[IO]] =
+  kubernetesClient.raw.connectWS(
+    WSRequest(
+      uri = (uri"/api" / "v1" / "my-custom-thing") +? ("watch" -> "true")
+    )
+  )
+```
 
 ## Development
 
@@ -218,6 +263,50 @@ kubernetesClient.use { client =>
 
  - Java 11 or higher
  - Docker
+
+### IntelliJ
+
+Generate a BSP configuration:
+
+```shell
+./mill mill.bsp.BSP/install
+```
+
+### Compiling
+
+```shell
+./mill kubernetes-client[2.13.10].compile
+```
+
+### Running the tests
+
+All tests:
+
+```shell
+./mill kubernetes-client[2.13.10].test
+```
+
+A specific test:
+
+```shell
+./mill kubernetes-client[2.13.10].test.testOnly 'com.goyeau.kubernetes.client.api.PodsApiTest'
+```
+
+[minikube](https://minikube.sigs.k8s.io/docs/) has to be installed and running.
+
+```shell
+./mill kubernetes-client[2.13.10].compile
+```
+
+### Before opening a PR:
+
+Check and fix formatting:
+
+```shell
+./mill __.style
+```
+
+
 
 
 ## Related projects
