@@ -40,25 +40,29 @@ trait MinikubeClientProvider[F[_]] {
   }.void
 
   private def deleteNamespace(namespace: String) = kubernetesClient.use { client =>
-    client.namespaces.deleteTerminated(
+    client.namespaces.delete(
       namespace,
-      DeleteOptions(gracePeriodSeconds = Some(0L)).some
+      DeleteOptions(gracePeriodSeconds = 0L.some, propagationPolicy = "Foreground".some).some
     )
   }.void
 
-  protected def createNamespaces() = {
-    val ns = defaultNamespace +: extraNamespace.toList
-    println(s"Creating namespaces: $ns")
-    ns.foreach(name => unsafeRunSync(createNamespace(name)))
+  protected def createNamespaces(): Unit = {
+    val ns = defaultNamespace +: extraNamespace
+    unsafeRunSync(
+      logger.info(s"Creating namespaces: $ns") *>
+        ns.traverse_(name => createNamespace(name))
+    )
   }
 
   override def beforeAll(): Unit =
     createNamespaces()
 
   override def afterAll(): Unit = {
-    val ns = defaultNamespace +: extraNamespace.toList
-    println(s"Deleting namespaces: $ns")
-    ns.foreach(name => unsafeRunSync(deleteNamespace(name)))
+    val ns = defaultNamespace +: extraNamespace
+    unsafeRunSync(
+      logger.info(s"Deleting namespaces: $ns") *>
+        ns.traverse_(name => deleteNamespace(name))
+    )
   }
 
   def usingMinikube[T](body: KubernetesClient[F] => F[T]): T =

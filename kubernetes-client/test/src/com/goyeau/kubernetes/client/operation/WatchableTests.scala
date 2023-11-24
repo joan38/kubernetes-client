@@ -180,8 +180,11 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val expected = Set[EventType](EventType.MODIFIED, EventType.DELETED)
 
       for {
-        _ <- retry(createIfMissing(defaultNamespace, name), actionClue = Some(s"createIfMissing ${defaultNamespace}/${name}"))
-        resource        <- getChecked(defaultNamespace, name)
+        _ <- retry(
+          createIfMissing(defaultNamespace, name),
+          actionClue = Some(s"createIfMissing $defaultNamespace/$name")
+        )
+        resource <- getChecked(defaultNamespace, name)
         resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
         _ <- (
           watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
