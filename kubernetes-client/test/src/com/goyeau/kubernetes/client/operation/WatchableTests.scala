@@ -93,41 +93,38 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       })
     def processEvent(
         received: Ref[F, Map[String, Set[EventType]]],
-        signal: SignallingRef[F, Boolean]
-    ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
-      _.flatMap {
+        signal: SignallingRef[F, Boolean],
+        event: Either[String, WatchEvent[Resource]]
+    ): F[Unit] =
+      event match {
         case Right(we) if isExpectedResource(we) =>
-          Stream.eval {
-            for {
-              _ <- received.update(events =>
-                we.`object`.metadata.flatMap(_.namespace) match {
-                  case Some(namespace) =>
-                    val updated = events.get(namespace) match {
-                      case Some(namespaceEvents) => namespaceEvents + we.`type`
-                      case _                     => Set(we.`type`)
-                    }
-                    events.updated(namespace, updated)
-                  case _ =>
-                    val crdNamespace = "customresourcedefinition"
-                    events.updated(crdNamespace, events.getOrElse(crdNamespace, Set.empty) + we.`type`)
-                }
-              )
-              allReceived <- received.get.map(_ == expected)
-              _           <- F.whenA(allReceived)(signal.set(true))
-            } yield ()
-          }
-        case _ => Stream.eval(F.unit)
+          for {
+            _ <- received.update(events =>
+              we.`object`.metadata.flatMap(_.namespace) match {
+                case Some(namespace) =>
+                  val updated = events.get(namespace) match {
+                    case Some(namespaceEvents) => namespaceEvents + we.`type`
+                    case _                     => Set(we.`type`)
+                  }
+                  events.updated(namespace, updated)
+                case _ =>
+                  val crdNamespace = "customresourcedefinition"
+                  events.updated(crdNamespace, events.getOrElse(crdNamespace, Set.empty) + we.`type`)
+              }
+            )
+            allReceived <- received.get.map(_ == expected)
+            _           <- F.whenA(allReceived)(signal.set(true))
+          } yield ()
+        case _ => F.unit
       }
 
     val watchEvents = for {
       signal         <- SignallingRef[F, Boolean](false)
       receivedEvents <- Ref.of(Map.empty[String, Set[EventType]])
       watchStream = watchingNamespace
-        .map(watchApi)
-        .getOrElse(api)
+        .fold(api)(watchApi)
         .watch(resourceVersion = resourceVersion)
-        .through(processEvent(receivedEvents, signal))
-        .evalMap(_ => receivedEvents.get)
+        .evalTap(processEvent(receivedEvents, signal, _))
         .interruptWhen(signal)
       _      <- watchStream.interruptAfter(60.seconds).compile.drain
       events <- receivedEvents.get
@@ -180,8 +177,11 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val expected = Set[EventType](EventType.MODIFIED, EventType.DELETED)
 
       for {
-        _ <- retry(createIfMissing(defaultNamespace, name), actionClue = Some(s"createIfMissing ${defaultNamespace}/${name}"))
-        resource        <- getChecked(defaultNamespace, name)
+        _ <- retry(
+          createIfMissing(defaultNamespace, name),
+          actionClue = Some(s"createIfMissing $defaultNamespace/$name")
+        )
+        resource <- getChecked(defaultNamespace, name)
         resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
         _ <- (
           watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
