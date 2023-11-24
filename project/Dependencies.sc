@@ -10,8 +10,16 @@ lazy val circe = {
   )
 }
 
-lazy val http4s = {
-  val version          = "0.23.30"
+lazy val fs2 = {
+    val version = "3.9.3"
+    Agg(
+      ivy"co.fs2::fs2-core:$version",
+      ivy"co.fs2::fs2-io:$version",
+    )
+  }
+
+  lazy val http4s = {
+    val version          = "0.23.30"
   val jdkClientVersion = "0.10.0"
   Agg(
     ivy"org.http4s::http4s-dsl:$version",

@@ -31,7 +31,7 @@ trait KubernetesClientModule
   )
 
   override def ivyDeps =
-    super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
+    super.ivyDeps() ++ fs2 ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
     (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.3"))
 
