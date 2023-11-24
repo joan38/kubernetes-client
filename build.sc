@@ -35,7 +35,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
   )
 
   override def ivyDeps =
-    super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
+    super.ivyDeps() ++ fs2 ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
     (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
