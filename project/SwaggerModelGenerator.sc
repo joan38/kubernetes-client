@@ -164,7 +164,7 @@ object SwaggerModelGenerator {
       if (work.length <= maxLen) {
         lines.append(work)
         work = ""
-      } else {
+      } else
         (2 to 20).flatMap { lookBehind =>
           Seq(' ', ',', '.', ';')
             .flatMap { c =>
@@ -181,7 +181,6 @@ object SwaggerModelGenerator {
             lines.append(work)
             work = ""
         }
-      }
     }
     lines.toList
   }
