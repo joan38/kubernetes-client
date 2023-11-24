@@ -11,9 +11,10 @@ import com.goyeau.kubernetes.client.operation.*
 import io.circe.{Decoder, Encoder}
 import org.http4s.Request
 import org.http4s.client.Client
+import org.http4s.client.middleware.{RequestLogger, ResponseLogger}
 import org.http4s.headers.Authorization
-import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSRequest}
-import org.http4s.client.websocket.WSClient
+import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient}
+import org.http4s.client.websocket.{WSClient, WSClientHighLevel, WSConnection, WSConnectionHighLevel, WSRequest}
 import org.typelevel.log4cats.Logger
 
 import java.net.http.HttpClient
@@ -78,9 +79,11 @@ class KubernetesClient[F[_]: Async: Logger](
     ).withOptionalAuthorization(authorization)
 
   def customRequest(request: WSRequest): F[WSRequest] =
-    request
-      .copy(uri = config.server.resolve(request.uri))
-      .withOptionalAuthorization(authorization)
+    WSRequest(
+      uri = config.server.resolve(request.uri),
+      headers = request.headers,
+      method = request.method
+    ).withOptionalAuthorization(authorization)
 
 }
 
