@@ -294,10 +294,6 @@ A specific test:
 
 [minikube](https://minikube.sigs.k8s.io/docs/) has to be installed and running.
 
-```shell
-./mill kubernetes-client[2.13.10].compile
-```
-
 ### Before opening a PR:
 
 Check and fix formatting:
