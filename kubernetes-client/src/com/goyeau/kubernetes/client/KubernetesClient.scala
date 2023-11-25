@@ -7,9 +7,7 @@ import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
-import com.goyeau.kubernetes.client.operation.*
 import io.circe.{Decoder, Encoder}
-import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.client.middleware.{RequestLogger, ResponseLogger}
 import org.http4s.headers.Authorization
@@ -59,31 +57,13 @@ class KubernetesClient[F[_]: Async: Logger](
   lazy val ingresses: IngressessApi[F] = new IngressessApi(httpClient, config, authorization)
   lazy val leases: LeasesApi[F]        = new LeasesApi(httpClient, config, authorization)
   lazy val nodes: NodesApi[F]          = new NodesApi(httpClient, config, authorization)
+  lazy val raw: RawApi[F]              = new RawApi[F](httpClient, wsClient, config, authorization)
 
   def customResources[A: Encoder: Decoder, B: Encoder: Decoder](context: CrdContext)(implicit
       listDecoder: Decoder[CustomResourceList[A, B]],
       encoder: Encoder[CustomResource[A, B]],
       decoder: Decoder[CustomResource[A, B]]
   ) = new CustomResourcesApi[F, A, B](httpClient, config, authorization, context)
-
-  def customRequest(
-      request: Request[F]
-  ): F[Request[F]] =
-    Request[F](
-      method = request.method,
-      uri = config.server.resolve(request.uri),
-      httpVersion = request.httpVersion,
-      headers = request.headers,
-      body = request.body,
-      attributes = request.attributes
-    ).withOptionalAuthorization(authorization)
-
-  def customRequest(request: WSRequest): F[WSRequest] =
-    WSRequest(
-      uri = config.server.resolve(request.uri),
-      headers = request.headers,
-      method = request.method
-    ).withOptionalAuthorization(authorization)
 
 }
 
