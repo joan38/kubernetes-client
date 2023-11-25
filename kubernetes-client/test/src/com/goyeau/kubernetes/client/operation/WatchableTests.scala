@@ -7,7 +7,6 @@ import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
-import fs2.{Pipe, Stream}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
