@@ -9,10 +9,9 @@ import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
-import org.http4s.client.middleware.{RequestLogger, ResponseLogger}
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient}
-import org.http4s.client.websocket.{WSClient, WSClientHighLevel, WSConnection, WSConnectionHighLevel, WSRequest}
+import org.http4s.client.websocket.WSClient
 import org.typelevel.log4cats.Logger
 
 import java.net.http.HttpClient
