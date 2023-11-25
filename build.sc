@@ -18,22 +18,27 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.10", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10", "2.12.17")
 trait KubernetesClientModule extends Cross.Module[String] {
   trait Shared
       extends CrossScalaModule
       with CrossValue
       with PlatformScalaModule
-      with TpolecatModule
       with StyleModule
       with GitVersionedPublishModule
       with SwaggerModelGenerator {
 
-    override def scalacOptions =
-      super
-        .scalacOptions()
-        .filterNot(Set("-Xfatal-warnings")) ++
-        (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
+    lazy val jvmVersion       = "11"
+    override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
+    override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
+      scalaVersion() match {
+        case "3.3.1"   => ScalaVersion.V3_3_1
+        case "2.13.10" => ScalaVersion.V2_13_9
+        case "2.12.17" => ScalaVersion.V2_12_13
+      },
+      ScalacOptions.default + release(jvmVersion) + source3 +
+        advancedOption("max-inlines", List("50"), _.isAtLeast(ScalaVersion.V3_0_0)) // ++ fatalWarningOptions
+    )
 
     override def ivyDeps =
       super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
@@ -49,10 +54,11 @@ trait KubernetesClientModule extends Cross.Module[String] {
       versionControl = VersionControl.github("joan38", "kubernetes-client"),
       developers = Seq(Developer("joan38", "Joan Goyeau", "https://github.com/joan38"))
     )
+
   }
 
   trait SharedTestModule extends ScalaModule with TestModule.Munit {
-    override def forkArgs = T { super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2" }
+    override def forkArgs = T(super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2")
     override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
   }
 
