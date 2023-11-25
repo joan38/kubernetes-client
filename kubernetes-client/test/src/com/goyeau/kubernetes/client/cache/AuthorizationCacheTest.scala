@@ -4,22 +4,20 @@ import cats.syntax.all.*
 import cats.effect.*
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationCache, AuthorizationWithExpiration}
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
-import munit.FunSuite
+import com.goyeau.kubernetes.client.TestPlatformSpecific
+import munit.CatsEffectSuite
 import org.http4s.{AuthScheme, Credentials}
 import org.http4s.headers.Authorization
-import cats.effect.unsafe.implicits.global
 import java.time.Instant
 import scala.concurrent.duration.*
 
-class AuthorizationCacheTest extends FunSuite {
+class AuthorizationCacheTest extends CatsEffectSuite {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
 
   private def mkAuthorization(
-      expirationTimestamp: IO[Option[Instant]] = none.pure,
-      token: IO[String] = s"test-token".pure
+      expirationTimestamp: IO[Option[Instant]] = none.pure[IO],
+      token: IO[String] = s"test-token".pure[IO]
   ): IO[AuthorizationWithExpiration] =
     token.flatMap { token =>
       expirationTimestamp.map { expirationTimestamp =>
@@ -31,70 +29,65 @@ class AuthorizationCacheTest extends FunSuite {
     }
 
   test(s"retrieve the token initially") {
-    val io = for {
+    for {
       auth     <- mkAuthorization()
-      cache    <- AuthorizationCache[IO](retrieve = auth.pure)
+      cache    <- AuthorizationCache[IO](retrieve = auth.pure[IO])
       obtained <- cache.get
     } yield assertEquals(obtained, auth.authorization)
-    io.unsafeRunSync()
   }
 
   test(s"fail when cannot retrieve the token initially") {
-    val io = for {
+    for {
       cache    <- AuthorizationCache[IO](retrieve = IO.raiseError(new RuntimeException("test failure")))
       obtained <- cache.get.attempt
-    } yield assert(obtained.isLeft)
-    io.unsafeRunSync()
+    } yield assert(obtained.isLeft)    
   }
 
   test(s"retrieve the token once when no expiration") {
-    val io = for {
+    for {
       counter <- IO.ref(1)
       auth = mkAuthorization(token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i"))
       cache    <- AuthorizationCache[IO](retrieve = auth)
-      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
+      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure[IO]))
     } yield obtained.foreach { case (obtained, _) =>
       assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-1")))
     }
-    io.unsafeRunSync()
   }
 
   test(s"retrieve the token when it's expired") {
-    val io = for {
+    for {
       counter <- IO.ref(1)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTimeInstant.map(_.minusSeconds(10).some),
+        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.minus(10.seconds).toMillis).some),
         token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
       )
       cache    <- AuthorizationCache[IO](retrieve = auth)
-      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
+      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure[IO]))
     } yield obtained.foreach { case (obtained, i) =>
       assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")))
     }
-    io.unsafeRunSync()
   }
 
   test(s"retrieve the token when it's going to expire within refreshBeforeExpiration") {
-    val io = for {
+    for {
       counter <- IO.ref(1)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTimeInstant.map(_.plusSeconds(40).some),
+        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.plus(40.seconds).toMillis).some),
         token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
       )
       cache    <- AuthorizationCache[IO](retrieve = auth, refreshBeforeExpiration = 1.minute)
-      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
+      obtained <- (1 to 5).toList.traverse(i => cache.get.product(i.pure[IO]))
     } yield obtained.foreach { case (obtained, i) =>
       assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")))
     }
-    io.unsafeRunSync()
   }
 
   test(s"fail if cannot retrieve the token when it's expired") {
-    val io = for {
+    for {
       counter    <- IO.ref(1)
       shouldFail <- IO.ref(false)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTimeInstant.map(_.minusSeconds(10).some),
+        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.minus(10.seconds).toMillis).some),
         token = shouldFail.get.flatMap { shouldFail =>
           if (shouldFail) {
             IO.raiseError(new RuntimeException("test failure"))
@@ -104,9 +97,9 @@ class AuthorizationCacheTest extends FunSuite {
         }
       )
       cache          <- AuthorizationCache[IO](retrieve = auth)
-      obtained       <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
+      obtained       <- (1 to 5).toList.traverse(i => cache.get.product(i.pure[IO]))
       _              <- shouldFail.set(true)
-      obtainedFailed <- (1 to 5).toList.traverse(i => cache.get.attempt.product(i.pure))
+      obtainedFailed <- (1 to 5).toList.traverse(i => cache.get.attempt.product(i.pure[IO]))
     } yield {
       obtained.foreach { case (obtained, i) =>
         assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")))
@@ -116,15 +109,14 @@ class AuthorizationCacheTest extends FunSuite {
         assert(obtained.isLeft)
       }
     }
-    io.unsafeRunSync()
   }
 
   test(s"fail if cannot retrieve the token when it's expired, then recover") {
-    val io = for {
+    for {
       counter    <- IO.ref(1)
       shouldFail <- IO.ref(false)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTimeInstant.map(_.minusSeconds(10).some),
+        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.minus(10.seconds).toMillis).some),
         token = shouldFail.get.flatMap { shouldFail =>
           if (shouldFail) {
             IO.raiseError(new RuntimeException("test failure"))
@@ -134,11 +126,11 @@ class AuthorizationCacheTest extends FunSuite {
         }
       )
       cache          <- AuthorizationCache[IO](retrieve = auth)
-      obtained       <- (1 to 5).toList.traverse(i => cache.get.product(i.pure))
+      obtained       <- (1 to 5).toList.traverse(i => cache.get.product(i.pure[IO]))
       _              <- shouldFail.set(true)
-      obtainedFailed <- (1 to 5).toList.traverse(i => cache.get.attempt.product(i.pure))
+      obtainedFailed <- (1 to 5).toList.traverse(i => cache.get.attempt.product(i.pure[IO]))
       _              <- shouldFail.set(false)
-      obtainedAgain  <- (6 to 10).toList.traverse(i => cache.get.attempt.product(i.pure))
+      obtainedAgain  <- (6 to 10).toList.traverse(i => cache.get.attempt.product(i.pure[IO]))
     } yield {
       obtained.foreach { case (obtained, i) =>
         assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")))
@@ -151,7 +143,6 @@ class AuthorizationCacheTest extends FunSuite {
         assertEquals(obtained, Authorization(Credentials.Token(AuthScheme.Bearer, s"test-token-$i")).asRight)
       }
     }
-    io.unsafeRunSync()
   }
 
 }

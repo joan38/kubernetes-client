@@ -10,58 +10,59 @@ import org.http4s.AuthScheme
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
+import fs2.io.process.Processes
+import fs2.io.process.ProcessBuilder
 
 import java.time.Instant
-import scala.sys.process.Process
-import scala.util.control.NonFatal
 
 private[client] object ExecToken {
+  
+  def apply[F[_]: Logger: Processes](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] = {
+      val env = exec.env.getOrElse(Seq.empty).view.map(e => e.name -> e.value).toMap
 
-  def apply[F[_]: Logger](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] =
-    F
-      .blocking {
-        val env = exec.env.getOrElse(Seq.empty).map(e => e.name -> e.value)
-        val cmd = Seq.concat(
-          Seq(exec.command),
-          exec.args.getOrElse(Seq.empty)
-        )
-        Process(cmd, None, env*).!!
+      val processBuilder = ProcessBuilder(
+        command = exec.command, 
+        args = exec.args.getOrElse(List.empty), 
+      ).withExtraEnv(env)
+      
+      processBuilder.spawn[F].use { p =>
+        p.stdout
+          .through(fs2.text.utf8.decode).compile.string
+          .flatMap { output => F.fromEither(decode[ExecCredential](output)) }
+          .flatMap { execCredential =>
+            execCredential.status.token match {
+              case Some(token) =>
+                F
+                  .delay(Instant.parse(execCredential.status.expirationTimestamp))
+                  .adaptError { error =>
+                    new IllegalArgumentException(
+                      s"Failed to parse `.status.expirationTimestamp`: ${execCredential.status.expirationTimestamp}: ${error.getMessage}",
+                      error
+                    )
+                  }
+                  .map { expirationTimestamp =>
+                    AuthorizationWithExpiration(
+                      expirationTimestamp = expirationTimestamp.some,
+                      authorization = Authorization(Token(AuthScheme.Bearer, token))
+                    )
+                  }
+              case None =>
+                F.raiseError[AuthorizationWithExpiration](
+                  new UnsupportedOperationException(
+                    "Missing `.status.token` in the credentials plugin output: client certificate/client key is not supported, token is required"
+                  )
+                )
+            }
+          }
       }
       .onError { case e: IOException =>
         Logger[F].error(
-          s"Failed to execute the credentials plugin: ${exec.command}: ${e.getMessage}.${exec.installHint
+          s"Failed to execute the credentials plugin: ${exec.command}${exec.args.fold("")(_.mkString(" ", " ", ""))}: ${e.getMessage}.${exec.installHint
               .fold("")(hint => s"\n$hint")}"
         )
       }
-      .flatMap { output =>
-        F.fromEither(
-          decode[ExecCredential](output)
-        )
-      }
-      .flatMap { execCredential =>
-        execCredential.status.token match {
-          case Some(token) =>
-            F
-              .delay(Instant.parse(execCredential.status.expirationTimestamp))
-              .adaptError { case NonFatal(error) =>
-                new IllegalArgumentException(
-                  s"Failed to parse `.status.expirationTimestamp`: ${execCredential.status.expirationTimestamp}: ${error.getMessage}",
-                  error
-                )
-              }
-              .map { expirationTimestamp =>
-                AuthorizationWithExpiration(
-                  expirationTimestamp = expirationTimestamp.some,
-                  authorization = Authorization(Token(AuthScheme.Bearer, token))
-                )
-              }
-          case None =>
-            F.raiseError(
-              new UnsupportedOperationException(
-                "Missing `.status.token` in the credentials plugin output: client certificate/client key is not supported, token is required"
-              )
-            )
-        }
-      }
+      
+    }
+      
 
 }

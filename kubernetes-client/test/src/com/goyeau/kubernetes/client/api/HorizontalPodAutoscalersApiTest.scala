@@ -2,9 +2,10 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.autoscaling.v1.{
   CrossVersionObjectReference,
   HorizontalPodAutoscaler,
@@ -12,20 +13,18 @@ import io.k8s.api.autoscaling.v1.{
   HorizontalPodAutoscalerSpec
 }
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 
 class HorizontalPodAutoscalersApiTest
-    extends FunSuite
-    with CreatableTests[IO, HorizontalPodAutoscaler]
-    with GettableTests[IO, HorizontalPodAutoscaler]
-    with ListableTests[IO, HorizontalPodAutoscaler, HorizontalPodAutoscalerList]
-    with ReplaceableTests[IO, HorizontalPodAutoscaler]
-    with DeletableTests[IO, HorizontalPodAutoscaler, HorizontalPodAutoscalerList]
-    with WatchableTests[IO, HorizontalPodAutoscaler]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[HorizontalPodAutoscaler]
+    with GettableTests[HorizontalPodAutoscaler]
+    with ListableTests[HorizontalPodAutoscaler, HorizontalPodAutoscalerList]
+    with ReplaceableTests[HorizontalPodAutoscaler]
+    with DeletableTests[HorizontalPodAutoscaler, HorizontalPodAutoscalerList]
+    with WatchableTests[HorizontalPodAutoscaler]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[HorizontalPodAutoscaler].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): HorizontalPodAutoscalersApi[IO] =

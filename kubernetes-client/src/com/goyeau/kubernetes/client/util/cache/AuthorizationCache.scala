@@ -1,13 +1,14 @@
 package com.goyeau.kubernetes.client.util
 package cache
 
-import cats.effect.Async
+import cats.effect.{Concurrent, Clock}
 import cats.syntax.all.*
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
-import scala.compat.java8.DurationConverters.*
 
 import scala.concurrent.duration.*
+
+import java.time.Instant
 
 private[client] trait AuthorizationCache[F[_]] {
 
@@ -17,11 +18,11 @@ private[client] trait AuthorizationCache[F[_]] {
 
 object AuthorizationCache {
 
-  def apply[F[_]: Logger](
+  def apply[F[_]: Logger: Clock: Concurrent](
       retrieve: F[AuthorizationWithExpiration],
       refreshBeforeExpiration: FiniteDuration = 0.seconds
-  )(implicit F: Async[F]): F[AuthorizationCache[F]] =
-    F.ref(Option.empty[AuthorizationWithExpiration]).map { cache =>
+  ): F[AuthorizationCache[F]] =
+    Concurrent[F].ref(Option.empty[AuthorizationWithExpiration]).map { cache =>
       new AuthorizationCache[F] {
 
         override def get: F[Authorization] = {
@@ -37,9 +38,10 @@ object AuthorizationCache {
           cache.get
             .flatMap {
               case Some(cached) =>
-                F.realTimeInstant
+                Clock[F]
+                  .realTime.map(d => Instant.ofEpochMilli(d.toMillis))
                   .flatMap { now =>
-                    val minExpiry   = now.plus(refreshBeforeExpiration.toJava)
+                    val minExpiry   = now.plusNanos(refreshBeforeExpiration.toNanos)
                     val shouldRenew = cached.expirationTimestamp.exists(_.isBefore(minExpiry))
                     if (shouldRenew)
                       getAndCacheToken.flatMap {
@@ -48,7 +50,7 @@ object AuthorizationCache {
                           val expired = cached.expirationTimestamp.exists(_.isBefore(now))
                           Logger[F]
                             .debug(s"using the cached token (expired: $expired)") >>
-                            F.raiseError[AuthorizationWithExpiration](
+                            Concurrent[F].raiseError[AuthorizationWithExpiration](
                               new IllegalStateException(
                                 s"failed to retrieve a new authorization token, cached token has expired"
                               )
@@ -60,7 +62,7 @@ object AuthorizationCache {
               case None =>
                 getAndCacheToken.flatMap[AuthorizationWithExpiration] {
                   case Some(token) => token.pure[F]
-                  case None        => F.raiseError(new IllegalStateException(s"no authorization token"))
+                  case None        => Concurrent[F].raiseError(new IllegalStateException(s"no authorization token"))
                 }
             }
             .map(_.authorization)

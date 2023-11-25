@@ -1,28 +1,27 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, IO}
+import cats.effect.*
 import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.apps.v1.*
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
-import munit.FunSuite
 
 class ReplicaSetsApiTest
-    extends FunSuite
-    with CreatableTests[IO, ReplicaSet]
-    with GettableTests[IO, ReplicaSet]
-    with ListableTests[IO, ReplicaSet, ReplicaSetList]
-    with ReplaceableTests[IO, ReplicaSet]
-    with DeletableTests[IO, ReplicaSet, ReplicaSetList]
-    with DeletableTerminatedTests[IO, ReplicaSet, ReplicaSetList]
-    with WatchableTests[IO, ReplicaSet]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[ReplicaSet]
+    with GettableTests[ReplicaSet]
+    with ListableTests[ReplicaSet, ReplicaSetList]
+    with ReplaceableTests[ReplicaSet]
+    with DeletableTests[ReplicaSet, ReplicaSetList]
+    with DeletableTerminatedTests[ReplicaSet, ReplicaSetList]
+    with WatchableTests[ReplicaSet]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[ReplicaSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): ReplicaSetsApi[IO] = client.replicaSets

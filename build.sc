@@ -12,12 +12,14 @@ import mill._
 import mill.scalalib._
 import mill.scalajslib._
 import mill.scalanativelib._
+import mill.scalajslib.api.ModuleKind
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
+import coursier.maven.MavenRepository
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10" /* "2.12.17" */)
 trait KubernetesClientModule extends Cross.Module[String] {
   trait Shared
       extends CrossScalaModule
@@ -28,6 +30,14 @@ trait KubernetesClientModule extends Cross.Module[String] {
       with SwaggerModelGenerator {
 
     lazy val jvmVersion       = "11"
+
+    override def repositoriesTask = T.task {
+      super.repositoriesTask() ++ Seq(
+        coursier.Repositories.sonatype("snapshots"), 
+        coursier.Repositories.sonatypeS01("snapshots")
+      )
+    }
+
     override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
     override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
       scalaVersion() match {
@@ -40,7 +50,8 @@ trait KubernetesClientModule extends Cross.Module[String] {
     )
 
     override def ivyDeps =
-      super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
+      super.ivyDeps() ++ http4s.core ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ log4cats.core // ++ java8compat
+      
     override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
       (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
@@ -58,21 +69,28 @@ trait KubernetesClientModule extends Cross.Module[String] {
 
   trait SharedTestModule extends ScalaModule with TestModule.Munit {
     override def forkArgs = T(super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2")
-    override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
+    override def ivyDeps  = super.ivyDeps() ++ tests
   }
 
   object jvm extends Shared {
-    override def ivyDeps = super.ivyDeps() ++ http4sJdkClient
-    object test extends ScalaTests with SharedTestModule
+    override def ivyDeps = super.ivyDeps() ++ http4s.jdkClient
+    object test extends ScalaTests with SharedTestModule {
+      override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.logback
+    }
   }
 
   object js extends Shared with ScalaJSModule {
     def scalaJSVersion = "1.14.0"
-    object test extends ScalaJSTests with SharedTestModule
+    override def ivyDeps = super.ivyDeps() ++ http4s.emberClient ++ scalajsJavaTime
+    object test extends ScalaJSTests with SharedTestModule {
+      override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.jsConsole
+      override def moduleKind = ModuleKind.CommonJSModule
+    }
   }
 
   object native extends Shared with ScalaNativeModule {
     def scalaNativeVersion = "0.4.16"
+    override def ivyDeps = super.ivyDeps() ++ http4s.emberClient
     object test extends ScalaNativeTests with SharedTestModule
   }
 }

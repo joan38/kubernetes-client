@@ -23,10 +23,9 @@ import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
 
-import java.nio.file.Path as JPath
 import scala.concurrent.duration.DurationInt
 
-private[client] class PodsApi[F[_]: Logger](
+private[client] class PodsApi[F[_]: Files: Logger](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
@@ -120,15 +119,6 @@ private[client] class NamespacedPodsApi[F[_]](
     ).withOptionalAuthorization(authorization)
   }
 
-  @deprecated("Use download() which uses fs2.io.file.Path", "0.8.2")
-  def downloadFile(
-      podName: String,
-      sourceFile: JPath,
-      destinationFile: JPath,
-      container: Option[String] = None
-  ): F[(List[StdErr], Option[ErrorOrStatus])] =
-    download(podName, Path.fromNioPath(sourceFile), Path.fromNioPath(destinationFile), container)
-
   def download(
       podName: String,
       sourceFile: Path,
@@ -158,15 +148,6 @@ private[client] class NamespacedPodsApi[F[_]](
         }
       }
     }
-
-  @deprecated("Use upload() which uses fs2.io.file.Path", "0.8.2")
-  def uploadFile(
-      podName: String,
-      sourceFile: JPath,
-      destinationFile: JPath,
-      container: Option[String] = None
-  ): F[(List[StdErr], Option[ErrorOrStatus])] =
-    upload(podName, Path.fromNioPath(sourceFile), Path.fromNioPath(destinationFile), container)
 
   def upload(
       podName: String,

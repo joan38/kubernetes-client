@@ -1,8 +1,9 @@
 package com.goyeau.kubernetes.client
 
-import cats.ApplicativeThrow
+import cats.*
 import cats.data.{NonEmptyList, OptionT}
-import cats.effect.Async
+import cats.effect.{Concurrent, Clock}
+import cats.effect.std.Env
 import cats.syntax.all.*
 import com.comcast.ip4s.{IpAddress, Port}
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationCache, AuthorizationWithExpiration}
@@ -14,7 +15,7 @@ import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
 
-case class KubeConfig[F[_]] private (
+case class KubeConfig[F[_]: Files] private (
     server: Uri,
     authorization: Option[F[Authorization]],
     caCertData: Option[String],
@@ -38,7 +39,7 @@ case class KubeConfig[F[_]] private (
 
   def withDefaultAuthorizationCache(
       refreshTokenBeforeExpiration: FiniteDuration = 5.minutes
-  )(implicit F: Async[F], L: Logger[F]): KubeConfig[F] = {
+  )(implicit F: Concurrent[F], C: Clock[F], L: Logger[F]): KubeConfig[F] = {
     val addCache: F[AuthorizationWithExpiration] => F[F[Authorization]] =
       retrieve => AuthorizationCache(retrieve, refreshTokenBeforeExpiration).map(_.get)
 
@@ -77,7 +78,7 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed)
     *   - KUBERNETES_SERVICE_PORT env variable
     */
-  def standard[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def standard[F[_]: Concurrent: Logger: Files: Env]: F[KubeConfig[F]] =
     findFromEnv
       .orElse(findConfigInHomeDir(none))
       .orElse(findClusterConfig)
@@ -85,20 +86,20 @@ object KubeConfig {
 
   /** Use the file specified in KUBECONFIG env variable, if exists. Uses the 'current-context' specified in the file.
     */
-  def fromEnv[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def fromEnv[F[_]: Concurrent: Logger: Files: Env]: F[KubeConfig[F]] =
     findFromEnv
       .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the configuration from ~/.kube/config, if exists. Uses the 'current-context' specified in the file.
     */
-  def inHomeDir[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def inHomeDir[F[_]: Concurrent: Logger: Files: Env]: F[KubeConfig[F]] =
     findConfigInHomeDir(none)
       .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the configuration from ~/.kube/config, if exists. Uses the provided contextName (will fail if the context
     * does not exist).
     */
-  def inHomeDir[F[_]: Logger](contextName: String)(implicit F: Async[F]): F[KubeConfig[F]] =
+  def inHomeDir[F[_]: Concurrent: Logger: Files: Env](contextName: String): F[KubeConfig[F]] =
     findConfigInHomeDir(contextName.some)
       .getOrRaise(KubeConfigNotFoundError)
 
@@ -110,29 +111,23 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed),
     *   - KUBERNETES_SERVICE_PORT env variable.
     */
-  def cluster[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def cluster[F[_]: Concurrent: Logger: Files: Env]: F[KubeConfig[F]] =
     findClusterConfig
       .getOrRaise(KubeConfigNotFoundError)
 
   /** Read the configuration from the specified file. Uses the provided contextName (will fail if the context does not
     * exist).
     */
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] =
+  def fromFile[F[_]: Concurrent: Logger: Files: Env](kubeconfig: Path): F[KubeConfig[F]] =
     Yamls.fromKubeConfigFile(kubeconfig, None)
 
   /** Read the configuration from the specified file. Uses the 'current-context' specified in the file.
     */
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
+  def fromFile[F[_]: Concurrent: Logger: Files: Env](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
     Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 
-  @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] = fromFile(kubeconfig)
 
-  @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
-    fromFile(kubeconfig, contextName)
-
-  def of[F[_]: ApplicativeThrow](
+  def of[F[_]: ApplicativeThrow: Files](
       server: Uri,
       authorization: Option[F[Authorization]] = None,
       caCertData: Option[String] = None,
@@ -181,9 +176,9 @@ object KubeConfig {
     ApplicativeThrow[F].fromEither(configOrError)
   }
 
-  private def findFromEnv[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  private def findFromEnv[F[_]: Concurrent: Logger: Files: Env]: OptionT[F, KubeConfig[F]] =
     envPath[F](EnvKubeConfig)
-      .flatMapF(checkExists(_))
+      .flatMap(checkExists(_))
       .flatTapNone {
         Logger[F].debug(s"$EnvKubeConfig is not defined, or path does not exist")
       }
@@ -192,29 +187,30 @@ object KubeConfig {
       }
       .semiflatMap(fromFile(_))
 
-  private def findConfigInHomeDir[F[_]: Logger](
+  private def findConfigInHomeDir[F[_]: Concurrent: Logger: Files: Env](
       contextName: Option[String]
-  )(implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  ): OptionT[F, KubeConfig[F]] =
     findHomeDir
       .map(homeDir => homeDir.resolve(KubeConfigDir).resolve(KubeConfigFile))
-      .flatMapF(checkExists(_))
-      .flatTapNone {
-        Logger[F].debug(s"~/$KubeConfigDir/$KubeConfigFile does not exist")
-      }
+      .flatMap(homeDir =>
+        checkExists(homeDir).flatTapNone {
+          Logger[F].debug(s"$homeDir/$KubeConfigDir/$KubeConfigFile does not exist")
+        }
+      )
       .semiflatTap { path =>
         Logger[F].debug(s"using configuration specified in $path")
       }
       .semiflatMap(path => contextName.fold(fromFile(path))(fromFile(path, _)))
 
-  private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  private def findClusterConfig[F[_]: Concurrent: Logger: Files: Env]: OptionT[F, KubeConfig[F]] =
     (
       path(ServiceAccountTokenPath)
-        .flatMapF(checkExists(_))
+        .flatMap(checkExists(_))
         .flatTapNone {
           Logger[F].debug(s"$ServiceAccountTokenPath does not exist")
         },
       path(ServiceAccountCAPath)
-        .flatMapF(checkExists(_))
+        .flatMap(checkExists(_))
         .flatTapNone {
           Logger[F].debug(s"$ServiceAccountCAPath does not exist")
         },
@@ -247,15 +243,23 @@ object KubeConfig {
         )
       }
 
-  private def findHomeDir[F[_]: Logger](implicit F: Async[F]): OptionT[F, Path] =
+  private def findHomeDir[F[_]: Concurrent: Logger: Files: Env]: OptionT[F, Path] =
     OptionT.liftF(
-      Logger[F].debug(s"finding the home directory")
-    ) >>
-      envPath(EnvHome) // if HOME env var is set, use it
-        .flatMapF(checkExists(_))
-        .flatTapNone(
-          Logger[F].debug(s"$EnvHome is not defined, or path does not exist")
+      Logger[F].debug(s"finding home directory")
+    ) *>
+      envPath(EnvHome) // if HOME env var is set, use it      
+        .semiflatTap(homeDir => 
+          Logger[F].debug(s"$EnvHome is defined: $homeDir")
         )
+        .flatTapNone(
+          Logger[F].debug(s"$EnvHome is not defined")
+        )
+        .flatMap(homeDir => 
+          checkExists(homeDir)
+            .flatTapNone(
+              Logger[F].debug(s"path specified in $EnvHome does not exist")
+            )
+        )       
         .orElse {
           // otherwise, if it's a windows machine
           sysProp("os.name")
@@ -264,14 +268,14 @@ object KubeConfig {
               // if HOMEDRIVE and HOMEPATH env vars are set and the path exists, use it
               (env(EnvHomeDrive), envPath(EnvHomePath)).tupled
                 .map { case (homeDrive, homePath) => Path(homeDrive).resolve(homePath) }
-                .flatMapF(checkExists(_))
+                .flatMap(checkExists(_))
                 .flatTapNone(
                   Logger[F].debug(s"$EnvHomeDrive and/or $EnvHomePath is/are not defined, or path does not exist")
                 )
                 .orElse {
                   // otherwise, of USERPROFILE env var is set
                   envPath(EnvUserProfile)
-                    .flatMapF(checkExists(_))
+                    .flatMap(checkExists(_))
                     .flatTapNone(
                       Logger[F].debug(s"$EnvUserProfile is not defined, or path does not exist")
                     )
@@ -279,19 +283,21 @@ object KubeConfig {
             }
         }
 
-  private def sysProp[F[_]](name: String)(implicit F: Async[F]): OptionT[F, String] =
-    OptionT(F.delay(Option(System.getProperty(name)).filterNot(_.isEmpty)))
+  private def sysProp[F[_]: Applicative](name: String): OptionT[F, String] =
+    OptionT.fromOption(
+      Option(System.getProperty(name)).filterNot(_.isEmpty)
+    )
 
-  private def env[F[_]](name: String)(implicit F: Async[F]): OptionT[F, String] =
-    OptionT(F.delay(Option(System.getenv(name)).filterNot(_.isEmpty)))
+  private def env[F[_]: Env: Applicative](name: String): OptionT[F, String] =
+    OptionT(Env[F].get(name)).filterNot(_.isEmpty)    
 
-  private def path[F[_]: Async](path: String): OptionT[F, Path] =
+  private def path[F[_]: Applicative](path: String): OptionT[F, Path] =
     OptionT.pure[F](Path(path))
 
-  private def envPath[F[_]: Async](name: String): OptionT[F, Path] =
+  private def envPath[F[_]: Env: Applicative](name: String): OptionT[F, Path] =
     env(name).map(Path(_))
 
-  private def checkExists[F[_]: Async](path: Path): F[Option[Path]] =
-    Files[F].exists(path).map(if (_) Option(path) else none) // Option.when does not exist in scala 2.12
+  private def checkExists[F[_]: Files: Applicative](path: Path): OptionT[F, Path] =
+    OptionT(Files[F].exists(path).map(if (_) path.some else none)) // Option.when does not exist in scala 2.12
 
 }

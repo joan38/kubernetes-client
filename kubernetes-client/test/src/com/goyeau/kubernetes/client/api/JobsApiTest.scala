@@ -1,29 +1,28 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.syntax.all.*
-import cats.effect.{Async, IO}
+import cats.effect.*
 import com.goyeau.kubernetes.client.operation.*
 import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.batch.v1.{Job, JobList, JobSpec}
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 
 class JobsApiTest
-    extends FunSuite
-    with CreatableTests[IO, Job]
-    with GettableTests[IO, Job]
-    with ListableTests[IO, Job, JobList]
-    with ReplaceableTests[IO, Job]
-    with DeletableTests[IO, Job, JobList]
-    with DeletableTerminatedTests[IO, Job, JobList]
-    with WatchableTests[IO, Job]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[Job]
+    with GettableTests[Job]
+    with ListableTests[Job, JobList]
+    with ReplaceableTests[Job]
+    with DeletableTests[Job, JobList]
+    with DeletableTerminatedTests[Job, JobList]
+    with WatchableTests[Job]
+     {
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   lazy val resourceName: String        = classOf[Job].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): JobsApi[IO] = client.jobs

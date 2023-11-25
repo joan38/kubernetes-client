@@ -1,30 +1,27 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, IO, Sync}
-import cats.implicits.*
+import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.Utils.*
-import com.goyeau.kubernetes.client.operation.MinikubeClientProvider
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.core.v1.{Namespace, NamespaceList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import org.http4s.Status
 import org.http4s.client.UnexpectedStatus
 import munit.Assertions.*
-import munit.FunSuite
 
-class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
+class NamespacesApiTest extends MinikubeClientProvider  {
   import NamespacesApiTest.*
 
-  implicit lazy val F: Async[IO]       = IO.asyncForIO
-  implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   lazy val resourceName: String        = classOf[Namespace].getSimpleName
 
   test("create a namespace") {
     usingMinikube { implicit client =>
       val namespaceName = s"${resourceName.toLowerCase}-ns-create"
-      createChecked[IO](namespaceName).guarantee(client.namespaces.delete(namespaceName).void)
+      createChecked(namespaceName).guarantee(client.namespaces.delete(namespaceName).void)
     }
   }
 
@@ -79,7 +76,7 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
 
   test("get a namespace fail on non existing namespace") {
     intercept[UnexpectedStatus] {
-      usingMinikube(implicit client => getChecked[IO]("non-existing"))
+      usingMinikube(implicit client => getChecked("non-existing"))
     }
   }
 
@@ -158,9 +155,9 @@ class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with Co
 
 object NamespacesApiTest {
 
-  def createChecked[F[_]: Async: Logger](
+  def createChecked(
       namespaceName: String
-  )(implicit client: KubernetesClient[F]): F[Namespace] =
+  )(implicit client: KubernetesClient[IO], logger: Logger[IO]): IO[Namespace] =
     for {
       status <- client.namespaces.create(Namespace(metadata = Option(ObjectMeta(name = Option(namespaceName)))))
       _ = assertEquals(status, Status.Created, s"Namespace '$namespaceName' creation failed.")
@@ -175,13 +172,13 @@ object NamespacesApiTest {
       )
     } yield namespace
 
-  def listChecked[F[_]: Sync](namespaceNames: Seq[String])(implicit client: KubernetesClient[F]): F[NamespaceList] =
+  def listChecked(namespaceNames: Seq[String])(implicit client: KubernetesClient[IO]): IO[NamespaceList] =
     for {
       namespaces <- client.namespaces.list()
       _ = assert(namespaceNames.toSet.subsetOf(namespaces.items.flatMap(_.metadata).flatMap(_.name).toSet))
     } yield namespaces
 
-  def getChecked[F[_]: Sync](namespaceName: String)(implicit client: KubernetesClient[F]): F[Namespace] =
+  def getChecked(namespaceName: String)(implicit client: KubernetesClient[IO]): IO[Namespace] =
     for {
       namespace <- client.namespaces.get(namespaceName)
       _ = assertEquals(namespace.metadata.flatMap(_.name), Some(namespaceName))

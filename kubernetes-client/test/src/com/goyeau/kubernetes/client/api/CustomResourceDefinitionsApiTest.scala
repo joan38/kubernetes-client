@@ -1,32 +1,30 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.Applicative
+import cats.syntax.all.*
 import cats.effect.*
-import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest.*
 import com.goyeau.kubernetes.client.operation.*
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 import munit.Assertions.*
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 
 class CustomResourceDefinitionsApiTest
-    extends FunSuite
-    with CreatableTests[IO, CustomResourceDefinition]
-    with GettableTests[IO, CustomResourceDefinition]
-    with ListableTests[IO, CustomResourceDefinition, CustomResourceDefinitionList]
-    with ReplaceableTests[IO, CustomResourceDefinition]
-    with DeletableTests[IO, CustomResourceDefinition, CustomResourceDefinitionList]
-    with DeletableTerminatedTests[IO, CustomResourceDefinition, CustomResourceDefinitionList]
-    with WatchableTests[IO, CustomResourceDefinition]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[CustomResourceDefinition]
+    with GettableTests[CustomResourceDefinition]
+    with ListableTests[CustomResourceDefinition, CustomResourceDefinitionList]
+    with ReplaceableTests[CustomResourceDefinition]
+    with DeletableTests[CustomResourceDefinition, CustomResourceDefinitionList]
+    with DeletableTerminatedTests[CustomResourceDefinition, CustomResourceDefinitionList]
+    with WatchableTests[CustomResourceDefinition]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[CustomResourceDefinition].getSimpleName
   override val resourceIsNamespaced             = false
   override val watchIsNamespaced: Boolean       = resourceIsNamespaced
@@ -61,17 +59,22 @@ class CustomResourceDefinitionsApiTest
 
   def checkUpdated(updatedResource: CustomResourceDefinition): Unit =
     assertEquals(updatedResource.spec.versions.headOption, versions.copy(served = false).some)
+ 
 
-  override def afterAll(): Unit = {
-    usingMinikube { client =>
-      for {
-        status <- client.customResourceDefinitions.deleteAll(crdLabel)
-        _ = assertEquals(status, Status.Ok, status.sanitizedReason)
-        _ <- logger.info(s"All CRD with label '$crdLabel' are deleted.")
-      } yield ()
-    }
-    super.afterAll()
-  }
+  override def munitFixtures = super.munitFixtures ++ List(
+    ResourceSuiteLocalFixture(
+      name = "crd cleanup",
+      Resource.onFinalize[IO] { 
+          usingMinikube { client =>
+            for {
+              status <- client.customResourceDefinitions.deleteAll(crdLabel)
+              _ = assertEquals(status, Status.Ok, status.sanitizedReason)
+              _ <- logger.info(s"All CRD with label '$crdLabel' are deleted.")
+            } yield ()
+          }
+      }
+    )
+  )
 
   override def namespacedApi(namespaceName: String)(implicit
       client: KubernetesClient[IO]
@@ -140,22 +143,22 @@ object CustomResourceDefinitionsApiTest {
     ).some
   )
 
-  def createChecked[F[_]: Async](
+  def createChecked(
       resourceName: String,
       labels: Map[String, String]
-  )(implicit client: KubernetesClient[F]): F[CustomResourceDefinition] =
+  )(implicit client: KubernetesClient[IO]): IO[CustomResourceDefinition] =
     for {
       status <- client.customResourceDefinitions.create(crd(resourceName, labels))
       _ = assertEquals(status, Status.Created, status.sanitizedReason)
       crd <- getChecked(resourceName)
-      _   <- Sync[F].delay(println(s"CRD '$resourceName' created, labels: $labels"))
+      _   <- IO(println(s"CRD '$resourceName' created, labels: $labels"))
     } yield crd
 
-  def getChecked[F[_]: Async](
+  def getChecked(
       resourceName: String
-  )(implicit client: KubernetesClient[F]): F[CustomResourceDefinition] =
+  )(implicit client: KubernetesClient[IO]): IO[CustomResourceDefinition] =
     for {
-      crdName  <- Applicative[F].pure(crdName(resourceName))
+      crdName  <- IO.pure(crdName(resourceName))
       resource <- client.customResourceDefinitions.get(crdName)
       _ = assertEquals(resource.metadata.flatMap(_.name), Some(crdName))
     } yield resource

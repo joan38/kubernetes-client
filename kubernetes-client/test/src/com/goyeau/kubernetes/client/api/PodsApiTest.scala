@@ -1,9 +1,9 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.syntax.all.*
-import cats.effect.unsafe.implicits.global
-import cats.effect.{Async, IO}
+import cats.effect.*
 import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation.*
@@ -12,27 +12,24 @@ import fs2.{text, Stream}
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1
 import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
-import munit.FunSuite
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.circe.syntax.*
-import java.nio.file.Files as JFiles
 import scala.util.Random
 
 class PodsApiTest
-    extends FunSuite
-    with CreatableTests[IO, Pod]
-    with GettableTests[IO, Pod]
-    with ListableTests[IO, Pod, PodList]
-    with ReplaceableTests[IO, Pod]
-    with DeletableTests[IO, Pod, PodList]
-    with DeletableTerminatedTests[IO, Pod, PodList]
-    with WatchableTests[IO, Pod]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[Pod]
+    with GettableTests[Pod]
+    with ListableTests[Pod, PodList]
+    with ReplaceableTests[Pod]
+    with DeletableTests[Pod, PodList]
+    with DeletableTerminatedTests[Pod, PodList]
+    with WatchableTests[Pod]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+    implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[Pod].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): PodsApi[IO] = client.pods
@@ -83,7 +80,7 @@ class PodsApiTest
 
   test("exec into pod") {
     val podName = s"${resourceName.toLowerCase}-exec"
-    val (messages, status) = kubernetesClient
+    kubernetesClient
       .use { implicit client =>
         for {
           status <- namespacedApi(defaultNamespace).create(testPod(podName))
@@ -96,27 +93,27 @@ class PodsApiTest
           )
         } yield res
       }
-      .unsafeRunSync()
+      .map { case (messages, status) => 
+        assertEquals(status, successStatus)
+        assertNotEquals(messages.length, 0)
 
-    assertEquals(status, successStatus)
-    assertNotEquals(messages.length, 0)
+        val stdOut = messages
+          .collect { case o: StdOut =>
+            o.asString
+          }
+          .mkString("")
+        val expectedDirs = Seq("dev", "etc", "home", "usr", "var").mkString("|").r
 
-    val stdOut = messages
-      .collect { case o: StdOut =>
-        o.asString
+        assert(expectedDirs.findFirstIn(stdOut).isDefined, stdOut)
+
+        val errors = messages.collect { case e: StdErr => e }
+        assertEquals(errors.length, 0)
       }
-      .mkString("")
-    val expectedDirs = Seq("dev", "etc", "home", "usr", "var").mkString("|").r
-
-    assert(expectedDirs.findFirstIn(stdOut).isDefined, stdOut)
-
-    val errors = messages.collect { case e: StdErr => e }
-    assertEquals(errors.length, 0)
   }
 
   test("download a file") {
     val podName = s"${resourceName.toLowerCase}-download"
-    val (messages, status) = kubernetesClient
+    kubernetesClient
       .use { implicit client =>
         for {
           status <- namespacedApi(defaultNamespace).create(testPod(podName))
@@ -130,14 +127,14 @@ class PodsApiTest
           )
         } yield res
       }
-      .unsafeRunSync()
-
-    assertEquals(status, successStatus)
-    assertEquals(messages.length, 0, messages.map(_.asString).mkString(""))
+      .map { case (messages, status) => 
+        assertEquals(status, successStatus)
+        assertEquals(messages.length, 0, messages.map(_.asString).mkString(""))
+      }
   }
 
-  private def tempFile =
-    F.delay(Path.fromNioPath(JFiles.createTempFile("test-file-", ".txt")))
+  private def tempFile: IO[Path] =
+    Files.forIO.createTempFile(dir = none, prefix = "test-file-", suffix = ".txt", permissions = none)
 
   private def fileExists(podName: String, container: Option[String], targetPath: Path)(implicit
       client: KubernetesClient[IO]
@@ -233,7 +230,6 @@ class PodsApiTest
           )
         } yield ()
       }
-      .unsafeRunSync()
   }
 
   test("watch the logs") {
@@ -274,7 +270,6 @@ class PodsApiTest
           )
         } yield ()
       }
-      .unsafeRunSync()
   }
 
   private val podStatusCount = 4

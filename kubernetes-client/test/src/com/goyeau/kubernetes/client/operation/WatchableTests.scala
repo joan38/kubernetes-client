@@ -1,60 +1,57 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.Parallel
-import cats.effect.Ref
-import cats.implicits.*
+import com.goyeau.kubernetes.client.MinikubeClientProvider
+import cats.effect.*
+import cats.syntax.all.*
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
 import fs2.{Pipe, Stream}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 import org.http4s.Status
 
 import scala.concurrent.duration.*
 import scala.language.reflectiveCalls
 import org.http4s.client.UnexpectedStatus
 
-trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
-    extends FunSuite
-    with MinikubeClientProvider[F] {
-  implicit def parallel: Parallel[F]
-
+trait WatchableTests[R <: { def metadata: Option[ObjectMeta] }] { 
+  self: MinikubeClientProvider =>
+  
   val watchIsNamespaced = true
 
   override protected val extraNamespace = List("anothernamespace-" + defaultNamespace)
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Creatable[IO, R]
 
-  def sampleResource(resourceName: String, labels: Map[String, String]): Resource
+  def sampleResource(resourceName: String, labels: Map[String, String]): R
 
-  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
+  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[R]
 
-  def modifyResource(resource: Resource): Resource
+  def modifyResource(resource: R): R
 
-  def deleteApi(namespaceName: String)(implicit client: KubernetesClient[F]): Deletable[F]
+  def deleteApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Deletable[IO]
 
-  def watchApi(namespaceName: String)(implicit client: KubernetesClient[F]): Watchable[F, Resource]
+  def watchApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Watchable[IO, R]
 
-  def api(implicit client: KubernetesClient[F]): Watchable[F, Resource]
+  def api(implicit client: KubernetesClient[IO]): Watchable[IO, R]
 
-  def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Status] =
+  def deleteResource(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[Status] =
     deleteApi(namespaceName).delete(resourceName)
 
-  private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+  private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     for {
       resource <- getChecked(namespaceName, resourceName)
       status   <- createOrUpdate(namespaceName, modifyResource(resource))
       _ = assertEquals(status, Status.Ok)
     } yield ()
 
-  private def createOrUpdate(namespaceName: String, resource: Resource)(implicit
-      client: KubernetesClient[F]
-  ): F[Status] =
+  private def createOrUpdate(namespaceName: String, resource: R)(implicit
+      client: KubernetesClient[IO]
+  ): IO[Status] =
     namespacedApi(namespaceName).createOrUpdate(resource)
 
-  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+  private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     for {
       _ <- retry(
         createIfMissing(namespace, resourceName),
@@ -66,7 +63,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
 
-  private def createIfMissing(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+  private def createIfMissing(namespace: String, resourceName: String)(implicit client: KubernetesClient[IO]) =
     getChecked(namespace, resourceName).as(()).recoverWith {
       case err: UnexpectedStatus if err.status == Status.NotFound =>
         for {
@@ -85,16 +82,16 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       watchingNamespace: Option[String],
       resourceVersion: Option[String] = None
   )(implicit
-      client: KubernetesClient[F]
+      client: KubernetesClient[IO]
   ) = {
-    def isExpectedResource(we: WatchEvent[Resource]): Boolean =
+    def isExpectedResource(we: WatchEvent[R]): Boolean =
       we.`object`.metadata.exists(_.name.exists { name =>
         name == resourceName || name == CustomResourceDefinitionsApiTest.crdName(resourceName)
       })
     def processEvent(
-        received: Ref[F, Map[String, Set[EventType]]],
-        signal: SignallingRef[F, Boolean]
-    ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
+        received: Ref[IO, Map[String, Set[EventType]]],
+        signal: SignallingRef[IO, Boolean]
+    ): Pipe[IO, Either[String, WatchEvent[R]], Unit] =
       _.flatMap {
         case Right(we) if isExpectedResource(we) =>
           Stream.eval {
@@ -113,15 +110,15 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
                 }
               )
               allReceived <- received.get.map(_ == expected)
-              _           <- F.whenA(allReceived)(signal.set(true))
+              _           <- IO.whenA(allReceived)(signal.set(true))
             } yield ()
           }
-        case _ => Stream.eval(F.unit)
+        case _ => Stream.unit
       }
 
     val watchEvents = for {
-      signal         <- SignallingRef[F, Boolean](false)
-      receivedEvents <- Ref.of(Map.empty[String, Set[EventType]])
+      signal         <- SignallingRef[IO, Boolean](false)
+      receivedEvents <- IO.ref(Map.empty[String, Set[EventType]])
       watchStream = watchingNamespace
         .map(watchApi)
         .getOrElse(api)
@@ -139,9 +136,9 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     } yield ()
   }
 
-  private def sendToAnotherNamespace(name: String)(implicit client: KubernetesClient[F]) =
-    F.whenA(watchIsNamespaced)(
-      extraNamespace.map(sendEvents(_, name)).sequence
+  private def sendToAnotherNamespace(name: String)(implicit client: KubernetesClient[IO]) =
+    IO.whenA(watchIsNamespaced)(
+      extraNamespace.traverse_(sendEvents(_, name))
     )
 
   test(s"watch $resourceName events in all namespaces") {
@@ -156,7 +153,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       (
         watchEvents(expected, name, None),
-        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+        IO.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parTupled
     }
   }
@@ -169,7 +166,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
 
       (
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
-        F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+        IO.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parTupled
     }
   }
@@ -188,7 +185,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
         _ <- (
           watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
-          F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+          IO.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
         ).parTupled
       } yield ()
     }

@@ -2,25 +2,24 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 
 class ServiceAccountsApiTest
-    extends FunSuite
-    with CreatableTests[IO, ServiceAccount]
-    with GettableTests[IO, ServiceAccount]
-    with ListableTests[IO, ServiceAccount, ServiceAccountList]
-    with ReplaceableTests[IO, ServiceAccount]
-    with DeletableTests[IO, ServiceAccount, ServiceAccountList]
-    with WatchableTests[IO, ServiceAccount]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[ServiceAccount]
+    with GettableTests[ServiceAccount]
+    with ListableTests[ServiceAccount, ServiceAccountList]
+    with ReplaceableTests[ServiceAccount]
+    with DeletableTests[ServiceAccount, ServiceAccountList]
+    with WatchableTests[ServiceAccount]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[ServiceAccount].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): ServiceAccountsApi[IO] = client.serviceAccounts

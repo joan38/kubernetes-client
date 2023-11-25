@@ -11,6 +11,7 @@ import org.http4s.client.Client
 import org.http4s.client.websocket.WSClient
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
+import fs2.io.process.Processes
 
 class KubernetesClient[F[_]: Async: Logger](
     httpClient: Client[F],
@@ -63,7 +64,7 @@ class KubernetesClient[F[_]: Async: Logger](
 }
 
 object KubernetesClient {
-  def apply[F[_]: Async: Logger](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Logger: Processes](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
     for {
       clients <- PlatformSpecific.clients(config)
       authorization <- Resource.eval {
@@ -97,6 +98,6 @@ object KubernetesClient {
       authorization
     )
 
-  def apply[F[_]: Async: Logger](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Logger: Processes](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
     Resource.eval(config).flatMap(apply(_))
 }

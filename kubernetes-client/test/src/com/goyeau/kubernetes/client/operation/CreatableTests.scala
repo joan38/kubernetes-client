@@ -1,35 +1,33 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.Applicative
-import cats.implicits.*
+import com.goyeau.kubernetes.client.MinikubeClientProvider
+import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.Utils.retry
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 import org.http4s.Status
 
-trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
-    extends FunSuite
-    with MinikubeClientProvider[F] {
+trait CreatableTests[R <: { def metadata: Option[ObjectMeta] }] {
+  self: MinikubeClientProvider =>
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Creatable[F, Resource]
-  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
-  def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): Resource
-  def modifyResource(resource: Resource): Resource
-  def checkUpdated(updatedResource: Resource): Unit
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Creatable[IO, R]
+  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[R]
+  def sampleResource(resourceName: String, labels: Map[String, String] = Map.empty): R
+  def modifyResource(resource: R): R
+  def checkUpdated(updatedResource: R): Unit
 
   def createChecked(namespaceName: String, resourceName: String)(implicit
-      client: KubernetesClient[F]
-  ): F[Resource] = createChecked(namespaceName, resourceName, Map.empty)
+      client: KubernetesClient[IO]
+  ): IO[R] = createChecked(namespaceName, resourceName, Map.empty)
 
   def createChecked(namespaceName: String, resourceName: String, labels: Map[String, String])(implicit
-      client: KubernetesClient[F]
-  ): F[Resource] = {
+      client: KubernetesClient[IO]
+  ): IO[R] = {
     val resource = sampleResource(resourceName, labels)
     for {
       status <- namespacedApi(namespaceName).create(resource)
       _      <- logger.info(s"Created '$resourceName' in $namespaceName namespace: $status")
-      _      <- F.delay(assertEquals(status.isSuccess, true, s"$status should be successful"))
+      _      <- IO.delay(assertEquals(status.isSuccess, true, s"$status should be successful"))
       resource <- retry(
         getChecked(namespaceName, resourceName),
         actionClue = Some(s"Getting after create '$resourceName' in $namespaceName namespace"),
@@ -39,8 +37,8 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   }
 
   def createWithResourceChecked(namespaceName: String, resourceName: String, labels: Map[String, String] = Map.empty)(
-      implicit client: KubernetesClient[F]
-  ): F[Resource] = {
+      implicit client: KubernetesClient[IO]
+  ): IO[R] = {
     val resource = sampleResource(resourceName, labels)
     for {
       _                 <- namespacedApi(namespaceName).createWithResource(resource)
@@ -63,7 +61,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"create a $resourceName") {
     usingMinikube { implicit client =>
       for {
-        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        namespaceName <- IO.pure(resourceName.toLowerCase)
         resourceName = "create-update-resource"
         status <- namespacedApi(namespaceName).createOrUpdate(sampleResource(resourceName))
         _ = assert(Set(Status.Created, Status.Ok).contains(status), status.sanitizedReason)
@@ -75,7 +73,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"create a $resourceName with resource") {
     usingMinikube { implicit client =>
       for {
-        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+        namespaceName <- IO.pure(resourceName.toLowerCase)
         resourceName = "create-update-with-resource"
         _ <- namespacedApi(namespaceName).createOrUpdateWithResource(sampleResource(resourceName))
         _ <- getChecked(namespaceName, resourceName)
@@ -83,7 +81,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     }
   }
 
-  def createOrUpdate(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Unit] =
+  def createOrUpdate(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[Unit] =
     for {
       resource <- getChecked(namespaceName, resourceName)
       status   <- namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
@@ -93,8 +91,8 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"update a $resourceName already created") {
     usingMinikube { implicit client =>
       for {
-        namespaceName   <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName    <- Applicative[F].pure("update-resource")
+        namespaceName   <- IO.pure(resourceName.toLowerCase)
+        resourceName    <- IO.pure("update-resource")
         _               <- createChecked(namespaceName, resourceName)
         _               <- retry(createOrUpdate(namespaceName, resourceName), actionClue = Some("Updating resource"))
         updatedResource <- getChecked(namespaceName, resourceName)
@@ -104,7 +102,7 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   }
 
   def createOrUpdateWithResource(namespaceName: String, resourceName: String)(implicit
-      client: KubernetesClient[F]
+      client: KubernetesClient[IO]
   ) =
     for {
       retrievedResource <- getChecked(namespaceName, resourceName)
@@ -114,8 +112,8 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"update a $resourceName already created with resource") {
     usingMinikube { implicit client =>
       for {
-        namespaceName   <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName    <- Applicative[F].pure("update-with-resource")
+        namespaceName   <- IO.pure(resourceName.toLowerCase)
+        resourceName    <- IO.pure("update-with-resource")
         _               <- createChecked(namespaceName, resourceName)
         updatedResource <- retry(createOrUpdateWithResource(namespaceName, resourceName))
         _ = checkUpdated(updatedResource)
