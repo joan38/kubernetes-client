@@ -1,5 +1,6 @@
 import $ivy.`com.goyeau::mill-git::0.2.5`
 import $ivy.`com.goyeau::mill-scalafix::0.3.1`
+import $ivy.`org.typelevel::scalac-options:0.1.4`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.5`
 import $file.project.Dependencies
 import Dependencies.Dependencies._
@@ -14,6 +15,8 @@ import mill.scalajslib._
 import mill.scalanativelib._
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
+import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
+import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
 object `kubernetes-client` extends Cross[KubernetesClientModule]("3.2.1", "2.13.10", "2.12.17")
 trait KubernetesClientModule extends Cross.Module[String] {
@@ -33,7 +36,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
         (if (isScala3(scalaVersion())) Seq("-language:Scala2", "-Xmax-inlines", "50") else Seq.empty)
 
     override def ivyDeps =
-      super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging
+      super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
     override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
       (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 

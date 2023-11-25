@@ -5,6 +5,7 @@ import cats.effect.Async
 import cats.syntax.all.*
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
+import scala.compat.java8.DurationConverters.*
 
 import scala.concurrent.duration.*
 
@@ -38,9 +39,9 @@ object AuthorizationCache {
               case Some(cached) =>
                 F.realTimeInstant
                   .flatMap { now =>
-                    val shouldRenew =
-                      cached.expirationTimestamp.exists(_.isBefore(now.minusSeconds(refreshBeforeExpiration.toSeconds)))
-                    if (shouldRenew) {
+                    val minExpiry   = now.plus(refreshBeforeExpiration.toJava)
+                    val shouldRenew = cached.expirationTimestamp.exists(_.isBefore(minExpiry))
+                    if (shouldRenew)
                       getAndCacheToken.flatMap {
                         case Some(token) => token.pure[F]
                         case None =>
@@ -53,9 +54,8 @@ object AuthorizationCache {
                               )
                             )
                       }
-                    } else {
+                    else
                       cached.pure[F]
-                    }
                   }
               case None =>
                 getAndCacheToken.flatMap[AuthorizationWithExpiration] {
@@ -68,5 +68,4 @@ object AuthorizationCache {
 
       }
     }
-
 }

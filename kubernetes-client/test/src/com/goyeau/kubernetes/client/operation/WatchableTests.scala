@@ -14,6 +14,7 @@ import org.http4s.Status
 
 import scala.concurrent.duration.*
 import scala.language.reflectiveCalls
+import org.http4s.client.UnexpectedStatus
 
 trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     extends FunSuite
@@ -44,19 +45,19 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   private def update(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
       resource <- getChecked(namespaceName, resourceName)
-      status   <- createOrUpdate(namespaceName, resource)
+      status   <- createOrUpdate(namespaceName, modifyResource(resource))
       _ = assertEquals(status, Status.Ok)
     } yield ()
 
   private def createOrUpdate(namespaceName: String, resource: Resource)(implicit
       client: KubernetesClient[F]
   ): F[Status] =
-    namespacedApi(namespaceName).createOrUpdate(modifyResource(resource))
+    namespacedApi(namespaceName).createOrUpdate(resource)
 
   private def sendEvents(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
     for {
       _ <- retry(
-        create(namespace, resourceName),
+        createIfMissing(namespace, resourceName),
         maxRetries = 30,
         actionClue = Some(s"Creating $resourceName in $namespace ns")
       )
@@ -65,20 +66,24 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       _ = assertEquals(status, Status.Ok, status.sanitizedReason)
     } yield ()
 
-  private def create(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
-    for {
-      ns <- client.namespaces.get(namespace)
-      _ <- logger.info(
-        s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
-      )
-      status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
-      _ = assertEquals(status, Status.Created, status.sanitizedReason)
-    } yield ()
+  private def createIfMissing(namespace: String, resourceName: String)(implicit client: KubernetesClient[F]) =
+    getChecked(namespace, resourceName).as(()).recoverWith {
+      case err: UnexpectedStatus if err.status == Status.NotFound =>
+        for {
+          ns <- client.namespaces.get(namespace)
+          _ <- logger.info(
+            s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
+          )
+          status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
+          _ = assertEquals(status.isSuccess, true, s"${status.sanitizedReason} should be success")
+        } yield ()
+    }
 
   private def watchEvents(
       expected: Map[String, Set[EventType]],
       resourceName: String,
-      watchingNamespace: Option[String]
+      watchingNamespace: Option[String],
+      resourceVersion: Option[String] = None
   )(implicit
       client: KubernetesClient[F]
   ) = {
@@ -120,7 +125,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       watchStream = watchingNamespace
         .map(watchApi)
         .getOrElse(api)
-        .watch()
+        .watch(resourceVersion = resourceVersion)
         .through(processEvent(receivedEvents, signal))
         .evalMap(_ => receivedEvents.get)
         .interruptWhen(signal)
@@ -145,7 +150,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       val expectedEvents = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
       val expected =
         if (watchIsNamespaced)
-          (defaultNamespace +: extraNamespace.toList).map(_ -> expectedEvents).toMap
+          (defaultNamespace +: extraNamespace).map(_ -> expectedEvents).toMap
         else
           Map(defaultNamespace -> expectedEvents)
 
@@ -166,6 +171,26 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
         watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace)),
         F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
       ).parTupled
+    }
+  }
+
+  test(s"watch $resourceName events from a given resourceVersion") {
+    usingMinikube { implicit client =>
+      val name     = s"${resourceName.toLowerCase}-watch-resource-version"
+      val expected = Set[EventType](EventType.MODIFIED, EventType.DELETED)
+
+      for {
+        _ <- retry(
+          createIfMissing(defaultNamespace, name),
+          actionClue = Some(s"createIfMissing $defaultNamespace/$name")
+        )
+        resource <- getChecked(defaultNamespace, name)
+        resourceVersion = resource.metadata.flatMap(_.resourceVersion).get
+        _ <- (
+          watchEvents(Map(defaultNamespace -> expected), name, Some(defaultNamespace), Some(resourceVersion)),
+          F.sleep(100.millis) *> sendEvents(defaultNamespace, name) *> sendToAnotherNamespace(name)
+        ).parTupled
+      } yield ()
     }
   }
 }

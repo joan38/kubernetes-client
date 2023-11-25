@@ -1,8 +1,9 @@
 package com.goyeau.kubernetes.client.api
 
+import cats.syntax.all.*
 import cats.effect.unsafe.implicits.global
 import cats.effect.{Async, IO}
-import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.{KubernetesClient, TestPodSpec}
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation.*
@@ -15,7 +16,8 @@ import munit.FunSuite
 import org.http4s.Status
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import java.nio.file.{Files => JFiles}
+import io.circe.syntax.*
+import java.nio.file.Files as JFiles
 import scala.util.Random
 
 class PodsApiTest
@@ -29,7 +31,6 @@ class PodsApiTest
     with WatchableTests[IO, Pod]
     with ContextProvider {
 
-
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[Pod].getSimpleName
@@ -41,7 +42,7 @@ class PodsApiTest
   override def sampleResource(resourceName: String, labels: Map[String, String]): Pod =
     Pod(
       metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels))),
-      spec = Option(PodSpec(containers = Seq(Container("test", image = Option("docker")))))
+      spec = Option(TestPodSpec.alpine)
     )
 
   private val activeDeadlineSeconds = Option(5L)
@@ -62,17 +63,20 @@ class PodsApiTest
 
   def testPod(podName: String, labels: Map[String, String] = Map.empty): Pod = Pod(
     metadata = Option(ObjectMeta(name = Option(podName), labels = Option(labels))),
-    spec = Option(
-      PodSpec(
-        containers = Seq(
-          Container(
-            "test",
-            image = Option("docker"),
-            command = Option(Seq("sh", "-c", "tail -f /dev/null"))
-          )
+    spec = TestPodSpec.alpine(command = Seq("sh", "-c", "sleep 120")).some
+  )
+
+  def testPodWithLogs(podName: String, labels: Map[String, String] = Map.empty): Pod = Pod(
+    metadata = Option(ObjectMeta(name = Option(podName), labels = Option(labels))),
+    spec = TestPodSpec
+      .alpine(command =
+        Seq(
+          "sh",
+          "-c",
+          "echo line 1; sleep 1; echo line 2; sleep 2; echo line 3; echo line 4; echo line 5; echo line 6"
         )
       )
-    )
+      .some
   )
 
   private val successStatus = Some(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
@@ -232,6 +236,47 @@ class PodsApiTest
       .unsafeRunSync()
   }
 
+  test("watch the logs") {
+    val podName = s"${resourceName.toLowerCase}-logs"
+
+    kubernetesClient
+      .use { implicit client =>
+        for {
+          status <- namespacedApi(defaultNamespace).create(testPodWithLogs(podName))
+          _ = assertEquals(status, Status.Created, status.sanitizedReason)
+          pod <- waitUntilReady(defaultNamespace, podName)
+          container = pod.spec.flatMap(_.containers.headOption.map(_.name))
+          podName   = pod.metadata.get.name.get
+
+          receivedLogs <- namespacedApi(defaultNamespace)
+            .log(
+              podName,
+              container = container,
+              follow = true
+            )
+            .flatMap { response =>
+              response.body
+            }
+            .through(fs2.text.utf8.decode)
+            .compile
+            .foldMonoid
+
+          _ = assertEquals(
+            receivedLogs,
+            """line 1
+              |line 2
+              |line 3
+              |line 4
+              |line 5
+              |line 6
+              |""".stripMargin,
+            s"Received log doesn't match the expected log"
+          )
+        } yield ()
+      }
+      .unsafeRunSync()
+  }
+
   private val podStatusCount = 4
 
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
@@ -242,9 +287,14 @@ class PodsApiTest
         statusCount = pod.status.flatMap(_.conditions.map(_.length)).getOrElse(0)
         _ <-
           if (notStarted || statusCount != podStatusCount)
-            IO.raiseError(new RuntimeException("Pod is not started"))
+            IO.raiseError(
+              new RuntimeException(
+                s"Pod is not started: ${pod.status.flatMap(_.conditions).toSeq.flatten.map(_.asJson.noSpaces).mkString(", ")}"
+              )
+            )
           else IO.unit
       } yield pod,
+      maxRetries = 100,
       actionClue = Some(s"Waiting for pod $name to be ready")
     )
 }

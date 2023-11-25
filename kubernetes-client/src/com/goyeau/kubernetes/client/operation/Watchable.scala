@@ -25,8 +25,11 @@ private[client] trait Watchable[F[_], Resource] {
 
   implicit val parserFacade: Facade[Json] = new CirceSupportParser(None, false).facade
 
-  def watch(labels: Map[String, String] = Map.empty): Stream[F, Either[String, WatchEvent[Resource]]] = {
-    val uri = addLabels(labels, config.server.resolve(watchResourceUri))
+  def watch(
+      labels: Map[String, String] = Map.empty,
+      resourceVersion: Option[String] = None
+  ): Stream[F, Either[String, WatchEvent[Resource]]] = {
+    val uri = addLabels(labels, config.server.resolve(watchResourceUri)).+??("resourceVersion" -> resourceVersion)
     val req = Request[F](GET, uri.withQueryParam("watch", "1"))
       .withOptionalAuthorization(authorization)
     jsonStream(req).map(_.as[WatchEvent[Resource]].leftMap(_.getMessage))

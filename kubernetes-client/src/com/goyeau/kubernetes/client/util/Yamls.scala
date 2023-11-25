@@ -36,10 +36,16 @@ case class AuthInfo(
     `client-key-data`: Option[String] = None,
     exec: Option[AuthInfoExec] = None
 )
+
+case class AuthInfoExecEnv(
+    name: String,
+    value: String
+)
+
 case class AuthInfoExec(
     apiVersion: String,
     command: String,
-    env: Option[Map[String, String]],
+    env: Option[Seq[AuthInfoExecEnv]],
     args: Option[Seq[String]],
     installHint: Option[String],
     provideClusterInfo: Option[Boolean],
@@ -110,6 +116,7 @@ private[client] object Yamls {
 
   implicit lazy val authInfoDecoder: Decoder[AuthInfo]                     = deriveDecoder
   implicit lazy val authInfoEncoder: Encoder.AsObject[AuthInfo]            = deriveEncoder
+  implicit lazy val authInfoExecEnvCodec: Codec[AuthInfoExecEnv]           = deriveCodec
   implicit lazy val authInfoExecCodec: Codec[AuthInfoExec]                 = deriveCodec
   implicit lazy val namedAuthInfoDecoder: Decoder[NamedAuthInfo]           = deriveDecoder
   implicit lazy val namedAuthInfoEncoder: Encoder.AsObject[NamedAuthInfo]  = deriveEncoder

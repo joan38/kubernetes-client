@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.crd
 
-import cats.syntax.either._
-import io.circe.syntax._
+import cats.syntax.either.*
+import io.circe.syntax.*
 import io.circe.{Decoder, Encoder}
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaProps
 

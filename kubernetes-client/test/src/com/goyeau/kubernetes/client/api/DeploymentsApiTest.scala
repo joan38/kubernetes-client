@@ -1,12 +1,12 @@
 package com.goyeau.kubernetes.client.api
 
 import cats.effect.{Async, IO}
-import com.goyeau.kubernetes.client.operation._
-import com.goyeau.kubernetes.client.{IntValue, KubernetesClient, StringValue}
+import com.goyeau.kubernetes.client.operation.*
+import com.goyeau.kubernetes.client.{IntValue, KubernetesClient, StringValue, TestPodSpec}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import io.k8s.api.apps.v1._
-import io.k8s.api.core.v1._
+import io.k8s.api.apps.v1.*
+import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
 import munit.FunSuite
 
@@ -40,7 +40,7 @@ class DeploymentsApiTest
           selector = LabelSelector(matchLabels = label),
           template = PodTemplateSpec(
             metadata = Option(ObjectMeta(name = Option(resourceName), labels = label)),
-            spec = Option(PodSpec(containers = Seq(Container("test", image = Option("docker")))))
+            spec = Option(TestPodSpec.alpine)
           )
         )
       )
