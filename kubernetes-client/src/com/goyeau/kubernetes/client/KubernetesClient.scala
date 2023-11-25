@@ -5,15 +5,12 @@ import cats.data.OptionT
 import cats.effect.*
 import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
-import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
+import org.http4s.client.websocket.WSClient
 import org.http4s.headers.Authorization
-import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
 import org.typelevel.log4cats.Logger
-
-import java.net.http.HttpClient
 
 class KubernetesClient[F[_]: Async: Logger](
     httpClient: Client[F],
@@ -68,11 +65,7 @@ class KubernetesClient[F[_]: Async: Logger](
 object KubernetesClient {
   def apply[F[_]: Async: Logger](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
     for {
-      client <- Resource.eval {
-        Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
-      }
-      httpClient <- JdkHttpClient[F](client)
-      wsClient   <- JdkWSClient[F](client)
+      clients <- PlatformSpecific.clients(config)
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)
@@ -98,8 +91,8 @@ object KubernetesClient {
           .value
       }
     } yield new KubernetesClient(
-      httpClient,
-      wsClient,
+      clients.httpClient,
+      clients.wsClient,
       config,
       authorization
     )

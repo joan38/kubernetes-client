@@ -17,9 +17,11 @@ object Dependencies {
     Agg(
       ivy"org.http4s::http4s-dsl::$version",
       ivy"org.http4s::http4s-circe::$version",
-      ivy"org.http4s::http4s-jdk-http-client:$jdkClientVersion"
+      ivy"org.http4s::http4s-client::$version",
     )
   }
+
+  lazy val http4sJdkClient = Agg(ivy"org.http4s::http4s-jdk-http-client::0.9.1")
 
   lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.15.1")
 

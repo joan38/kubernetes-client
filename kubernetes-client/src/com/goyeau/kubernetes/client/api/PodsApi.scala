@@ -16,9 +16,9 @@ import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s.*
 import org.http4s.client.Client
+import org.http4s.client.websocket.*
 import org.http4s.headers.Authorization
 import org.http4s.implicits.*
-import org.http4s.jdkhttpclient.*
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
@@ -113,13 +113,11 @@ private[client] class NamespacedPodsApi[F[_]](
       ("container" -> container) ++?
       ("command"   -> commands)
 
-    WSRequest(uri, method = Method.POST)
-      .withOptionalAuthorization(authorization)
-      .map { r =>
-        r.copy(
-          headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
-        )
-      }
+    WSRequest(
+      uri,
+      headers = Headers(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io")),
+      method = Method.POST
+    ).withOptionalAuthorization(authorization)
   }
 
   @deprecated("Use download() which uses fs2.io.file.Path", "0.8.2")
