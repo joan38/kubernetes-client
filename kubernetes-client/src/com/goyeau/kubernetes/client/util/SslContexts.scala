@@ -33,25 +33,21 @@ object SslContexts {
     val keyDataStream = config.clientKeyData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val keyFileStream = config.clientKeyFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
-    for {
+    val _ = for {
       keyStream  <- keyDataStream.orElse(keyFileStream)
       certStream <- certDataStream.orElse(certFileStream)
-    } yield {
-      Security.addProvider(new BouncyCastleProvider())
-      val pemKeyPair =
-        new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair]
-      val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
+      _          = Security.addProvider(new BouncyCastleProvider())
+      pemKeyPair = new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair]
+      privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
-      val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
-
-      defaultKeyStore.setKeyEntry(
-        certificate.getSubjectX500Principal.getName,
-        privateKey,
-        config.clientKeyPass.fold(Array.empty[Char])(_.toCharArray),
-        Array(certificate)
-      )
-    }
+      certificateFactory = CertificateFactory.getInstance("X509")
+      certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
+    } yield defaultKeyStore.setKeyEntry(
+      certificate.getSubjectX500Principal.getName,
+      privateKey,
+      config.clientKeyPass.fold(Array.empty[Char])(_.toCharArray),
+      Array(certificate)
+    )
 
     val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
     keyManagerFactory.init(defaultKeyStore, Array.empty)

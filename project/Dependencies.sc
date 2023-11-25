@@ -11,9 +11,17 @@ object Dependencies {
     )
   }
 
+  lazy val fs2 = {
+    val version = "3.9.3"
+    Agg(
+      ivy"co.fs2::fs2-core:$version",
+      ivy"co.fs2::fs2-io:$version",
+    )
+  }
+
   lazy val http4s = {
     val version          = "0.23.24"
-    val jdkClientVersion = "0.5.0"
+    val jdkClientVersion = "0.9.1"
     Agg(
       ivy"org.http4s::http4s-dsl:$version",
       ivy"org.http4s::http4s-circe:$version",
