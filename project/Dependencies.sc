@@ -13,7 +13,7 @@ object Dependencies {
 
   object http4s {
     // private val version          = "0.23.23"
-    private val version          = "0.23.23-90-3d739a9-SNAPSHOT"
+    private val version          = "0.23.23-101-eb5dd80-SNAPSHOT"
     private val jdkClientVersion = "0.9.1"
     val core = Agg(
       ivy"org.http4s::http4s-dsl::$version",

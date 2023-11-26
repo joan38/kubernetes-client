@@ -73,7 +73,7 @@ private[client] object Yamls {
         config.contexts
           .find(_.name == contextName)
           .liftTo[F](new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
-      _ <- Logger[F].debug(s"KubeConfig with context ${namedContext.name}")
+      _ <- Logger[F].debug(s"KubeConfig: $kubeconfig with context ${namedContext.name}")
       context = namedContext.context
 
       namedCluster <-

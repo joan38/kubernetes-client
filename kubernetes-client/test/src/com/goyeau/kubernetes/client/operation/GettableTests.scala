@@ -32,19 +32,15 @@ trait GettableTests[R <: { def metadata: Option[ObjectMeta] }] {
   }
 
   test("fail on non existing namespace") {
-    intercept[UnexpectedStatus] {
-      usingMinikube(implicit client => getChecked("non-existing", "non-existing"))
-    }
+    usingMinikube(implicit client => getChecked("non-existing", "non-existing")).intercept[UnexpectedStatus]
   }
 
   test(s"fail on non existing $resourceName") {
-    intercept[UnexpectedStatus] {
       usingMinikube { implicit client =>
         for {
           namespaceName <- IO.pure(resourceName.toLowerCase)
           _             <- getChecked(namespaceName, "non-existing")
         } yield ()
-      }
+      }.intercept[UnexpectedStatus]
     }
-  }
 }

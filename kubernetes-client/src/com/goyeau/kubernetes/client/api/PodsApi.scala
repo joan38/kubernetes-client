@@ -66,7 +66,7 @@ private[client] object ExecRouting {
   val StatusId: Byte = 3.byteValue
 }
 
-private[client] class NamespacedPodsApi[F[_]](
+private[client] class NamespacedPodsApi[F[_]: Files](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
