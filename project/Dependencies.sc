@@ -53,8 +53,6 @@ object Dependencies {
 
   lazy val java8compat = Agg(ivy"org.scala-lang.modules::scala-java8-compat::1.0.2")
 
-  lazy val scalajsJavaTime = Agg(ivy"io.github.cquiroz::scala-java-time::2.5.0")
-
   lazy val tests = Agg(
     ivy"org.scalameta::munit::1.0.0-M10",
     ivy"org.typelevel::munit-cats-effect::2.0.0-M4"

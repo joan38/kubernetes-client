@@ -8,8 +8,7 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.*
 import org.http4s.{AuthScheme, Credentials}
 import org.http4s.headers.Authorization
-
-import java.time.Instant
+import scala.concurrent.duration.*
 
 private[util] case class JwtPayload(
     exp: Option[Long]
@@ -39,19 +38,19 @@ object AuthorizationParse {
                         .fromEither(decode[JwtPayload](payload))
                         .map(_.exp)
                         .flatMap {
-                          case Some(expiration) => F.delay(Instant.ofEpochSecond(expiration)).map(_.some)
-                          case None             => none[Instant].pure[F]
+                          case Some(expiration) => F.delay(expiration.seconds.some)
+                          case None             => none[FiniteDuration].pure[F]
                         }
 
                     case None =>
-                      none[Instant].pure[F]
+                      none[FiniteDuration].pure[F]
 
                   }
 
               case _ =>
-                none[Instant].pure[F]
+                none[FiniteDuration].pure[F]
             }
-          case _ => none[Instant].pure[F]
+          case _ => none[FiniteDuration].pure[F]
         }).map { expirationTimestamp =>
           AuthorizationWithExpiration(expirationTimestamp = expirationTimestamp, authorization = token)
         }

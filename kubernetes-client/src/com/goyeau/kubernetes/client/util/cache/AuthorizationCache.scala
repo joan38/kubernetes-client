@@ -8,8 +8,6 @@ import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
 
-import java.time.Instant
-
 private[client] trait AuthorizationCache[F[_]] {
 
   def get: F[Authorization]
@@ -39,15 +37,14 @@ object AuthorizationCache {
             .flatMap {
               case Some(cached) =>
                 Clock[F].realTime
-                  .map(d => Instant.ofEpochMilli(d.toMillis))
                   .flatMap { now =>
-                    val minExpiry   = now.plusNanos(refreshBeforeExpiration.toNanos)
-                    val shouldRenew = cached.expirationTimestamp.exists(_.isBefore(minExpiry))
+                    val minExpiry   = now.plus(refreshBeforeExpiration)
+                    val shouldRenew = cached.expirationTimestamp.exists(_ < minExpiry)
                     if (shouldRenew)
                       getAndCacheToken.flatMap {
                         case Some(token) => token.pure[F]
                         case None =>
-                          val expired = cached.expirationTimestamp.exists(_.isBefore(now))
+                          val expired = cached.expirationTimestamp.exists(_ < now)
                           Logger[F]
                             .debug(s"using the cached token (expired: $expired)") >>
                             Concurrent[F].raiseError[AuthorizationWithExpiration](

@@ -81,7 +81,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
 
   object js extends Shared with ScalaJSModule {
     def scalaJSVersion = "1.14.0"
-    override def ivyDeps = super.ivyDeps() ++ http4s.emberClient ++ scalajsJavaTime
+    override def ivyDeps = super.ivyDeps() ++ http4s.emberClient
     object test extends ScalaJSTests with SharedTestModule {
       override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.jsConsole
       override def moduleKind = ModuleKind.CommonJSModule

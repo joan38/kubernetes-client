@@ -13,9 +13,15 @@ import org.typelevel.log4cats.Logger
 import fs2.io.process.Processes
 import fs2.io.process.ProcessBuilder
 
-import java.time.Instant
+import scala.concurrent.duration.FiniteDuration
 
 private[client] object ExecToken {
+
+  private def parseTimestamp[F[_]](s: String): F[FiniteDuration] = {
+    // Instant.parse(s)
+    ???
+  }
+
 
   def apply[F[_]: Logger: Processes](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] = {
     val env = exec.env.getOrElse(Seq.empty).view.map(e => e.name -> e.value).toMap
@@ -36,8 +42,7 @@ private[client] object ExecToken {
           .flatMap { execCredential =>
             execCredential.status.token match {
               case Some(token) =>
-                F
-                  .delay(Instant.parse(execCredential.status.expirationTimestamp))
+                parseTimestamp[F](execCredential.status.expirationTimestamp)
                   .adaptError { error =>
                     new IllegalArgumentException(
                       s"Failed to parse `.status.expirationTimestamp`: ${execCredential.status.expirationTimestamp}: ${error.getMessage}",

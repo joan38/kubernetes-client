@@ -8,7 +8,6 @@ import com.goyeau.kubernetes.client.TestPlatformSpecific
 import munit.CatsEffectSuite
 import org.http4s.{AuthScheme, Credentials}
 import org.http4s.headers.Authorization
-import java.time.Instant
 import scala.concurrent.duration.*
 
 class AuthorizationCacheTest extends CatsEffectSuite {
@@ -16,7 +15,7 @@ class AuthorizationCacheTest extends CatsEffectSuite {
   implicit lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
 
   private def mkAuthorization(
-      expirationTimestamp: IO[Option[Instant]] = none.pure[IO],
+      expirationTimestamp: IO[Option[FiniteDuration]] = none.pure[IO],
       token: IO[String] = s"test-token".pure[IO]
   ): IO[AuthorizationWithExpiration] =
     token.flatMap { token =>
@@ -58,7 +57,7 @@ class AuthorizationCacheTest extends CatsEffectSuite {
     for {
       counter <- IO.ref(1)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.minus(10.seconds).toMillis).some),
+        expirationTimestamp = IO.realTime.map(_.minus(10.seconds).some),
         token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
       )
       cache    <- AuthorizationCache[IO](retrieve = auth)
@@ -72,7 +71,7 @@ class AuthorizationCacheTest extends CatsEffectSuite {
     for {
       counter <- IO.ref(1)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.plus(40.seconds).toMillis).some),
+        expirationTimestamp = IO.realTime.map(_.plus(40.seconds).some),
         token = counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
       )
       cache    <- AuthorizationCache[IO](retrieve = auth, refreshBeforeExpiration = 1.minute)
@@ -87,7 +86,7 @@ class AuthorizationCacheTest extends CatsEffectSuite {
       counter    <- IO.ref(1)
       shouldFail <- IO.ref(false)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.minus(10.seconds).toMillis).some),
+        expirationTimestamp = IO.realTime.map(_.minus(10.seconds).some),
         token = shouldFail.get.flatMap { shouldFail =>
           if (shouldFail) {
             IO.raiseError(new RuntimeException("test failure"))
@@ -116,7 +115,7 @@ class AuthorizationCacheTest extends CatsEffectSuite {
       counter    <- IO.ref(1)
       shouldFail <- IO.ref(false)
       auth = mkAuthorization(
-        expirationTimestamp = IO.realTime.map(d => Instant.ofEpochMilli(d.minus(10.seconds).toMillis).some),
+        expirationTimestamp = IO.realTime.map(_.minus(10.seconds).some),
         token = shouldFail.get.flatMap { shouldFail =>
           if (shouldFail) {
             IO.raiseError(new RuntimeException("test failure"))
