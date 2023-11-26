@@ -5,7 +5,7 @@ import cats.effect.syntax.all.*
 import cats.effect.*
 import com.goyeau.kubernetes.client.KubeConfig
 import scodec.bits.ByteVector
-import fs2.io.net.tls.{S2nConfig, TLSContext, CertChainAndKey}
+import fs2.io.net.tls.{CertChainAndKey, S2nConfig, TLSContext}
 import fs2.io.net.Network
 import fs2.io.file.{Files, Path}
 
@@ -29,54 +29,59 @@ private[client] object TlsContexts {
       keyBytes  = keyDataBytes.orElse(keyFileBytes)
       certBytes = certDataBytes.orElse(certFileBytes)
       caBytes   = caDataBytes.orElse(caFileBytes)
-      _ <- Sync[F].raiseWhen(config.clientKeyPass.nonEmpty)(new IllegalArgumentException("do we support client key password?")).toResource
-      builder = if (keyBytes.nonEmpty || certBytes.nonEmpty || caBytes.nonEmpty) {
-                  var builder = 
-                    S2nConfig.builder
-                      .withCipherPreferences("20170210") // https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#security-policies
+      _ <- Sync[F]
+        .raiseWhen(config.clientKeyPass.nonEmpty)(new IllegalArgumentException("do we support client key password?"))
+        .toResource
+      builder =
+        if (keyBytes.nonEmpty || certBytes.nonEmpty || caBytes.nonEmpty) {
+          var builder =
+            S2nConfig.builder
+              .withCipherPreferences(
+                "20170210"
+              ) // https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#security-policies
 
-                  builder = (certBytes, keyBytes).tupled.fold(builder) {
-                    case (certBytes, keyBytes) => 
-                      println(s"setting cert and keys:\n${certBytes.decodeAscii.toOption.get},\n${keyBytes.decodeAscii.toOption.get}")
-                      builder.withCertChainAndKeysToStore(
-                        List(
-                          CertChainAndKey(
-                            chainPem = certBytes,
-                            privateKeyPem = keyBytes,
-                          )
-                        )
-                      )
-                  }         
-                  builder = caBytes.fold(builder) { caBytes =>
-                    println(s"setting ca:\n$caBytes")
-                    builder.withPemsToTrustStore(
-                      List(
-                        caBytes
-                      )
-                    )
-                  }
-                    //   def withWipedTrustStore: Builder
-                    //   def withSendBufferSize(size: Int): Builder
-                    //   def withVerifyHostCallback(cb: String => SyncIO[Boolean]): Builder
-                    //   def withDisabledX509Verification: Builder
-                    //   def withMaxCertChainDepth(maxDepth: Short): Builder
-                    //   def withDHParams(dhparams: String): Builder
-                    //   def withCipherPreferences(version: String): Builder
-                  builder.some
-                } else
-                  none
+          builder = (certBytes, keyBytes).tupled.fold(builder) { case (certBytes, keyBytes) =>
+            println(
+              s"setting cert and keys:\n${certBytes.decodeAscii.toOption.get},\n${keyBytes.decodeAscii.toOption.get}"
+            )
+            builder.withCertChainAndKeysToStore(
+              List(
+                CertChainAndKey(
+                  chainPem = certBytes,
+                  privateKeyPem = keyBytes
+                )
+              )
+            )
+          }
+          builder = caBytes.fold(builder) { caBytes =>
+            println(s"setting ca:\n$caBytes")
+            builder.withPemsToTrustStore(
+              List(
+                caBytes
+              )
+            )
+          }
+          //   def withWipedTrustStore: Builder
+          //   def withSendBufferSize(size: Int): Builder
+          //   def withVerifyHostCallback(cb: String => SyncIO[Boolean]): Builder
+          //   def withDisabledX509Verification: Builder
+          //   def withMaxCertChainDepth(maxDepth: Short): Builder
+          //   def withDHParams(dhparams: String): Builder
+          //   def withCipherPreferences(version: String): Builder
+          builder.some
+        } else
+          none
       _ = println(s"builder: $builder")
       result <- builder match {
-                  case Some(builder) => builder.build[F].map(_.some)
-                  case None => none.pure[F].toResource
-                }
+        case Some(builder) => builder.build[F].map(_.some)
+        case None          => none.pure[F].toResource
+      }
     } yield result
-      
 
-  private def decodeString[F[_]: Sync](s: fs2.Stream[F, Byte]): F[String] = 
+  private def decodeString[F[_]: Sync](s: fs2.Stream[F, Byte]): F[String] =
     s.through(fs2.text.utf8.decode).compile.string
 
-  private def decodeByteVector[F[_]: Sync](s: fs2.Stream[F, Byte]): F[ByteVector] = 
+  private def decodeByteVector[F[_]: Sync](s: fs2.Stream[F, Byte]): F[ByteVector] =
     s.compile.to(ByteVector)
 
   private def decodeBase64[F[_]: Sync](data: String): fs2.Stream[F, Byte] =
@@ -89,14 +94,14 @@ private[client] object TlsContexts {
     data.traverse { data =>
       decodeString(
         decodeBase64(data)
-      )      
+      )
     }
 
   private def decodeBase64ByteVector[F[_]: Sync](data: Option[String]): F[Option[ByteVector]] =
     data.traverse { data =>
       decodeByteVector(
         decodeBase64(data)
-      )      
+      )
     }
 
   private def readFileString[F[_]: Sync: Files](path: Option[Path]): F[Option[String]] =
@@ -104,6 +109,5 @@ private[client] object TlsContexts {
 
   private def readFileByteVector[F[_]: Sync: Files](path: Option[Path]): F[Option[ByteVector]] =
     path.traverse(path => decodeByteVector(Files[F].readAll(path)))
-
 
 }

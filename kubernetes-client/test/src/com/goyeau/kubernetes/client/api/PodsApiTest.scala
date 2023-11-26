@@ -26,10 +26,9 @@ class PodsApiTest
     with ReplaceableTests[Pod]
     with DeletableTests[Pod, PodList]
     with DeletableTerminatedTests[Pod, PodList]
-    with WatchableTests[Pod]
-     {
+    with WatchableTests[Pod] {
 
-    implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[Pod].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): PodsApi[IO] = client.pods
@@ -93,8 +92,7 @@ class PodsApiTest
           )
         } yield res
       }
-      .map { case (messages, status) => 
-        assertEquals(status, successStatus)
+      .map { case (messages, status) =>
         assertNotEquals(messages.length, 0)
 
         val stdOut = messages
@@ -108,6 +106,8 @@ class PodsApiTest
 
         val errors = messages.collect { case e: StdErr => e }
         assertEquals(errors.length, 0)
+
+        assertEquals(status, successStatus)
       }
   }
 
@@ -127,7 +127,7 @@ class PodsApiTest
           )
         } yield res
       }
-      .map { case (messages, status) => 
+      .map { case (messages, status) =>
         assertEquals(status, successStatus)
         assertEquals(messages.length, 0, messages.map(_.asString).mkString(""))
       }

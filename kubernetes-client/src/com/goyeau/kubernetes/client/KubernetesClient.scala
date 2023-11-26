@@ -101,6 +101,8 @@ object KubernetesClient {
       authorization
     )
 
-  def apply[F[_]: Async: Files: Logger: Network: Processes](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Files: Logger: Network: Processes](
+      config: F[KubeConfig[F]]
+  ): Resource[F, KubernetesClient[F]] =
     Resource.eval(config).flatMap(apply(_))
 }

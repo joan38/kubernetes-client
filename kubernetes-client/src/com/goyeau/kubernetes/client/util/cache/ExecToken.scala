@@ -21,7 +21,6 @@ private[client] object ExecToken {
     java.time.Instant.parse(s).toEpochMilli.milliseconds
   }
 
-
   def apply[F[_]: Logger: Processes](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] = {
     val env = exec.env.getOrElse(Seq.empty).view.map(e => e.name -> e.value).toMap
 
