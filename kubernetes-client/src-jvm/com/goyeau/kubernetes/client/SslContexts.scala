@@ -1,4 +1,4 @@
-package com.goyeau.kubernetes.client.util
+package com.goyeau.kubernetes.client
 import java.io.{ByteArrayInputStream, File, FileInputStream, InputStreamReader}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.{KeyStore, SecureRandom, Security}
@@ -11,7 +11,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 import scala.jdk.CollectionConverters.*
 
-object SslContexts {
+private[client] object SslContexts {
   private val TrustStoreSystemProperty         = "javax.net.ssl.trustStore"
   private val TrustStorePasswordSystemProperty = "javax.net.ssl.trustStorePassword"
   private val KeyStoreSystemProperty           = "javax.net.ssl.keyStore"
