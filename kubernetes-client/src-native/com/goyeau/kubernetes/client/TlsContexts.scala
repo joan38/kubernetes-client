@@ -31,7 +31,7 @@ private[client] object TlsContexts {
       caBytes   = caDataBytes.orElse(caFileBytes)
       _ <- Sync[F].raiseWhen(config.clientKeyPass.nonEmpty)(new IllegalArgumentException("do we support client key password?")).toResource
       builder = if (keyBytes.nonEmpty || certBytes.nonEmpty || caBytes.nonEmpty) {
-                  var builder = S2nConfig.builder
+                  var builder = S2nConfig.builder.withCipherPreferences("default_tls13")
 
                   builder = (certBytes, keyBytes).tupled.fold(builder) {
                     case (certBytes, keyBytes) => 
