@@ -19,14 +19,9 @@ private[client] class RawApi[F[_]](
   def runRequest(
       request: Request[F]
   ): Resource[F, Response[F]] =
-    Request[F](
-      method = request.method,
-      uri = config.server.resolve(request.uri),
-      httpVersion = request.httpVersion,
-      headers = request.headers,
-      body = request.body,
-      attributes = request.attributes
-    ).withOptionalAuthorization(authorization)
+    request
+      .withUri(config.server.resolve(request.uri))
+      .withOptionalAuthorization(authorization)
       .toResource
       .flatMap(httpClient.run)
 

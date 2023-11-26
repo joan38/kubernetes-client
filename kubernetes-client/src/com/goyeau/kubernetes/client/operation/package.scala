@@ -4,8 +4,8 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import cats.{Applicative, FlatMap}
 import org.http4s.client.Client
-import org.http4s.client.websocket.WSRequest
 import org.http4s.headers.Authorization
+import org.http4s.client.websocket.WSRequest
 import org.http4s.{EntityDecoder, Request, Response}
 
 package object operation {

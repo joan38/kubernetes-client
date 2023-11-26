@@ -11,6 +11,14 @@ object Dependencies {
     )
   }
 
+  lazy val fs2 = {
+    val version = "3.9.3"
+    Agg(
+      ivy"co.fs2::fs2-core::$version",
+      ivy"co.fs2::fs2-io::$version",
+    )
+  }
+
   object http4s {
     // private val version          = "0.23.23"
     private val version          = "0.23.23-101-eb5dd80-SNAPSHOT"
@@ -34,7 +42,7 @@ object Dependencies {
     private val version  = "2.6.0"
 
     val core = Agg(ivy"org.typelevel::log4cats-core:2.6.0")
-    
+
     val logback = Agg(
       ivy"org.typelevel::log4cats-slf4j:2.6.0",
       ivy"ch.qos.logback:logback-classic:1.4.11"
@@ -42,7 +50,7 @@ object Dependencies {
 
     val jsConsole = Agg(ivy"org.typelevel::log4cats-js-console::2.6.0")
   }
-  
+
   lazy val java8compat = Agg(ivy"org.scala-lang.modules::scala-java8-compat::1.0.2")
 
   lazy val scalajsJavaTime = Agg(ivy"io.github.cquiroz::scala-java-time::2.5.0")

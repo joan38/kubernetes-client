@@ -22,7 +22,7 @@ import coursier.maven.MavenRepository
 object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10" /* "2.12.17" */)
 trait KubernetesClientModule extends Cross.Module[String] {
   trait Shared
-      extends CrossScalaModule
+    extends CrossScalaModule
       with CrossValue
       with PlatformScalaModule
       with StyleModule
@@ -33,7 +33,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
 
     override def repositoriesTask = T.task {
       super.repositoriesTask() ++ Seq(
-        coursier.Repositories.sonatype("snapshots"), 
+        coursier.Repositories.sonatype("snapshots"),
         coursier.Repositories.sonatypeS01("snapshots")
       )
     }
@@ -50,8 +50,8 @@ trait KubernetesClientModule extends Cross.Module[String] {
     )
 
     override def ivyDeps =
-      super.ivyDeps() ++ http4s.core ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ log4cats.core // ++ java8compat
-      
+      super.ivyDeps() ++ fs2 ++ http4s.core ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ log4cats.core // ++ java8compat
+
     override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
       (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
