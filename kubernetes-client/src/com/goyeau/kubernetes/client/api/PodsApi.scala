@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, Resource}
+import cats.effect.Async
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.goyeau.kubernetes.client.KubeConfig
@@ -17,7 +17,6 @@ import io.k8s.api.core.v1.{Pod, PodList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.Status
 import org.http4s.*
 import org.http4s.client.Client
-import org.http4s.client.websocket.*
 import org.http4s.headers.Authorization
 import org.http4s.implicits.*
 import org.http4s.client.websocket.WSClient
@@ -248,6 +247,12 @@ private[client] class NamespacedPodsApi[F[_]: Files](
         //
         // This will be solved in a later version of the http4s (core or jdk).
         case e: java.io.IOException if e.getMessage == "closed output" => none
+      }
+      .recover {
+        // Temporary hack to stop ember streams from exploding.        
+        //
+        // This will hopefully be solved in a later version of the http4s (ember).
+        case e: Exception if e.getMessage == "Reached End Of Stream" => none
       }
       .unNone
 

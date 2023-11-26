@@ -73,7 +73,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
   }
 
   object jvm extends Shared {
-    override def ivyDeps = super.ivyDeps() ++ http4s.jdkClient
+    override def ivyDeps = super.ivyDeps() ++ http4s.jdkClient ++ http4s.emberClient
     object test extends ScalaTests with SharedTestModule {
       override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.logback
     }

@@ -63,7 +63,10 @@ case class ExecCredentialStatus(
 
 private[client] object Yamls {
 
-  def fromKubeConfigFile[F[_]: Concurrent: Logger: Files](kubeconfig: Path, contextMaybe: Option[String]): F[KubeConfig[F]] =
+  def fromKubeConfigFile[F[_]: Concurrent: Logger: Files](
+      kubeconfig: Path,
+      contextMaybe: Option[String]
+  ): F[KubeConfig[F]] =
     for {
       configString <- Text.readFile(kubeconfig)
       configJson   <- Concurrent[F].fromEither(parse(configString))

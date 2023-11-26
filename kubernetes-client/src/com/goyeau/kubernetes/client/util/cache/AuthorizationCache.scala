@@ -1,7 +1,7 @@
 package com.goyeau.kubernetes.client.util
 package cache
 
-import cats.effect.{Concurrent, Clock}
+import cats.effect.{Clock, Concurrent}
 import cats.syntax.all.*
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
@@ -38,8 +38,8 @@ object AuthorizationCache {
           cache.get
             .flatMap {
               case Some(cached) =>
-                Clock[F]
-                  .realTime.map(d => Instant.ofEpochMilli(d.toMillis))
+                Clock[F].realTime
+                  .map(d => Instant.ofEpochMilli(d.toMillis))
                   .flatMap { now =>
                     val minExpiry   = now.plusNanos(refreshBeforeExpiration.toNanos)
                     val shouldRenew = cached.expirationTimestamp.exists(_.isBefore(minExpiry))

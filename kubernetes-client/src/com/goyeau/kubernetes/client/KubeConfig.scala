@@ -2,7 +2,7 @@ package com.goyeau.kubernetes.client
 
 import cats.*
 import cats.data.{NonEmptyList, OptionT}
-import cats.effect.{Concurrent, Clock}
+import cats.effect.{Clock, Concurrent}
 import cats.effect.std.Env
 import cats.syntax.all.*
 import com.comcast.ip4s.{IpAddress, Port}
@@ -126,7 +126,6 @@ object KubeConfig {
   def fromFile[F[_]: Concurrent: Logger: Files: Env](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
     Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 
-
   def of[F[_]: ApplicativeThrow: Files](
       server: Uri,
       authorization: Option[F[Authorization]] = None,
@@ -247,19 +246,17 @@ object KubeConfig {
     OptionT.liftF(
       Logger[F].debug(s"finding home directory")
     ) *>
-      envPath(EnvHome) // if HOME env var is set, use it      
-        .semiflatTap(homeDir => 
-          Logger[F].debug(s"$EnvHome is defined: $homeDir")
-        )
+      envPath(EnvHome) // if HOME env var is set, use it
+        .semiflatTap(homeDir => Logger[F].debug(s"$EnvHome is defined: $homeDir"))
         .flatTapNone(
           Logger[F].debug(s"$EnvHome is not defined")
         )
-        .flatMap(homeDir => 
+        .flatMap(homeDir =>
           checkExists(homeDir)
             .flatTapNone(
               Logger[F].debug(s"path specified in $EnvHome does not exist")
             )
-        )       
+        )
         .orElse {
           // otherwise, if it's a windows machine
           sysProp("os.name")
@@ -289,7 +286,7 @@ object KubeConfig {
     )
 
   private def env[F[_]: Env: Applicative](name: String): OptionT[F, String] =
-    OptionT(Env[F].get(name)).filterNot(_.isEmpty)    
+    OptionT(Env[F].get(name)).filterNot(_.isEmpty)
 
   private def path[F[_]: Applicative](path: String): OptionT[F, Path] =
     OptionT.pure[F](Path(path))

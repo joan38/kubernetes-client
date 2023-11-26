@@ -51,22 +51,25 @@ private[client] class NamespacedSecretsApi[F[_]](
   def createOrUpdateEncode(resource: Secret): F[Status] =
     encode(resource).flatMap(createOrUpdate)
 
-  private def encode(resource: Secret): F[Secret] = {
+  private def encode(resource: Secret): F[Secret] =
     resource.data.fold(
       resource.pure[F]
-    ) { data => 
-      data.toSeq.traverse { case (k, v) => 
-        fs2.Stream.emit(v).covary[F]
-          .through(fs2.text.utf8.encode)
-          .through(fs2.text.base64.encode)
-          .foldMonoid
-          .compile
-          .lastOrError
-          .map { encoded => 
-            k -> encoded
-          }
-      }.map { encoded => resource.copy(data = encoded.toMap.some) }
-    }  
-  }
+    ) { data =>
+      data.toSeq
+        .traverse { case (k, v) =>
+          fs2.Stream
+            .emit(v)
+            .covary[F]
+            .through(fs2.text.utf8.encode)
+            .through(fs2.text.base64.encode)
+            .foldMonoid
+            .compile
+            .lastOrError
+            .map { encoded =>
+              k -> encoded
+            }
+        }
+        .map(encoded => resource.copy(data = encoded.toMap.some))
+    }
 
 }

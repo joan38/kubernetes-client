@@ -16,19 +16,23 @@ import fs2.io.process.ProcessBuilder
 import java.time.Instant
 
 private[client] object ExecToken {
-  
-  def apply[F[_]: Logger: Processes](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] = {
-      val env = exec.env.getOrElse(Seq.empty).view.map(e => e.name -> e.value).toMap
 
-      val processBuilder = ProcessBuilder(
-        command = exec.command, 
-        args = exec.args.getOrElse(List.empty), 
-      ).withExtraEnv(env)
-      
-      processBuilder.spawn[F].use { p =>
+  def apply[F[_]: Logger: Processes](exec: AuthInfoExec)(implicit F: Async[F]): F[AuthorizationWithExpiration] = {
+    val env = exec.env.getOrElse(Seq.empty).view.map(e => e.name -> e.value).toMap
+
+    val processBuilder = ProcessBuilder(
+      command = exec.command,
+      args = exec.args.getOrElse(List.empty)
+    ).withExtraEnv(env)
+
+    processBuilder
+      .spawn[F]
+      .use { p =>
         p.stdout
-          .through(fs2.text.utf8.decode).compile.string
-          .flatMap { output => F.fromEither(decode[ExecCredential](output)) }
+          .through(fs2.text.utf8.decode)
+          .compile
+          .string
+          .flatMap(output => F.fromEither(decode[ExecCredential](output)))
           .flatMap { execCredential =>
             execCredential.status.token match {
               case Some(token) =>
@@ -57,12 +61,12 @@ private[client] object ExecToken {
       }
       .onError { case e: IOException =>
         Logger[F].error(
-          s"Failed to execute the credentials plugin: ${exec.command}${exec.args.fold("")(_.mkString(" ", " ", ""))}: ${e.getMessage}.${exec.installHint
+          s"Failed to execute the credentials plugin: ${exec.command}${exec.args
+              .fold("")(_.mkString(" ", " ", ""))}: ${e.getMessage}.${exec.installHint
               .fold("")(hint => s"\n$hint")}"
         )
       }
-      
-    }
-      
+
+  }
 
 }
