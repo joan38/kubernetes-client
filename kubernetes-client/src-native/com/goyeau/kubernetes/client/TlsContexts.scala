@@ -31,19 +31,22 @@ private[client] object TlsContexts {
       caBytes   = caDataBytes.orElse(caFileBytes)
       _ <- Sync[F].raiseWhen(config.clientKeyPass.nonEmpty)(new IllegalArgumentException("do we support client key password?")).toResource
       builder = if (keyBytes.nonEmpty || certBytes.nonEmpty || caBytes.nonEmpty) {
-                  val builder = S2nConfig.builder
-                  (certBytes, keyBytes).tupled.filter(_ => config.clientKeyPass.isEmpty).foreach {
+                  var builder = S2nConfig.builder
+
+                  builder = (certBytes, keyBytes).tupled.fold(builder) {
                     case (certBytes, keyBytes) => 
+                      println(s"setting cert and keys: $certBytes, $keyBytes")
                       builder.withCertChainAndKeysToStore(
-                      List(
-                        CertChainAndKey(
-                          chainPem = certBytes,
-                          privateKeyPem = keyBytes,
+                        List(
+                          CertChainAndKey(
+                            chainPem = certBytes,
+                            privateKeyPem = keyBytes,
+                          )
                         )
                       )
-                    )
                   }         
-                  caBytes.foreach { caBytes =>
+                  builder = caBytes.fold(builder) { caBytes =>
+                    println(s"setting ca: $caBytes")
                     builder.withPemsToTrustStore(
                       List(
                         caBytes
@@ -60,6 +63,7 @@ private[client] object TlsContexts {
                   builder.some
                 } else
                   none
+      _ = println(s"builder: $builder")
       result <- builder match {
                   case Some(builder) => builder.build[F].map(_.some)
                   case None => none.pure[F].toResource
@@ -71,13 +75,13 @@ private[client] object TlsContexts {
     s.through(fs2.text.utf8.decode).compile.string
 
   private def decodeByteVector[F[_]: Sync](s: fs2.Stream[F, Byte]): F[ByteVector] = 
-    s.chunkAll.compile.lastOrError.map(_.toByteVector)
+    s.compile.to(ByteVector)
 
-    private def decodeBase64[F[_]: Sync](data: String): fs2.Stream[F, Byte] =
-      fs2.Stream
-        .emit(data)
-        .covary[F]
-        .through(fs2.text.base64.decode)
+  private def decodeBase64[F[_]: Sync](data: String): fs2.Stream[F, Byte] =
+    fs2.Stream
+      .emit(data)
+      .covary[F]
+      .through(fs2.text.base64.decode)
 
   private def decodeBase64String[F[_]: Sync](data: Option[String]): F[Option[String]] =
     data.traverse { data =>
