@@ -75,9 +75,7 @@ class NamespacesApiTest extends MinikubeClientProvider  {
   }
 
   test("get a namespace fail on non existing namespace") {
-    intercept[UnexpectedStatus] {
-      usingMinikube(implicit client => getChecked("non-existing"))
-    }
+    usingMinikube(implicit client => getChecked("non-existing")).intercept[UnexpectedStatus]
   }
 
   test("delete a namespace") {
