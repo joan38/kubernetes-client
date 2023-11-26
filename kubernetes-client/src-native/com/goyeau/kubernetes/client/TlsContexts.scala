@@ -31,11 +31,13 @@ private[client] object TlsContexts {
       caBytes   = caDataBytes.orElse(caFileBytes)
       _ <- Sync[F].raiseWhen(config.clientKeyPass.nonEmpty)(new IllegalArgumentException("do we support client key password?")).toResource
       builder = if (keyBytes.nonEmpty || certBytes.nonEmpty || caBytes.nonEmpty) {
-                  var builder = S2nConfig.builder.withCipherPreferences("default_tls13")
+                  var builder = 
+                    S2nConfig.builder
+                      .withCipherPreferences("20170210") // https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#security-policies
 
                   builder = (certBytes, keyBytes).tupled.fold(builder) {
                     case (certBytes, keyBytes) => 
-                      println(s"setting cert and keys: $certBytes, $keyBytes")
+                      println(s"setting cert and keys:\n${certBytes.decodeAscii.toOption.get},\n${keyBytes.decodeAscii.toOption.get}")
                       builder.withCertChainAndKeysToStore(
                         List(
                           CertChainAndKey(
@@ -46,7 +48,7 @@ private[client] object TlsContexts {
                       )
                   }         
                   builder = caBytes.fold(builder) { caBytes =>
-                    println(s"setting ca: $caBytes")
+                    println(s"setting ca:\n$caBytes")
                     builder.withPemsToTrustStore(
                       List(
                         caBytes

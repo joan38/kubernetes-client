@@ -13,13 +13,12 @@ import org.typelevel.log4cats.Logger
 import fs2.io.process.Processes
 import fs2.io.process.ProcessBuilder
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 
 private[client] object ExecToken {
 
-  private def parseTimestamp[F[_]](s: String): F[FiniteDuration] = {
-    // Instant.parse(s)
-    ???
+  private def parseTimestamp[F[_]: Async](s: String): F[FiniteDuration] = Async[F].delay {
+    java.time.Instant.parse(s).toEpochMilli.milliseconds
   }
 
 
