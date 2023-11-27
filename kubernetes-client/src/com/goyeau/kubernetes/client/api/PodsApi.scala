@@ -236,8 +236,7 @@ private[client] class NamespacedPodsApi[F[_]: Files](
     foldStream(execStream(podName, container, command, stdin, stdout, stderr, tty))
 
   private def skipConnectionClosedErrors: Pipe[F, WSDataFrame, WSDataFrame] =
-    _.evalTap(frame => logger.info(s"frame: ${frame.getClass.getSimpleName}"))
-      .map(_.some)
+    _.map(_.some)
       .recover {
         // Need to handle (and ignore) this exception
         //
@@ -253,9 +252,7 @@ private[client] class NamespacedPodsApi[F[_]: Files](
         // Temporary hack to stop ember streams from exploding.
         //
         // This will hopefully be solved in a later version of the http4s (ember).
-        case e: Exception if e.getMessage == "Connection already closed" =>
-          println("!!!!!!!!")
-          none
+        case e: Exception if e.getMessage == "Connection already closed" => none
       }
       .unNone
 
