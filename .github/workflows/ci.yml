@@ -37,6 +37,7 @@ jobs:
           - client: ember
           - platform: jvm
             client: jdk
+    name: k8s ${{ matrix.k8s }} - ${{ matrix.scala }}/${{ matrix.platform }}/${{ matrix.client }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
