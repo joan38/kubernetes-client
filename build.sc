@@ -42,7 +42,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
     override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
       scalaVersion() match {
         case "3.3.1"   => ScalaVersion.V3_3_1
-        case "2.13.10" => ScalaVersion.V2_13_9
+        case "2.13.12" => ScalaVersion.V2_13_9
         case "2.12.17" => ScalaVersion.V2_12_13
       },
       ScalacOptions.default + release(jvmVersion) + source3 +
