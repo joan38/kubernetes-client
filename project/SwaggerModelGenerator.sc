@@ -228,6 +228,7 @@ object SwaggerModelGenerator {
       case (Some(t), None) =>
         swaggerToScalaType(t, property.items.orElse(property.additionalProperties), property.format)
       case (None, Some(ref)) => sanitizeClassPath(ref)
+      case other => throw new RuntimeException(s"unexpected property: $other (expected either Some -> None, or None -> Some)")
     }
 
   def swaggerToScalaType(
