@@ -19,17 +19,17 @@ import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOp
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 import coursier.maven.MavenRepository
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10" /* "2.12.17" */)
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10" /* "2.12.17" */ )
 trait KubernetesClientModule extends Cross.Module[String] {
   trait Shared
-    extends CrossScalaModule
+      extends CrossScalaModule
       with CrossValue
       with PlatformScalaModule
       with StyleModule
       with GitVersionedPublishModule
       with SwaggerModelGenerator {
 
-    lazy val jvmVersion       = "11"
+    lazy val jvmVersion = "11"
 
     override def repositoriesTask = T.task {
       super.repositoriesTask() ++ Seq(
@@ -75,22 +75,22 @@ trait KubernetesClientModule extends Cross.Module[String] {
   object jvm extends Shared {
     override def ivyDeps = super.ivyDeps() ++ fs2 ++ http4s.jdkClient ++ http4s.emberClient
     object test extends ScalaTests with SharedTestModule {
-      override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.logback
+      override def ivyDeps = super.ivyDeps() ++ tests ++ log4cats.logback
     }
   }
 
   object js extends Shared with ScalaJSModule {
-    def scalaJSVersion = "1.14.0"
+    def scalaJSVersion   = "1.14.0"
     override def ivyDeps = super.ivyDeps() ++ fs2 ++ http4s.emberClient
     object test extends ScalaJSTests with SharedTestModule {
-      override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.jsConsole
+      override def ivyDeps    = super.ivyDeps() ++ tests ++ log4cats.jsConsole
       override def moduleKind = ModuleKind.CommonJSModule
     }
   }
 
   object native extends Shared with ScalaNativeModule {
     def scalaNativeVersion = "0.4.16"
-    override def ivyDeps = super.ivyDeps() ++ fs2 ++ http4s.emberClient
+    override def ivyDeps   = super.ivyDeps() ++ http4s.emberClient
     object test extends ScalaNativeTests with SharedTestModule
   }
 }
