@@ -19,7 +19,7 @@ import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOp
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 import coursier.maven.MavenRepository
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10" /* "2.12.17" */ )
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.12" /* "2.12.17" */ )
 trait KubernetesClientModule extends Cross.Module[String] {
   trait Shared
       extends CrossScalaModule
