@@ -73,7 +73,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
   }
 
   object jvm extends Shared {
-    override def ivyDeps = super.ivyDeps() ++ http4s.jdkClient ++ http4s.emberClient
+    override def ivyDeps = super.ivyDeps() ++ fs2 ++ http4s.jdkClient ++ http4s.emberClient
     object test extends ScalaTests with SharedTestModule {
       override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.logback
     }
@@ -81,7 +81,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
 
   object js extends Shared with ScalaJSModule {
     def scalaJSVersion = "1.14.0"
-    override def ivyDeps = super.ivyDeps() ++ http4s.emberClient
+    override def ivyDeps = super.ivyDeps() ++ fs2 ++ http4s.emberClient
     object test extends ScalaJSTests with SharedTestModule {
       override def ivyDeps  = super.ivyDeps() ++ tests ++ log4cats.jsConsole
       override def moduleKind = ModuleKind.CommonJSModule
@@ -90,7 +90,7 @@ trait KubernetesClientModule extends Cross.Module[String] {
 
   object native extends Shared with ScalaNativeModule {
     def scalaNativeVersion = "0.4.16"
-    override def ivyDeps = super.ivyDeps() ++ http4s.emberClient
+    override def ivyDeps = super.ivyDeps() ++ fs2 ++ http4s.emberClient
     object test extends ScalaNativeTests with SharedTestModule
   }
 }

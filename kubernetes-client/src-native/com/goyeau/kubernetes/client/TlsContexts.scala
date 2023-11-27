@@ -83,9 +83,6 @@ private[client] object TlsContexts {
           builder = dhParams.fold(builder)(builder.withDHParams)
 
           builder = (certBytes, keyBytes).tupled.fold(builder) { case (certBytes, keyBytes) =>
-            println(
-              s"setting cert and keys:\n${certBytes.decodeAscii.toOption.get},\n${keyBytes.decodeAscii.toOption.get}"
-            )
             builder.withCertChainAndKeysToStore(
               List(
                 CertChainAndKey(
@@ -97,7 +94,6 @@ private[client] object TlsContexts {
           }
 
           builder = caBytes.fold(builder) { caBytes =>
-            println(s"setting ca:\n$caBytes")
             builder.withPemsToTrustStore(
               List(
                 caBytes

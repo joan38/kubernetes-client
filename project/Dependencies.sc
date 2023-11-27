@@ -12,7 +12,7 @@ object Dependencies {
   }
 
   lazy val fs2 = {
-    val version = "3.10-4b5f50b"
+    val version = "3.10-81961ce-SNAPSHOT"
     Agg(
       ivy"co.fs2::fs2-core::$version",
       ivy"co.fs2::fs2-io::$version",
