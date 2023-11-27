@@ -6,9 +6,11 @@ import fs2.io.file.Files
 import fs2.io.net.Network
 import org.http4s.ember.client.EmberClientBuilder
 
+trait PlatformSpecific {}
+
 private object PlatformSpecific {
 
-  def clients[F[_]: Async: Network: Env: Files](config: KubeConfig[F]): Resource[F, Clients[F]] =
+  def ember[F[_]: Async: Network: Env: Files](config: KubeConfig[F]): Resource[F, Clients[F]] =
     for {
       tlsContext <- TlsContexts.fromConfig(config)
       builderRaw = EmberClientBuilder.default[F]

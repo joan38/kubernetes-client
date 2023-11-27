@@ -1,10 +1,20 @@
 package com.goyeau.kubernetes.client
 
-import cats.effect.IO
+import cats.syntax.all.*
+import cats.effect.*
+import cats.effect.std.Env
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerName
 
 object TestPlatformSpecific {
+
+  def mkClient: Resource[IO, KubernetesClient[IO]] =
+    Env[IO].get("KUBE_CONTEXT_NAME").toResource.flatMap { contextOverride =>
+      val kubeConfig = KubeConfig.inHomeDir[IO](
+        contextOverride.getOrElse("minikube")
+      )
+      KubernetesClient.ember(kubeConfig)
+    }
 
   def getLogger(implicit name: LoggerName): Logger[IO] = new Logger[IO] {
     def error(message: => String): IO[Unit] = IO(println(s"[$name] $message"))

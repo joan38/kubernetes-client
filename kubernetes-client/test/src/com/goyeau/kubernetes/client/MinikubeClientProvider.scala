@@ -14,13 +14,7 @@ abstract class MinikubeClientProvider extends CatsEffectSuite {
 
   implicit def logger: Logger[IO]
 
-  val kubernetesClient: Resource[IO, KubernetesClient[IO]] =
-    Env[IO].get("KUBE_CONTEXT_NAME").toResource.flatMap { contextOverride =>
-      val kubeConfig = KubeConfig.inHomeDir[IO](
-        contextOverride.getOrElse("minikube")
-      )
-      KubernetesClient(kubeConfig)
-    }
+  val kubernetesClient: Resource[IO, KubernetesClient[IO]] = TestPlatformSpecific.mkClient
 
   def resourceName: String
 

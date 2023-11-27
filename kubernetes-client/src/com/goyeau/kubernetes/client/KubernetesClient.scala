@@ -66,13 +66,14 @@ class KubernetesClient[F[_]: Async: Files: Logger](
 
 }
 
-object KubernetesClient {
+object KubernetesClient extends PlatformSpecific {
 
-  def apply[F[_]: Async: Logger: Files: Network: Processes: Env](
-      config: KubeConfig[F]
+  private[client] def create[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F],
+      clients: KubeConfig[F] => Resource[F, Clients[F]]
   ): Resource[F, KubernetesClient[F]] =
     for {
-      clients <- PlatformSpecific.clients(config)
+      clients <- clients(config)
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)
@@ -104,8 +105,26 @@ object KubernetesClient {
       authorization
     )
 
+  def ember[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F]
+  ): Resource[F, KubernetesClient[F]] =
+    create(config, PlatformSpecific.ember(_))
+
+  def ember[F[_]: Async: Files: Logger: Network: Processes: Env](
+      config: F[KubeConfig[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    Resource.eval(config).flatMap(ember(_))
+
+  @deprecated("use .ember", "0.12.0")
+  def apply[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F]
+  ): Resource[F, KubernetesClient[F]] =
+    ember(config)
+
+  @deprecated("use .ember", "0.12.0")
   def apply[F[_]: Async: Files: Logger: Network: Processes: Env](
       config: F[KubeConfig[F]]
   ): Resource[F, KubernetesClient[F]] =
-    Resource.eval(config).flatMap(apply(_))
+    ember(config)
+
 }
