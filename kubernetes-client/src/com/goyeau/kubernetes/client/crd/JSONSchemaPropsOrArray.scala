@@ -5,7 +5,7 @@ import io.circe.syntax.*
 import io.circe.{Decoder, Encoder}
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaProps
 
-trait JSONSchemaPropsOrArray
+sealed trait JSONSchemaPropsOrArray
 case class SchemaNotArrayValue(value: JSONSchemaProps) extends JSONSchemaPropsOrArray
 case class ArrayValue(value: Array[JSONSchemaProps])   extends JSONSchemaPropsOrArray
 

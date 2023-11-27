@@ -2,6 +2,7 @@ package com.goyeau.kubernetes.client
 
 import cats.syntax.all.*
 import cats.effect.*
+import cats.effect.std.Env
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
@@ -13,12 +14,13 @@ abstract class MinikubeClientProvider extends CatsEffectSuite {
 
   implicit def logger: Logger[IO]
 
-  val kubernetesClient: Resource[IO, KubernetesClient[IO]] = {
-    val kubeConfig = KubeConfig.inHomeDir[IO](
-      sys.env.getOrElse("KUBE_CONTEXT_NAME", "minikube")
-    )
-    KubernetesClient(kubeConfig)
-  }
+  val kubernetesClient: Resource[IO, KubernetesClient[IO]] =
+    Env[IO].get("KUBE_CONTEXT_NAME").toResource.flatMap { contextOverride =>
+      val kubeConfig = KubeConfig.inHomeDir[IO](
+        contextOverride.getOrElse("minikube")
+      )
+      KubernetesClient(kubeConfig)
+    }
 
   def resourceName: String
 
@@ -54,11 +56,11 @@ abstract class MinikubeClientProvider extends CatsEffectSuite {
       name = "namespaces",
       Resource.make(
         createNamespaces()
-      ) { _ => 
-          val ns = defaultNamespace +: extraNamespace
-          logger.info(s"Deleting namespaces: $ns") *>
+      ) { _ =>
+        val ns = defaultNamespace +: extraNamespace
+        logger.info(s"Deleting namespaces: $ns") *>
           ns.traverse_(name => deleteNamespace(name))
-        }
+      }
     )
   )
 

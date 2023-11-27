@@ -25,7 +25,8 @@ private object PlatformSpecific {
   private def jdk[F[_]: Async](config: KubeConfig[F]): Resource[F, Clients[F]] =
     Resource.eval {
       for {
-        client     <- Async[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
+        sslContext <- SslContexts.fromConfig(config)
+        client     <- Async[F].delay(HttpClient.newBuilder().sslContext(sslContext).build())
         httpClient <- Async[F].delay(JdkHttpClient[F](client))
         wsClient   <- Async[F].delay(JdkWSClient[F](client))
       } yield Clients(httpClient, wsClient)

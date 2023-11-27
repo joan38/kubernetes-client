@@ -29,6 +29,14 @@ case class KubeConfig[F[_]: Files] private (
     authorizationCache: Option[F[AuthorizationWithExpiration] => F[F[Authorization]]]
 ) {
 
+  def tlsConfigured: Boolean =
+    caCertData.nonEmpty ||
+      caCertFile.nonEmpty ||
+      clientCertData.nonEmpty ||
+      clientCertFile.nonEmpty ||
+      clientKeyData.nonEmpty ||
+      clientKeyFile.nonEmpty
+
   def withAuthorizationCache(
       authorizationCache: F[AuthorizationWithExpiration] => F[F[Authorization]]
   ): KubeConfig[F] =

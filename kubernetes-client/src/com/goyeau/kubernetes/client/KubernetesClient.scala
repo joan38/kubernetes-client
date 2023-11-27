@@ -3,6 +3,7 @@ package com.goyeau.kubernetes.client
 import cats.syntax.all.*
 import cats.data.OptionT
 import cats.effect.*
+import cats.effect.std.Env
 import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
@@ -67,7 +68,9 @@ class KubernetesClient[F[_]: Async: Files: Logger](
 
 object KubernetesClient {
 
-  def apply[F[_]: Async: Logger: Files: Network: Processes](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F]
+  ): Resource[F, KubernetesClient[F]] =
     for {
       clients <- PlatformSpecific.clients(config)
       authorization <- Resource.eval {
@@ -101,7 +104,7 @@ object KubernetesClient {
       authorization
     )
 
-  def apply[F[_]: Async: Files: Logger: Network: Processes](
+  def apply[F[_]: Async: Files: Logger: Network: Processes: Env](
       config: F[KubeConfig[F]]
   ): Resource[F, KubernetesClient[F]] =
     Resource.eval(config).flatMap(apply(_))

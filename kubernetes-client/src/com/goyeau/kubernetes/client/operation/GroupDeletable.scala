@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
+import cats.syntax.all.*
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.Uris.addLabels
@@ -15,8 +16,10 @@ private[client] trait GroupDeletable[F[_]] {
   protected def authorization: Option[F[Authorization]]
   protected def resourceUri: Uri
 
-  def deleteAll(labels: Map[String, String] = Map.empty): F[Status] = {
-    val uri = addLabels(labels, config.server.resolve(resourceUri))
-    httpClient.status(Request[F](DELETE, uri).withOptionalAuthorization(authorization))
-  }
+  def deleteAll(labels: Map[String, String] = Map.empty): F[Status] =
+    Request[F](
+      DELETE,
+      uri = addLabels(labels, config.server.resolve(resourceUri))
+    ).withOptionalAuthorization(authorization).flatMap(httpClient.status(_))
+
 }

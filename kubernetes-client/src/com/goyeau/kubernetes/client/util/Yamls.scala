@@ -102,6 +102,9 @@ private[client] object Yamls {
         clientKeyFile = user.`client-key`.map(Path(_)),
         authInfoExec = user.exec
       )
+      _ <- Logger[F].debug(
+        s"KubeConfig created, context: $contextName, cluster: ${context.cluster}, user: ${context.user}, server: $server"
+      )
     } yield config
 
   implicit lazy val configDecoder: Decoder[Config]          = deriveDecoder

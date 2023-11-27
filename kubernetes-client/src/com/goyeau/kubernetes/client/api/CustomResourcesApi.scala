@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
+import cats.syntax.all.*
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
@@ -53,9 +54,8 @@ private[client] class NamespacedCustomResourcesApi[F[_], A, B](
   val resourceUri: Uri = uri"/apis" / context.group / context.version / "namespaces" / namespace / context.plural
 
   def updateStatus(name: String, resource: CustomResource[A, B]): F[Status] =
-    httpClient.status(
-      Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
-        .withEntity(resource)
-        .withOptionalAuthorization(authorization)
-    )
+    Request[F](PUT, config.server.resolve(resourceUri / name / "status"))
+      .withEntity(resource)
+      .withOptionalAuthorization(authorization)
+      .flatMap(httpClient.status(_))
 }
