@@ -32,12 +32,14 @@ jobs:
       matrix:
         k8s: [ v1.28.4, v1.27.8, v1.26.11, v1.25.3, v1.24.7, v1.23.13, v1.22.15, v1.21.14 ]
         scala: [ 3.3.1, 2.13.12 ] # 2.12.17
-        platform: [ jvm, js, native ]
         include:
-          - client: ember
+          - platform: jvm
+            client: ember
           - platform: jvm
             client: jdk
-          - platform: jvm
+          - platform: js
+            client: ember
+          - platform: native
             client: ember
     name: k8s ${{ matrix.k8s }} - ${{ matrix.scala }} / ${{ matrix.platform }} / ${{ matrix.client }}
     steps:
