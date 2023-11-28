@@ -15,18 +15,18 @@ import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
 
-case class KubeConfig[F[_]: Files] private (
-    server: Uri,
-    authorization: Option[F[Authorization]],
-    caCertData: Option[String],
-    caCertFile: Option[Path],
-    clientCertData: Option[String],
-    clientCertFile: Option[Path],
-    clientKeyData: Option[String],
-    clientKeyFile: Option[Path],
-    clientKeyPass: Option[String],
-    authInfoExec: Option[AuthInfoExec],
-    authorizationCache: Option[F[AuthorizationWithExpiration] => F[F[Authorization]]]
+class KubeConfig[F[_]: Files] private (
+    val server: Uri,
+    val authorization: Option[F[Authorization]],
+    val caCertData: Option[String],
+    val caCertFile: Option[Path],
+    val clientCertData: Option[String],
+    val clientCertFile: Option[Path],
+    val clientKeyData: Option[String],
+    val clientKeyFile: Option[Path],
+    val clientKeyPass: Option[String],
+    val authInfoExec: Option[AuthInfoExec],
+    val authorizationCache: Option[F[AuthorizationWithExpiration] => F[F[Authorization]]]
 ) {
 
   def tlsConfigured: Boolean =
@@ -37,13 +37,29 @@ case class KubeConfig[F[_]: Files] private (
       clientKeyData.nonEmpty ||
       clientKeyFile.nonEmpty
 
+  private def withAuthorizationCache(
+      newAuthorizationCache: Option[F[AuthorizationWithExpiration] => F[F[Authorization]]]
+  ): KubeConfig[F] = new KubeConfig[F](
+    server = this.server,
+    authorization = this.authorization,
+    caCertData = this.caCertData,
+    caCertFile = this.caCertFile,
+    clientCertData = this.clientCertData,
+    clientCertFile = this.clientCertFile,
+    clientKeyData = this.clientKeyData,
+    clientKeyFile = this.clientKeyFile,
+    clientKeyPass = this.clientKeyPass,
+    authInfoExec = this.authInfoExec,
+    authorizationCache = newAuthorizationCache
+  )
+
   def withAuthorizationCache(
       authorizationCache: F[AuthorizationWithExpiration] => F[F[Authorization]]
   ): KubeConfig[F] =
-    this.copy(authorizationCache = authorizationCache.some)
+    this.withAuthorizationCache(authorizationCache.some)
 
   def withoutAuthorizationCache: KubeConfig[F] =
-    this.copy(authorizationCache = none)
+    this.withAuthorizationCache(none)
 
   def withDefaultAuthorizationCache(
       refreshTokenBeforeExpiration: FiniteDuration = 5.minutes
@@ -51,9 +67,7 @@ case class KubeConfig[F[_]: Files] private (
     val addCache: F[AuthorizationWithExpiration] => F[F[Authorization]] =
       retrieve => AuthorizationCache(retrieve, refreshTokenBeforeExpiration).map(_.get)
 
-    this.copy(
-      authorizationCache = addCache.some
-    )
+    this.withAuthorizationCache(addCache.some)
   }
 
 }
@@ -165,7 +179,7 @@ object KubeConfig {
       }.parSequence
         .leftMap(errors => new IllegalArgumentException(errors.toList.mkString("; ")))
         .as {
-          KubeConfig(
+          new KubeConfig(
             server = server,
             authorization = authorization,
             caCertData = caCertData,

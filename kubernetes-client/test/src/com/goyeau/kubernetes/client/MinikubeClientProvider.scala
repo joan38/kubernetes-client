@@ -5,10 +5,11 @@ import cats.effect.*
 import cats.effect.std.Env
 import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
-import com.goyeau.kubernetes.client.{KubeConfig, KubernetesClient}
+import com.goyeau.kubernetes.client.KubernetesClient
 import munit.CatsEffectSuite
 import org.typelevel.log4cats.Logger
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
+import munit.catseffect.IOFixture
 
 abstract class MinikubeClientProvider extends CatsEffectSuite {
 
@@ -45,7 +46,7 @@ abstract class MinikubeClientProvider extends CatsEffectSuite {
   def usingMinikube[T](body: KubernetesClient[IO] => IO[T]): IO[T] =
     kubernetesClient.use(body)
 
-  override def munitFixtures = List(
+  override def munitFixtures: Seq[IOFixture[Unit]] = List(
     ResourceSuiteLocalFixture(
       name = "namespaces",
       Resource.make(

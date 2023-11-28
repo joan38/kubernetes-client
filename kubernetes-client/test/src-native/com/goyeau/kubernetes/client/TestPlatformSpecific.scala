@@ -8,7 +8,7 @@ import org.typelevel.log4cats.LoggerName
 
 object TestPlatformSpecific {
 
-  def mkClient: Resource[IO, KubernetesClient[IO]] =
+  def mkClient(implicit L: Logger[IO]): Resource[IO, KubernetesClient[IO]] =
     Env[IO].get("KUBE_CONTEXT_NAME").toResource.flatMap { contextOverride =>
       val kubeConfig = KubeConfig.inHomeDir[IO](
         contextOverride.getOrElse("minikube")
