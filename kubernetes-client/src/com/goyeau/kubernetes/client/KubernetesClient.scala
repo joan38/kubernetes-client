@@ -15,6 +15,7 @@ import org.typelevel.log4cats.Logger
 import fs2.io.process.Processes
 import fs2.io.file.Files
 import fs2.io.net.Network
+import org.http4s.ember.client.EmberClientBuilder
 
 class KubernetesClient[F[_]: Async: Files: Logger](
     httpClient: Client[F],
@@ -108,7 +109,7 @@ object KubernetesClient extends PlatformSpecific {
   def ember[F[_]: Async: Logger: Files: Network: Processes: Env](
       config: KubeConfig[F]
   ): Resource[F, KubernetesClient[F]] =
-    create(config, PlatformSpecific.ember(_))
+    create(config, emberClients(_))
 
   def ember[F[_]: Async: Files: Logger: Network: Processes: Env](
       config: F[KubeConfig[F]]
@@ -126,5 +127,16 @@ object KubernetesClient extends PlatformSpecific {
       config: F[KubeConfig[F]]
   ): Resource[F, KubernetesClient[F]] =
     ember(config)
+
+
+  private def emberClients[F[_]: Async: Network: Env: Files](config: KubeConfig[F]): Resource[F, Clients[F]] =
+    for {
+      tlsContext <- TlsContexts.fromConfig(config)
+      builderRaw = EmberClientBuilder.default[F]
+      builder    = tlsContext.fold(builderRaw)(builderRaw.withTLSContext)
+      clients <- builder.buildWebSocket
+      (http, ws) = clients
+    } yield Clients(http, ws)
+
 
 }

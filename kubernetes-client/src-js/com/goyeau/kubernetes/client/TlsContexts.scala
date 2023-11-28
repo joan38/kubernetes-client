@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client
 
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import cats.effect.*
 import cats.data.OptionT
@@ -14,8 +15,8 @@ import scala.concurrent.duration.*
 
 private[client] object TlsContexts {
 
-  def fromConfig[F[_]: Sync: Network: Files: Env](config: KubeConfig[F]): F[Option[TLSContext[F]]] =
-    OptionT(mkSecureContext(config)).map(Network[F].tlsContext.fromSecureContext(_)).value
+  def fromConfig[F[_]: Sync: Network: Files: Env](config: KubeConfig[F]): Resource[F, Option[TLSContext[F]]] =
+    OptionT(mkSecureContext(config)).map(Network[F].tlsContext.fromSecureContext(_)).value.toResource
 
   // https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options
   private val ENV_TLS_CIPHER_PREFERENCES     = "TLS_CIPHER_PREFERENCES"
