@@ -1,6 +1,8 @@
 package com.goyeau.kubernetes.client
 
+import cats.Monad
 import cats.syntax.all.*
+import cats.effect.syntax.all.*
 import cats.data.OptionT
 import cats.effect.*
 import cats.effect.std.Env
@@ -71,10 +73,12 @@ object KubernetesClient extends PlatformSpecific {
 
   private[client] def create[F[_]: Async: Logger: Files: Network: Processes: Env](
       config: KubeConfig[F],
-      clients: KubeConfig[F] => Resource[F, Clients[F]]
+      clients: KubeConfig[F] => Resource[F, Clients[F]],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
   ): Resource[F, KubernetesClient[F]] =
     for {
       clients <- clients(config)
+      clients <- adaptClients(clients)
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)
@@ -107,14 +111,26 @@ object KubernetesClient extends PlatformSpecific {
     )
 
   def ember[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    create(config, emberClients(_), adaptClients)
+
+  def ember[F[_]: Async: Logger: Files: Network: Processes: Env](
       config: KubeConfig[F]
   ): Resource[F, KubernetesClient[F]] =
-    create(config, emberClients(_))
+    create(config, emberClients(_), noAdapt[F])
+
+  def ember[F[_]: Async: Files: Logger: Network: Processes: Env](
+      config: F[KubeConfig[F]],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    Resource.eval(config).flatMap(ember(_, adaptClients))
 
   def ember[F[_]: Async: Files: Logger: Network: Processes: Env](
       config: F[KubeConfig[F]]
   ): Resource[F, KubernetesClient[F]] =
-    Resource.eval(config).flatMap(ember(_))
+    Resource.eval(config).flatMap(ember(_, noAdapt[F]))
 
   @deprecated("use .ember", "0.12.0")
   def apply[F[_]: Async: Logger: Files: Network: Processes: Env](
@@ -136,5 +152,8 @@ object KubernetesClient extends PlatformSpecific {
       clients <- builder.buildWebSocket
       (http, ws) = clients
     } yield Clients(http, ws)
+
+  private[client] def noAdapt[F[_]: Monad]: Clients[F] => Resource[F, Clients[F]] =
+    (c: Clients[F]) => c.pure[F].toResource
 
 }

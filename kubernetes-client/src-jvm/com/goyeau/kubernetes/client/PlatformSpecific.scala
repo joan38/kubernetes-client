@@ -14,14 +14,26 @@ trait PlatformSpecific {
   self: KubernetesClient.type =>
 
   def jdk[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    create(config, PlatformSpecific.jdkClients(_), adaptClients)
+
+  def jdk[F[_]: Async: Logger: Files: Network: Processes: Env](
       config: KubeConfig[F]
   ): Resource[F, KubernetesClient[F]] =
-    create(config, PlatformSpecific.jdkClients(_))
+    create(config, PlatformSpecific.jdkClients(_), noAdapt[F])
+
+  def jdk[F[_]: Async: Files: Logger: Network: Processes: Env](
+      config: F[KubeConfig[F]],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    Resource.eval(config).flatMap(create(_, PlatformSpecific.jdkClients(_), adaptClients))
 
   def jdk[F[_]: Async: Files: Logger: Network: Processes: Env](
       config: F[KubeConfig[F]]
   ): Resource[F, KubernetesClient[F]] =
-    Resource.eval(config).flatMap(jdk(_))
+    Resource.eval(config).flatMap(create(_, PlatformSpecific.jdkClients(_), noAdapt[F]))
 
 }
 
