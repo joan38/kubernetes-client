@@ -128,7 +128,6 @@ object KubernetesClient extends PlatformSpecific {
   ): Resource[F, KubernetesClient[F]] =
     ember(config)
 
-
   private def emberClients[F[_]: Async: Network: Env: Files](config: KubeConfig[F]): Resource[F, Clients[F]] =
     for {
       tlsContext <- TlsContexts.fromConfig(config)
@@ -137,6 +136,5 @@ object KubernetesClient extends PlatformSpecific {
       clients <- builder.buildWebSocket
       (http, ws) = clients
     } yield Clients(http, ws)
-
 
 }
