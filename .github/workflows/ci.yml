@@ -39,6 +39,19 @@ jobs:
             client: jdk
           - platform: native
             client: jdk
+          - k8s: v1.27.8
+            scala: 2.13.12
+          - k8s: v1.26.11
+            scala: 2.13.12
+          - k8s: v1.25.3
+            scala: 2.13.12
+          - k8s: v1.24.7
+            scala: 2.13.12
+          - k8s: v1.23.13
+            scala: 2.13.12
+          - k8s: v1.22.15
+            scala: 2.13.12
+          - k8s: v1.21.14
     name: k8s ${{ matrix.k8s }} - ${{ matrix.scala }} / ${{ matrix.platform }} / ${{ matrix.client }}
     steps:
       - name: Checkout code
