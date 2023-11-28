@@ -54,6 +54,8 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Test against Kubernetes ${{ matrix.k8s }} ${{ matrix.scala }} ${{ matrix.platform }} ${{ matrix.client }}
+        env:
+          KUBE_CLIENT_IMPLEMENTATION: ${{ matrix.client }}
         run: ./mill _[${{ matrix.scala }}].${{ matrix.platform }}.test
 
   publish:
