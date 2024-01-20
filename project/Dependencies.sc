@@ -12,10 +12,10 @@ object Dependencies {
   }
 
   lazy val fs2 = {
-    val version = "3.10-81961ce-SNAPSHOT"
+    val version = "3.9.4"
     Agg(
       ivy"co.fs2::fs2-core::$version",
-      ivy"co.fs2::fs2-io::$version",
+      ivy"co.fs2::fs2-io::$version"
     )
   }
 
@@ -26,10 +26,10 @@ object Dependencies {
     val core = Agg(
       ivy"org.http4s::http4s-dsl::$version",
       ivy"org.http4s::http4s-circe::$version",
-      ivy"org.http4s::http4s-client::$version",
+      ivy"org.http4s::http4s-client::$version"
     )
-    val jdkClient = Agg(ivy"org.http4s::http4s-jdk-http-client::${jdkClientVersion}")
-    val emberClient = Agg(ivy"org.http4s::http4s-ember-client::${version}")
+    val jdkClient   = Agg(ivy"org.http4s::http4s-jdk-http-client::$jdkClientVersion")
+    val emberClient = Agg(ivy"org.http4s::http4s-ember-client::$version")
   }
 
   lazy val circeYaml = Agg(ivy"com.armanbilge::circe-scala-yaml::0.0.4")
@@ -39,14 +39,14 @@ object Dependencies {
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.11.0")
 
   object log4cats {
-    private val version  = "2.6.0"
+    private val version = "2.6.0"
 
     val core = Agg(ivy"org.typelevel::log4cats-core:2.6.0")
 
     val logback = Agg(
       ivy"org.typelevel::log4cats-slf4j:2.6.0",
       ivy"ch.qos.logback:logback-classic:1.4.11"
-      )
+    )
 
     val jsConsole = Agg(ivy"org.typelevel::log4cats-js-console::2.6.0")
   }
