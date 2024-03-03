@@ -55,7 +55,9 @@ class KubernetesClient[F[_]: Async: Logger](
   lazy val ingresses: IngressessApi[F] = new IngressessApi(httpClient, config, authorization)
   lazy val leases: LeasesApi[F]        = new LeasesApi(httpClient, config, authorization)
   lazy val nodes: NodesApi[F]          = new NodesApi(httpClient, config, authorization)
-  lazy val raw: RawApi[F]              = new RawApi[F](httpClient, wsClient, config, authorization)
+  lazy val persistentVolumeClaims: PersistentVolumeClaimsApi[F] =
+    new PersistentVolumeClaimsApi(httpClient, config, authorization)
+  lazy val raw: RawApi[F] = new RawApi[F](httpClient, wsClient, config, authorization)
 
   def customResources[A: Encoder: Decoder, B: Encoder: Decoder](context: CrdContext)(implicit
       listDecoder: Decoder[CustomResourceList[A, B]],
