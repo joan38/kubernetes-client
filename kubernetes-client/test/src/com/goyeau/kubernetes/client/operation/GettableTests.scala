@@ -1,21 +1,19 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.Applicative
-import cats.implicits.*
+import com.goyeau.kubernetes.client.MinikubeClientProvider
+import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 import org.http4s.client.UnexpectedStatus
 import scala.language.reflectiveCalls
 
-trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
-    extends FunSuite
-    with MinikubeClientProvider[F] {
+trait GettableTests[R <: { def metadata: Option[ObjectMeta] }] {
+  self: MinikubeClientProvider =>
 
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Gettable[F, Resource]
-  def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Gettable[IO, R]
+  def createChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[R]
 
-  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[F]): F[Resource] =
+  def getChecked(namespaceName: String, resourceName: String)(implicit client: KubernetesClient[IO]): IO[R] =
     for {
       resource <- namespacedApi(namespaceName).get(resourceName)
       _ = assertEquals(resource.metadata.flatMap(_.namespace), Some(namespaceName))
@@ -25,8 +23,8 @@ trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"get a $resourceName") {
     usingMinikube { implicit client =>
       for {
-        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName  <- Applicative[F].pure("some-resource-get")
+        namespaceName <- IO.pure(resourceName.toLowerCase)
+        resourceName  <- IO.pure("some-resource-get")
         _             <- createChecked(namespaceName, resourceName)
         _             <- getChecked(namespaceName, resourceName)
       } yield ()
@@ -34,19 +32,15 @@ trait GettableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   }
 
   test("fail on non existing namespace") {
-    intercept[UnexpectedStatus] {
-      usingMinikube(implicit client => getChecked("non-existing", "non-existing"))
-    }
+    usingMinikube(implicit client => getChecked("non-existing", "non-existing")).intercept[UnexpectedStatus]
   }
 
   test(s"fail on non existing $resourceName") {
-    intercept[UnexpectedStatus] {
       usingMinikube { implicit client =>
         for {
-          namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
+          namespaceName <- IO.pure(resourceName.toLowerCase)
           _             <- getChecked(namespaceName, "non-existing")
         } yield ()
-      }
+      }.intercept[UnexpectedStatus]
     }
-  }
 }

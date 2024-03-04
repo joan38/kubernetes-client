@@ -2,25 +2,24 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.networking.v1.{Ingress, IngressList, IngressRule, IngressSpec}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 
 class IngressesApiTest
-    extends FunSuite
-    with CreatableTests[IO, Ingress]
-    with GettableTests[IO, Ingress]
-    with ListableTests[IO, Ingress, IngressList]
-    with ReplaceableTests[IO, Ingress]
-    with DeletableTests[IO, Ingress, IngressList]
-    with WatchableTests[IO, Ingress]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[Ingress]
+    with GettableTests[Ingress]
+    with ListableTests[Ingress, IngressList]
+    with ReplaceableTests[Ingress]
+    with DeletableTests[Ingress, IngressList]
+    with WatchableTests[Ingress]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[Ingress].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): IngressessApi[IO] = client.ingresses

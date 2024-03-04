@@ -1,21 +1,25 @@
 package com.goyeau.kubernetes.client
 
+import cats.Monad
 import cats.syntax.all.*
+import cats.effect.syntax.all.*
 import cats.data.OptionT
 import cats.effect.*
+import cats.effect.std.Env
 import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
-import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
+import org.http4s.client.websocket.WSClient
 import org.http4s.headers.Authorization
-import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
 import org.typelevel.log4cats.Logger
+import fs2.io.process.Processes
+import fs2.io.file.Files
+import fs2.io.net.Network
+import org.http4s.ember.client.EmberClientBuilder
 
-import java.net.http.HttpClient
-
-class KubernetesClient[F[_]: Async: Logger](
+class KubernetesClient[F[_]: Async: Files: Logger](
     httpClient: Client[F],
     wsClient: WSClient[F],
     config: KubeConfig[F],
@@ -67,14 +71,16 @@ class KubernetesClient[F[_]: Async: Logger](
 
 }
 
-object KubernetesClient {
-  def apply[F[_]: Async: Logger](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
+object KubernetesClient extends PlatformSpecific {
+
+  private[client] def create[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F],
+      clients: KubeConfig[F] => Resource[F, Clients[F]],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
     for {
-      client <- Resource.eval {
-        Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
-      }
-      httpClient <- JdkHttpClient[F](client)
-      wsClient   <- JdkWSClient[F](client)
+      clients <- clients(config)
+      clients <- adaptClients(clients)
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)
@@ -100,12 +106,56 @@ object KubernetesClient {
           .value
       }
     } yield new KubernetesClient(
-      httpClient,
-      wsClient,
+      clients.httpClient,
+      clients.wsClient,
       config,
       authorization
     )
 
-  def apply[F[_]: Async: Logger](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
-    Resource.eval(config).flatMap(apply(_))
+  def ember[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    create(config, emberClients(_), adaptClients)
+
+  def ember[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F]
+  ): Resource[F, KubernetesClient[F]] =
+    create(config, emberClients(_), noAdapt[F])
+
+  def ember[F[_]: Async: Files: Logger: Network: Processes: Env](
+      config: F[KubeConfig[F]],
+      adaptClients: Clients[F] => Resource[F, Clients[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    Resource.eval(config).flatMap(ember(_, adaptClients))
+
+  def ember[F[_]: Async: Files: Logger: Network: Processes: Env](
+      config: F[KubeConfig[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    Resource.eval(config).flatMap(ember(_, noAdapt[F]))
+
+  @deprecated("use .ember", "0.12.0")
+  def apply[F[_]: Async: Logger: Files: Network: Processes: Env](
+      config: KubeConfig[F]
+  ): Resource[F, KubernetesClient[F]] =
+    ember(config)
+
+  @deprecated("use .ember", "0.12.0")
+  def apply[F[_]: Async: Files: Logger: Network: Processes: Env](
+      config: F[KubeConfig[F]]
+  ): Resource[F, KubernetesClient[F]] =
+    ember(config)
+
+  private def emberClients[F[_]: Async: Network: Env: Files](config: KubeConfig[F]): Resource[F, Clients[F]] =
+    for {
+      tlsContext <- TlsContexts.fromConfig(config)
+      builderRaw = EmberClientBuilder.default[F]
+      builder    = tlsContext.fold(builderRaw)(builderRaw.withTLSContext)
+      clients <- builder.buildWebSocket
+      (http, ws) = clients
+    } yield Clients(http, ws)
+
+  private[client] def noAdapt[F[_]: Monad]: Clients[F] => Resource[F, Clients[F]] =
+    (c: Clients[F]) => c.pure[F].toResource
+
 }

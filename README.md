@@ -299,11 +299,8 @@ A specific test:
 Check and fix formatting:
 
 ```shell
-./mill __.style
+./mill __.checkStyle + __.docJar
 ```
-
-
-
 
 ## Related projects
 

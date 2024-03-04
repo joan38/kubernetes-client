@@ -5,7 +5,7 @@ import io.circe.syntax.*
 import io.circe.{Decoder, Encoder, Json}
 import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.JSONSchemaProps
 
-trait JSONSchemaPropsOrBool
+sealed trait JSONSchemaPropsOrBool
 case class SchemaNotBoolValue(value: JSONSchemaProps) extends JSONSchemaPropsOrBool
 case class BoolValue(value: Boolean)                  extends JSONSchemaPropsOrBool
 

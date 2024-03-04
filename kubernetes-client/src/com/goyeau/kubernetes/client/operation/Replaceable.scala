@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
+import cats.syntax.all.*
 import scala.language.reflectiveCalls
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
@@ -21,10 +22,10 @@ private[client] trait Replaceable[F[_], Resource <: { def metadata: Option[Objec
   implicit protected def resourceDecoder: Decoder[Resource]
 
   def replace(resource: Resource): F[Status] =
-    httpClient.status(buildRequest(resource))
+    buildRequest(resource).flatMap(httpClient.status(_))
 
   def replaceWithResource(resource: Resource): F[Resource] =
-    httpClient.expect[Resource](buildRequest(resource))
+    buildRequest(resource).flatMap(httpClient.expect[Resource](_))
 
   private def buildRequest(resource: Resource) =
     Request[F](PUT, config.server.resolve(resourceUri) / resource.metadata.get.name.get)

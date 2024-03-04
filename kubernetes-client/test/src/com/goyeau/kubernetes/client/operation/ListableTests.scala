@@ -1,19 +1,15 @@
 package com.goyeau.kubernetes.client.operation
 
-import cats.Applicative
-import cats.implicits.*
+import com.goyeau.kubernetes.client.MinikubeClientProvider
+import cats.syntax.all.*
+import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
 import com.goyeau.kubernetes.client.api.NamespacesApiTest
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
+import scala.language.reflectiveCalls
 
-import scala.language.{higherKinds, reflectiveCalls}
-
-trait ListableTests[F[
-    _
-], Resource <: { def metadata: Option[ObjectMeta] }, ResourceList <: { def items: Seq[Resource] }]
-    extends FunSuite
-    with MinikubeClientProvider[F] {
+trait ListableTests[R <: { def metadata: Option[ObjectMeta] }, ResourceList <: { def items: Seq[R] }] {
+  self: MinikubeClientProvider =>
 
   val resourceIsNamespaced = true
   val namespaceResourceNames =
@@ -21,23 +17,23 @@ trait ListableTests[F[
 
   override protected val extraNamespace = namespaceResourceNames.map(_._1).toList
 
-  def api(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
-  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[F]): Listable[F, ResourceList]
+  def api(implicit client: KubernetesClient[IO]): Listable[IO, ResourceList]
+  def namespacedApi(namespaceName: String)(implicit client: KubernetesClient[IO]): Listable[IO, ResourceList]
   def createChecked(namespaceName: String, resourceName: String, labels: Map[String, String] = Map.empty)(implicit
-      client: KubernetesClient[F]
-  ): F[Resource]
+      client: KubernetesClient[IO]
+  ): IO[R]
 
   def listContains(namespaceName: String, resourceNames: Set[String], labels: Map[String, String] = Map.empty)(implicit
-      client: KubernetesClient[F]
-  ): F[ResourceList] =
+      client: KubernetesClient[IO]
+  ): IO[ResourceList] =
     for {
       resourceList <- namespacedApi(namespaceName).list(labels)
       _ = assert(resourceNames.subsetOf(resourceList.items.flatMap(_.metadata.flatMap(_.name)).toSet))
     } yield resourceList
 
   def listAllContains(resourceNames: Set[String])(implicit
-      client: KubernetesClient[F]
-  ): F[ResourceList] =
+      client: KubernetesClient[IO]
+  ): IO[ResourceList] =
     for {
       resourceList <- api.list()
       _ = assert(resourceNames.subsetOf(resourceList.items.flatMap(_.metadata.flatMap(_.name)).toSet))
@@ -48,8 +44,8 @@ trait ListableTests[F[
       resourceNames: Set[String],
       labels: Map[String, String] = Map.empty
   )(implicit
-      client: KubernetesClient[F]
-  ): F[ResourceList] =
+      client: KubernetesClient[IO]
+  ): IO[ResourceList] =
     for {
       resourceList <- namespacedApi(namespaceName).list(labels)
       names = resourceList.items.flatMap(_.metadata.flatMap(_.name))
@@ -62,8 +58,8 @@ trait ListableTests[F[
   test(s"list ${resourceName}s") {
     usingMinikube { implicit client =>
       for {
-        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName  <- Applicative[F].pure("list-resource")
+        namespaceName <- IO.pure(resourceName.toLowerCase)
+        resourceName  <- IO.pure("list-resource")
         _             <- listNotContains(namespaceName, Set(resourceName))
         _             <- createChecked(namespaceName, resourceName)
         _             <- listContains(namespaceName, Set(resourceName))
@@ -74,10 +70,10 @@ trait ListableTests[F[
   test(s"list ${resourceName}s with a label") {
     usingMinikube { implicit client =>
       for {
-        namespaceName         <- Applicative[F].pure(resourceName.toLowerCase)
-        noLabelResourceName   <- Applicative[F].pure("no-label-resource")
+        namespaceName         <- IO.pure(resourceName.toLowerCase)
+        noLabelResourceName   <- IO.pure("no-label-resource")
         _                     <- createChecked(namespaceName, noLabelResourceName)
-        withLabelResourceName <- Applicative[F].pure("label-resource")
+        withLabelResourceName <- IO.pure("label-resource")
         labels = Map("test" -> "1")
         _ <- createChecked(namespaceName, withLabelResourceName, labels)
         _ <- listNotContains(namespaceName, Set(noLabelResourceName), labels)
@@ -91,7 +87,7 @@ trait ListableTests[F[
       assume(resourceIsNamespaced)
       for {
         _ <- namespaceResourceNames.toList.traverse { case (namespaceName, resourceName) =>
-          client.namespaces.deleteTerminated(namespaceName) *> NamespacesApiTest.createChecked[F](
+          client.namespaces.deleteTerminated(namespaceName) *> NamespacesApiTest.createChecked(
             namespaceName
           ) *> createChecked(
             namespaceName,

@@ -2,9 +2,9 @@ package com.goyeau.kubernetes.client.util.cache
 
 import org.http4s.headers.Authorization
 
-import java.time.Instant
+import scala.concurrent.duration.FiniteDuration
 
 case class AuthorizationWithExpiration(
-    expirationTimestamp: Option[Instant],
+    expirationTimestamp: Option[FiniteDuration],
     authorization: Authorization
 )

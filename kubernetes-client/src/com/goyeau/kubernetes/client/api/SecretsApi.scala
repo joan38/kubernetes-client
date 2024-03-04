@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
+import cats.syntax.all.*
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.operation.*
@@ -9,8 +10,6 @@ import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.implicits.*
 import org.http4s.{Status, Uri}
-
-import java.util.Base64
 
 private[client] class SecretsApi[F[_]](
     val httpClient: Client[F],
@@ -47,13 +46,30 @@ private[client] class NamespacedSecretsApi[F[_]](
     with Watchable[F, Secret] {
   val resourceUri: Uri = uri"/api" / "v1" / "namespaces" / namespace / "secrets"
 
-  def createEncode(resource: Secret): F[Status] = create(encode(resource))
+  def createEncode(resource: Secret): F[Status] = encode(resource).flatMap(create)
 
   def createOrUpdateEncode(resource: Secret): F[Status] =
-    createOrUpdate(encode(resource))
+    encode(resource).flatMap(createOrUpdate)
 
-  private def encode(resource: Secret) =
-    resource.copy(data = resource.data.map(_.map { case (k, v) =>
-      k -> Base64.getEncoder.encodeToString(v.getBytes)
-    }))
+  private def encode(resource: Secret): F[Secret] =
+    resource.data.fold(
+      resource.pure[F]
+    ) { data =>
+      data.toSeq
+        .traverse { case (k, v) =>
+          fs2.Stream
+            .emit(v)
+            .covary[F]
+            .through(fs2.text.utf8.encode)
+            .through(fs2.text.base64.encode)
+            .foldMonoid
+            .compile
+            .lastOrError
+            .map { encoded =>
+              k -> encoded
+            }
+        }
+        .map(encoded => resource.copy(data = encoded.toMap.some))
+    }
+
 }

@@ -1,11 +1,11 @@
 package com.goyeau.kubernetes.client.util
 
-import cats.effect.Sync
+import cats.effect.Concurrent
 import cats.implicits.*
 import com.goyeau.kubernetes.client.KubeConfig
 import fs2.io.file.{Files, Path}
 import io.circe.generic.semiauto.*
-import io.circe.yaml.parser.*
+import io.circe.scalayaml.parser.*
 import io.circe.{Codec, Decoder, Encoder}
 import org.http4s.Uri
 import org.typelevel.log4cats.Logger
@@ -46,7 +46,7 @@ case class AuthInfoExec(
     apiVersion: String,
     command: String,
     env: Option[Seq[AuthInfoExecEnv]],
-    args: Option[Seq[String]],
+    args: Option[List[String]],
     installHint: Option[String],
     provideClusterInfo: Option[Boolean],
     interactiveMode: Option[String]
@@ -63,17 +63,20 @@ case class ExecCredentialStatus(
 
 private[client] object Yamls {
 
-  def fromKubeConfigFile[F[_]: Sync: Logger: Files](kubeconfig: Path, contextMaybe: Option[String]): F[KubeConfig[F]] =
+  def fromKubeConfigFile[F[_]: Concurrent: Logger: Files](
+      kubeconfig: Path,
+      contextMaybe: Option[String]
+  ): F[KubeConfig[F]] =
     for {
       configString <- Text.readFile(kubeconfig)
-      configJson   <- Sync[F].fromEither(parse(configString))
-      config       <- Sync[F].fromEither(configJson.as[Config])
+      configJson   <- Concurrent[F].fromEither(parse(configString))
+      config       <- Concurrent[F].fromEither(configJson.as[Config])
       contextName = contextMaybe.getOrElse(config.`current-context`)
       namedContext <-
         config.contexts
           .find(_.name == contextName)
           .liftTo[F](new IllegalArgumentException(s"Can't find context named $contextName in $kubeconfig"))
-      _ <- Logger[F].debug(s"KubeConfig with context ${namedContext.name}")
+      _ <- Logger[F].debug(s"KubeConfig: $kubeconfig with context ${namedContext.name}")
       context = namedContext.context
 
       namedCluster <-
@@ -88,7 +91,7 @@ private[client] object Yamls {
           .liftTo[F](new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
       user = namedAuthInfo.user
 
-      server <- Sync[F].fromEither(Uri.fromString(cluster.server))
+      server <- Concurrent[F].fromEither(Uri.fromString(cluster.server))
       config <- KubeConfig.of[F](
         server = server,
         caCertData = cluster.`certificate-authority-data`,
@@ -98,6 +101,9 @@ private[client] object Yamls {
         clientKeyData = user.`client-key-data`,
         clientKeyFile = user.`client-key`.map(Path(_)),
         authInfoExec = user.exec
+      )
+      _ <- Logger[F].debug(
+        s"KubeConfig created, context: $contextName, cluster: ${context.cluster}, user: ${context.user}, server: $server"
       )
     } yield config
 

@@ -4,7 +4,7 @@ import $ivy.`io.circe::circe-generic:0.14.0`
 import $ivy.`io.circe::circe-parser:0.14.0`
 import mill._
 import mill.api.Logger
-import mill.define.Sources
+import mill.define.Target
 import mill.scalalib._
 import io.circe._
 import io.circe.generic.auto._
@@ -14,7 +14,8 @@ import os._
 trait SwaggerModelGenerator extends JavaModule {
   import SwaggerModelGenerator._
 
-  def swaggerSources: Sources = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
+  def swaggerSources: Target[Seq[mill.api.PathRef]] =
+    T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
   def allSwaggerSourceFiles: T[Seq[PathRef]] = T {
     def isHiddenFile(path: os.Path) = path.last.startsWith(".")
     for {
@@ -28,7 +29,7 @@ trait SwaggerModelGenerator extends JavaModule {
   override def generatedSources = T {
     super.generatedSources() ++
       allSwaggerSourceFiles()
-        .flatMap(swagger => processSwaggerFile(swagger.path, T.ctx.dest, T.ctx.log))
+        .flatMap(swagger => processSwaggerFile(swagger.path, T.ctx().dest, T.ctx().log))
         .map(PathRef(_))
   }
 }
@@ -164,7 +165,7 @@ object SwaggerModelGenerator {
       if (work.length <= maxLen) {
         lines.append(work)
         work = ""
-      } else {
+      } else
         (2 to 20).flatMap { lookBehind =>
           Seq(' ', ',', '.', ';')
             .flatMap { c =>
@@ -181,7 +182,6 @@ object SwaggerModelGenerator {
             lines.append(work)
             work = ""
         }
-      }
     }
     lines.toList
   }
@@ -228,6 +228,7 @@ object SwaggerModelGenerator {
       case (Some(t), None) =>
         swaggerToScalaType(t, property.items.orElse(property.additionalProperties), property.format)
       case (None, Some(ref)) => sanitizeClassPath(ref)
+      case other => throw new RuntimeException(s"unexpected property: $other (expected either Some -> None, or None -> Some)")
     }
 
   def swaggerToScalaType(

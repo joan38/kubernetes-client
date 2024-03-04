@@ -3,7 +3,7 @@ package com.goyeau.kubernetes.client
 import io.circe.{Decoder, Encoder, Json}
 import cats.implicits.*
 
-trait IntOrString
+sealed trait IntOrString
 case class IntValue(value: Int)       extends IntOrString
 case class StringValue(value: String) extends IntOrString
 

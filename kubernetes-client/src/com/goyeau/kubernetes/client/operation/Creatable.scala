@@ -23,10 +23,10 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
   implicit protected def resourceDecoder: Decoder[Resource]
 
   def create(resource: Resource): F[Status] =
-    httpClient.status(buildRequest(resource))
+    buildRequest(resource).flatMap(httpClient.status(_))
 
   def createWithResource(resource: Resource): F[Resource] =
-    httpClient.expect[Resource](buildRequest(resource))
+    buildRequest(resource).flatMap(httpClient.expect[Resource](_))
 
   private def buildRequest(resource: Resource) =
     Request[F](POST, config.server.resolve(resourceUri))
@@ -35,10 +35,11 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
 
   def createOrUpdate(resource: Resource): F[Status] = {
     val fullResourceUri = config.server.resolve(resourceUri) / resource.metadata.get.name.get
-    def update          = httpClient.status(buildRequest(resource, fullResourceUri))
+    def update          = buildRequest(resource, fullResourceUri).flatMap(httpClient.status(_))
 
-    httpClient
-      .status(Request[F](GET, fullResourceUri).withOptionalAuthorization(authorization))
+    Request[F](GET, fullResourceUri)
+      .withOptionalAuthorization(authorization)
+      .flatMap(httpClient.status(_))
       .flatMap {
         case status if status.isSuccess => update
         case Status.NotFound =>
@@ -52,7 +53,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
 
   def createOrUpdateWithResource(resource: Resource): F[Resource] = {
     val fullResourceUri    = config.server.resolve(resourceUri) / resource.metadata.get.name.get
-    def updateWithResource = httpClient.expect[Resource](buildRequest(resource, fullResourceUri))
+    def updateWithResource = buildRequest(resource, fullResourceUri).flatMap(httpClient.expect[Resource](_))
 
     httpClient
       .expectOptionF[Resource](

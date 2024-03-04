@@ -1,23 +1,16 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.IO
-import cats.Applicative
+import cats.syntax.all.*
 import cats.effect.*
-import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest.*
-import com.goyeau.kubernetes.client.operation.*
-import io.k8s.api.coordination.v1.*
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import io.k8s.api.core.v1.Node
-import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.*
-import munit.Assertions.*
-import munit.FunSuite
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 
-class NodesApiTest extends FunSuite with ContextProvider with MinikubeClientProvider[IO] {
-  implicit lazy val F: Async[IO]                               = IO.asyncForIO
-  implicit lazy val logger: Logger[IO]                         = Slf4jLogger.getLogger[IO]
+class NodesApiTest extends MinikubeClientProvider {
+
+  implicit lazy val logger: Logger[IO]                         = TestPlatformSpecific.getLogger
   lazy val resourceName: String                                = classOf[Node].getSimpleName
   def api(implicit client: KubernetesClient[IO]): NodesApi[IO] = client.nodes
 

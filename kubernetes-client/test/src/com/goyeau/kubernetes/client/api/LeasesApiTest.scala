@@ -2,25 +2,24 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import io.k8s.api.coordination.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 
 class LeasesApiTest
-    extends FunSuite
-    with CreatableTests[IO, Lease]
-    with GettableTests[IO, Lease]
-    with ListableTests[IO, Lease, LeaseList]
-    with ReplaceableTests[IO, Lease]
-    with DeletableTests[IO, Lease, LeaseList]
-    with WatchableTests[IO, Lease]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[Lease]
+    with GettableTests[Lease]
+    with ListableTests[Lease, LeaseList]
+    with ReplaceableTests[Lease]
+    with DeletableTests[Lease, LeaseList]
+    with WatchableTests[Lease]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[Lease].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): LeasesApi[IO] = client.leases

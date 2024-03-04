@@ -1,18 +1,18 @@
 package com.goyeau.kubernetes.client.api
 
+import cats.syntax.all.*
 import cats.effect.*
-import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest.*
 import com.goyeau.kubernetes.client.api.CustomResourcesApiTest.{CronTabResource, CronTabResourceList}
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.circe.*
 import io.circe.generic.semiauto.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 import org.http4s.Status
 
 case class CronTab(cronSpec: String, image: String, replicas: Int)
@@ -32,17 +32,15 @@ object CustomResourcesApiTest {
 }
 
 class CustomResourcesApiTest
-    extends FunSuite
-    with CreatableTests[IO, CronTabResource]
-    with GettableTests[IO, CronTabResource]
-    with ListableTests[IO, CronTabResource, CronTabResourceList]
-    with ReplaceableTests[IO, CronTabResource]
-    with DeletableTests[IO, CronTabResource, CronTabResourceList]
-    with WatchableTests[IO, CronTabResource]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[CronTabResource]
+    with GettableTests[CronTabResource]
+    with ListableTests[CronTabResource, CronTabResourceList]
+    with ReplaceableTests[CronTabResource]
+    with DeletableTests[CronTabResource, CronTabResourceList]
+    with WatchableTests[CronTabResource] {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[CronTab].getSimpleName
   val kind                                      = classOf[CronTab].getSimpleName
   val context                                   = CrdContext(group, "v1", plural(resourceName))
@@ -106,32 +104,62 @@ class CustomResourcesApiTest
     }
   }
 
-  override def beforeAll(): Unit = {
-    createNamespaces()
-
-    usingMinikube(implicit client =>
-      client.customResourceDefinitions.deleteTerminated(resourceName) *> CustomResourceDefinitionsApiTest
-        .getChecked(
-          resourceName
+  override def munitFixtures = super.munitFixtures ++ List(
+    ResourceSuiteLocalFixture(
+      name = "crds",
+      Resource.make(
+        usingMinikube(implicit client =>
+            client.customResourceDefinitions.deleteTerminated(resourceName) *> CustomResourceDefinitionsApiTest
+            .getChecked(
+              resourceName
+            )
+            .recoverWith { case _ =>
+              logger.info(s"CRD '$resourceName' is not there, creating it.") *>
+                CustomResourceDefinitionsApiTest
+                  .createChecked(resourceName, crLabels)
+            }
+            .void
         )
-        .recoverWith { case _ =>
-          logger.info(s"CRD '$resourceName' is not there, creating it.") *>
-            CustomResourceDefinitionsApiTest
-              .createChecked(resourceName, crLabels)
+      ) { _ => 
+          usingMinikube { implicit client =>
+            val namespaces = extraNamespace :+ defaultNamespace
+            for {
+              deleteStatus <- namespaces.traverse(ns => namespacedApi(ns).deleteAll(crLabels))
+              _ = deleteStatus.foreach(s => assertEquals(s, Status.Ok))
+              _ <- logger.info(s"CRDs with label $crLabels were deleted in $namespaces namespace(s).")
+            } yield ()
+          }
         }
-        .void
     )
-  }
+  )
 
-  override def afterAll(): Unit = {
-    usingMinikube { implicit client =>
-      val namespaces = extraNamespace :+ defaultNamespace
-      for {
-        deleteStatus <- namespaces.traverse(ns => namespacedApi(ns).deleteAll(crLabels))
-        _ = deleteStatus.foreach(s => assertEquals(s, Status.Ok))
-        _ <- logger.info(s"CRDs with label $crLabels were deleted in $namespaces namespace(s).")
-      } yield ()
-    }
-    super.afterAll()
-  }
+  // override def beforeAll(): Unit = {
+  //   createNamespaces()
+
+  //   usingMinikube(implicit client =>
+  //     client.customResourceDefinitions.deleteTerminated(resourceName) *> CustomResourceDefinitionsApiTest
+  //       .getChecked(
+  //         resourceName
+  //       )
+  //       .recoverWith { case _ =>
+  //         logger.info(s"CRD '$resourceName' is not there, creating it.") *>
+  //           CustomResourceDefinitionsApiTest
+  //             .createChecked(resourceName, crLabels)
+  //       }
+  //       .void
+  //   )
+  // }
+
+  // override def afterAll(): IO[Unit] = {
+  //   usingMinikube { implicit client =>
+  //     val namespaces = extraNamespace :+ defaultNamespace
+  //     for {
+  //       deleteStatus <- namespaces.traverse(ns => namespacedApi(ns).deleteAll(crLabels))
+  //       _ = deleteStatus.foreach(s => assertEquals(s, Status.Ok))
+  //       _ <- logger.info(s"CRDs with label $crLabels were deleted in $namespaces namespace(s).")
+  //     } yield ()
+  //   } *> 
+  //   super.afterAll()
+  // }
+
 }

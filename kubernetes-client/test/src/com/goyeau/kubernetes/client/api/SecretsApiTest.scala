@@ -1,29 +1,27 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, IO}
+import cats.syntax.all.*
+import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.core.v1.{Secret, SecretList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import java.util.Base64
-import munit.FunSuite
 import org.http4s.Status
-import scala.collection.compat.*
 
 class SecretsApiTest
-    extends FunSuite
-    with CreatableTests[IO, Secret]
-    with GettableTests[IO, Secret]
-    with ListableTests[IO, Secret, SecretList]
-    with ReplaceableTests[IO, Secret]
-    with DeletableTests[IO, Secret, SecretList]
-    with WatchableTests[IO, Secret]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[Secret]
+    with GettableTests[Secret]
+    with ListableTests[Secret, SecretList]
+    with ReplaceableTests[Secret]
+    with DeletableTests[Secret, SecretList]
+    with WatchableTests[Secret]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[Secret].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): SecretsApi[IO] = client.secrets
@@ -45,7 +43,7 @@ class SecretsApiTest
       client: KubernetesClient[IO]
   ): IO[Secret] =
     for {
-      _ <- NamespacesApiTest.createChecked[IO](namespaceName)
+      _ <- NamespacesApiTest.createChecked(namespaceName)
       data = Map("test" -> "data")
       status <-
         client.secrets
@@ -58,7 +56,13 @@ class SecretsApiTest
           )
       _ = assertEquals(status, Status.Created)
       secret <- getChecked(namespaceName, secretName)
-      _ = assertEquals(secret.data.get.values.head, Base64.getEncoder.encodeToString(data.values.head.getBytes))
+      encoded <- fs2.Stream.emit(data.values.head).covary[IO]
+      .through(fs2.text.utf8.encode)
+      .through(fs2.text.base64.encode)
+      .foldMonoid
+      .compile
+      .lastOrError
+      _ = assertEquals(secret.data.get.values.head, encoded)
     } yield secret
 
   test("createEncode should create a secret") {
@@ -109,11 +113,20 @@ class SecretsApiTest
             )
         _ = assertEquals(status, Status.Ok)
         updatedSecret <- getChecked(namespaceName, secretName)
+        encoded <- data.traverse { data => 
+          data.view.toSeq.traverse { case (k, v) => 
+            fs2.Stream.emit(v).covary[IO]
+            .through(fs2.text.utf8.encode)
+            .through(fs2.text.base64.encode)
+            .foldMonoid
+            .compile
+            .lastOrError
+            .map { encoded => k -> encoded }
+            }.map(_.toMap)
+          }
         _ = assertEquals(
           updatedSecret.data,
-          data.map(
-            _.view.mapValues(v => Base64.getEncoder.encodeToString(v.getBytes)).toMap
-          )
+          encoded
         )
       } yield ()).guarantee(client.namespaces.delete(namespaceName).void)
     }

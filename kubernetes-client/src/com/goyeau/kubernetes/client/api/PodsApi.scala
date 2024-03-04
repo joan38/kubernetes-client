@@ -1,6 +1,7 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, Resource}
+import cats.effect.Async
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.api.ExecRouting.*
@@ -18,15 +19,17 @@ import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.implicits.*
-import org.http4s.jdkhttpclient.*
+import org.http4s.client.websocket.WSClient
+import org.http4s.client.websocket.WSRequest
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
 
-import java.nio.file.Path as JPath
 import scala.concurrent.duration.DurationInt
+import org.http4s.client.websocket.WSFrame
+import org.http4s.client.websocket.WSDataFrame
 
-private[client] class PodsApi[F[_]: Logger](
+private[client] class PodsApi[F[_]: Files: Logger](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
@@ -67,7 +70,7 @@ private[client] object ExecRouting {
   val StatusId: Byte = 3.byteValue
 }
 
-private[client] class NamespacedPodsApi[F[_]](
+private[client] class NamespacedPodsApi[F[_]: Files](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
@@ -113,23 +116,12 @@ private[client] class NamespacedPodsApi[F[_]](
       ("container" -> container) ++?
       ("command"   -> commands)
 
-    WSRequest(uri, method = Method.POST)
-      .withOptionalAuthorization(authorization)
-      .map { r =>
-        r.copy(
-          headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
-        )
-      }
+    WSRequest(
+      uri,
+      headers = Headers(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io")),
+      method = Method.POST
+    ).withOptionalAuthorization(authorization)
   }
-
-  @deprecated("Use download() which uses fs2.io.file.Path", "0.8.2")
-  def downloadFile(
-      podName: String,
-      sourceFile: JPath,
-      destinationFile: JPath,
-      container: Option[String] = None
-  ): F[(List[StdErr], Option[ErrorOrStatus])] =
-    download(podName, Path.fromNioPath(sourceFile), Path.fromNioPath(destinationFile), container)
 
   def download(
       podName: String,
@@ -141,34 +133,20 @@ private[client] class NamespacedPodsApi[F[_]](
       F.ref(List.empty[StdErr]),
       F.ref(none[ErrorOrStatus])
     ).tupled.flatMap { case (stdErr, errorOrStatus) =>
-      execRequest(podName, Seq("sh", "-c", s"cat ${sourceFile.toString}"), container).flatMap { request =>
-        wsClient.connectHighLevel(request).use { connection =>
-          connection.receiveStream
-            .through(processWebSocketData)
-            .evalMapFilter[F, Chunk[Byte]] {
-              case Left(StdOut(data))   => Chunk.array(data).some.pure[F]
-              case Left(e: StdErr)      => stdErr.update(e :: _).as(None)
-              case Right(statusOrError) => errorOrStatus.update(_.orElse(statusOrError.some)).as(None)
-            }
-            .unchunks
-            .through(Files[F].writeAll(destinationFile))
-            .compile
-            .drain
-            .flatMap { _ =>
-              (stdErr.get.map(_.reverse), errorOrStatus.get).tupled
-            }
+      execStream(podName, container, Seq("sh", "-c", s"cat ${sourceFile.toString}"))
+        .evalMapFilter[F, Chunk[Byte]] {
+          case Left(StdOut(data))   => Chunk.array(data).some.pure[F]
+          case Left(e: StdErr)      => stdErr.update(e :: _).as(None)
+          case Right(statusOrError) => errorOrStatus.update(_.orElse(statusOrError.some)).as(None)
         }
-      }
+        .unchunks
+        .through(Files[F].writeAll(destinationFile))
+        .compile
+        .drain
+        .flatMap { _ =>
+          (stdErr.get.map(_.reverse), errorOrStatus.get).tupled
+        }
     }
-
-  @deprecated("Use upload() which uses fs2.io.file.Path", "0.8.2")
-  def uploadFile(
-      podName: String,
-      sourceFile: JPath,
-      destinationFile: JPath,
-      container: Option[String] = None
-  ): F[(List[StdErr], Option[ErrorOrStatus])] =
-    upload(podName, Path.fromNioPath(sourceFile), Path.fromNioPath(destinationFile), container)
 
   def upload(
       podName: String,
@@ -178,16 +156,7 @@ private[client] class NamespacedPodsApi[F[_]](
   ): F[(List[StdErr], Option[ErrorOrStatus])] = {
     val mkDirResult = destinationFile.parent match {
       case Some(dir) =>
-        execRequest(
-          podName,
-          Seq("sh", "-c", s"mkdir -p $dir"),
-          container
-        ).flatMap { mkDirRequest =>
-          wsClient
-            .connectHighLevel(mkDirRequest)
-            .map(conn => F.delay(conn.receiveStream.through(processWebSocketData)))
-            .use(_.flatMap(foldErrorStream))
-        }
+        foldErrorStream(execStream(podName, container, Seq("sh", "-c", s"mkdir -p $dir")))
       case None =>
         (List.empty -> None).pure
     }
@@ -200,37 +169,34 @@ private[client] class NamespacedPodsApi[F[_]](
     )
 
     val uploadFileResult =
-      uploadRequest.flatMap { uploadRequest =>
-        wsClient.connectHighLevel(uploadRequest).use { connection =>
-          val source = Files[F].readAll(sourceFile, 4096, Flags.Read)
-          val sendData = source
-            .mapChunks(chunk => Chunk(WSFrame.Binary(ByteVector(chunk.toChain.prepend(StdInId).toVector))))
-            .through(connection.sendPipe)
-          val retryAttempts = 5
-          val sendWithRetry = Stream
-            .retry(sendData.compile.drain, delay = 500.millis, nextDelay = _ * 2, maxAttempts = retryAttempts)
-            .onError { case e =>
-              Stream.eval(Logger[F].error(e)(s"Failed send file data after $retryAttempts attempts"))
-            }
+      uploadRequest.toResource.flatMap(wsClient.connectHighLevel).use { connection =>
+        val source = Files[F].readAll(sourceFile, 4096, Flags.Read)
+        val sendData = source
+          .mapChunks(chunk => Chunk(WSFrame.Binary(ByteVector(chunk.toChain.prepend(StdInId).toVector))))
+          .through(connection.sendPipe)
+        val retryAttempts = 5
+        val sendWithRetry = Stream
+          .retry(sendData.compile.drain, delay = 500.millis, nextDelay = _ * 2, maxAttempts = retryAttempts)
+          .onError { case e =>
+            Stream.eval(Logger[F].error(e)(s"Failed send file data after $retryAttempts attempts"))
+          }
 
-          val result = for {
-            signal <- Stream.eval(SignallingRef[F, Boolean](false))
-            dataStream = sendWithRetry *> Stream.eval(signal.set(true))
+        val result = for {
+          signal <- Stream.eval(SignallingRef[F, Boolean](false))
+          dataStream = sendWithRetry *> Stream.eval(signal.set(true))
 
-            output = connection.receiveStream
-              .through(
-                processWebSocketData
-              )
-              .interruptWhen(signal)
-              .concurrently(dataStream)
+          output = connection.receiveStream
+            .through(skipConnectionClosedErrors)
+            .through(processWebSocketData)
+            .interruptWhen(signal)
+            .concurrently(dataStream)
 
-            errors = foldErrorStream(
-              output
-            ).map { case (errors, _) => errors }
-          } yield errors
+          errors = foldErrorStream(
+            output
+          ).map { case (errors, _) => errors }
+        } yield errors
 
-          result.compile.lastOrError.flatten
-        }
+        result.compile.lastOrError.flatten
       }
 
     for {
@@ -248,12 +214,15 @@ private[client] class NamespacedPodsApi[F[_]](
       stdout: Boolean = true,
       stderr: Boolean = true,
       tty: Boolean = false
-  ): Resource[F, F[Stream[F, Either[ExecStream, ErrorOrStatus]]]] =
-    Resource.eval(execRequest(podName, command, container, stdin, stdout, stderr, tty)).flatMap { request =>
-      wsClient.connectHighLevel(request).map { connection =>
-        F.delay(connection.receiveStream.through(processWebSocketData))
+  ): Stream[F, Either[ExecStream, ErrorOrStatus]] =
+    Stream
+      .eval(execRequest(podName, command, container, stdin, stdout, stderr, tty))
+      .flatMap(request => Stream.resource(wsClient.connectHighLevel(request)))
+      .flatMap { connection =>
+        connection.receiveStream
+          .through(skipConnectionClosedErrors)
+          .through(processWebSocketData)
       }
-    }
 
   def exec(
       podName: String,
@@ -264,11 +233,32 @@ private[client] class NamespacedPodsApi[F[_]](
       stderr: Boolean = true,
       tty: Boolean = false
   ): F[(List[ExecStream], Option[ErrorOrStatus])] =
-    execStream(podName, container, command, stdin, stdout, stderr, tty).use(_.flatMap(foldStream))
+    foldStream(execStream(podName, container, command, stdin, stdout, stderr, tty))
+
+  private def skipConnectionClosedErrors: Pipe[F, WSDataFrame, WSDataFrame] =
+    _.map(_.some)
+      .recover {
+        // Need to handle (and ignore) this exception
+        //
+        // Because of the "conflict" between the http4s WS client and
+        // the underlying JDK WS client (which are both high-level clients)
+        // an extra "Close" frame gets sent to the server, potentially
+        // after the TCP connection is closed, which causes this exception.
+        //
+        // This will be solved in a later version of the http4s (core or jdk).
+        case e: java.io.IOException if e.getMessage == "closed output" => none
+      }
+      .recover {
+        // Temporary hack to stop ember streams from exploding.
+        //
+        // This will hopefully be solved in a later version of the http4s (ember).
+        case e: Exception if e.getMessage == "Connection already closed" => none
+      }
+      .unNone
 
   private def foldStream(
       stdoutStream: Stream[F, Either[ExecStream, ErrorOrStatus]]
-  ) =
+  ): F[(List[ExecStream], Option[ErrorOrStatus])] =
     stdoutStream.compile.fold((List.empty[ExecStream], none[ErrorOrStatus])) { case ((accEvents, accStatus), data) =>
       data match {
         case Left(event) =>
@@ -280,7 +270,7 @@ private[client] class NamespacedPodsApi[F[_]](
 
   private def foldErrorStream(
       stdoutStream: Stream[F, Either[ExecStream, ErrorOrStatus]]
-  ) =
+  ): F[(List[StdErr], Option[ErrorOrStatus])] =
     stdoutStream.compile.fold((List.empty[StdErr], none[ErrorOrStatus])) { case ((accEvents, accStatus), data) =>
       data match {
         case Left(event) =>

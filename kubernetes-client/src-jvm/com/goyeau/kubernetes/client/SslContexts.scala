@@ -1,30 +1,35 @@
-package com.goyeau.kubernetes.client.util
+package com.goyeau.kubernetes.client
+
+import cats.effect.Sync
+
 import java.io.{ByteArrayInputStream, File, FileInputStream, InputStreamReader}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.{KeyStore, SecureRandom, Security}
 import java.util.Base64
 
-import com.goyeau.kubernetes.client.KubeConfig
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
+import javax.net.ssl.{KeyManager, KeyManagerFactory, SSLContext, TrustManager, TrustManagerFactory}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
+import org.bouncycastle.cert.X509CertificateHolder
+
 import scala.jdk.CollectionConverters.*
 
-object SslContexts {
+private[client] object SslContexts {
   private val TrustStoreSystemProperty         = "javax.net.ssl.trustStore"
   private val TrustStorePasswordSystemProperty = "javax.net.ssl.trustStorePassword"
   private val KeyStoreSystemProperty           = "javax.net.ssl.keyStore"
   private val KeyStorePasswordSystemProperty   = "javax.net.ssl.keyStorePassword"
 
-  def fromConfig[F[_]](config: KubeConfig[F]): SSLContext = {
-    val sslContext = SSLContext.getInstance("TLS")
-    sslContext.init(keyManagers(config), trustManagers(config), new SecureRandom)
-    sslContext
-  }
+  def fromConfig[F[_]: Sync](config: KubeConfig[F]): F[SSLContext] =
+    Sync[F].blocking {
+      val sslContext = SSLContext.getInstance("TLS")
+      sslContext.init(keyManagers(config), trustManagers(config), new SecureRandom)
+      sslContext
+    }
 
   @SuppressWarnings(Array("scalafix:DisableSyntax.asInstanceOf"))
-  private def keyManagers[F[_]](config: KubeConfig[F]) = {
+  private def keyManagers[F[_]](config: KubeConfig[F]): Array[KeyManager] = {
     // Client certificate
     val certDataStream = config.clientCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val certFileStream = config.clientCertFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
@@ -33,25 +38,31 @@ object SslContexts {
     val keyDataStream = config.clientKeyData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val keyFileStream = config.clientKeyFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
-    for {
+    val _ = for {
       keyStream  <- keyDataStream.orElse(keyFileStream)
       certStream <- certDataStream.orElse(certFileStream)
-    } yield {
-      Security.addProvider(new BouncyCastleProvider())
-      val pemKeyPair =
-        new PEMParser(new InputStreamReader(keyStream)).readObject().asInstanceOf[PEMKeyPair]
-      val privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
+      _ = Security.addProvider(new BouncyCastleProvider())
+      pemKeyPair = new PEMParser(new InputStreamReader(keyStream)).readObject() match {
+        case kp: PEMKeyPair => kp
+        case _: X509CertificateHolder =>
+          throw new IllegalArgumentException(
+            s"failed to parse the private key, it looks like you might be specifying the client certificate instead of the private key"
+          )
+        case other =>
+          throw new IllegalArgumentException(
+            s"failed to parse the private key: ${other.getClass.getSimpleName} is not a PEM key-pair"
+          )
+      }
+      privateKey = new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(pemKeyPair.getPrivateKeyInfo)
 
-      val certificateFactory = CertificateFactory.getInstance("X509")
-      val certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
-
-      defaultKeyStore.setKeyEntry(
-        certificate.getSubjectX500Principal.getName,
-        privateKey,
-        config.clientKeyPass.fold(Array.empty[Char])(_.toCharArray),
-        Array(certificate)
-      )
-    }
+      certificateFactory = CertificateFactory.getInstance("X509")
+      certificate        = certificateFactory.generateCertificate(certStream).asInstanceOf[X509Certificate]
+    } yield defaultKeyStore.setKeyEntry(
+      certificate.getSubjectX500Principal.getName,
+      privateKey,
+      config.clientKeyPass.fold(Array.empty[Char])(_.toCharArray),
+      Array(certificate)
+    )
 
     val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
     keyManagerFactory.init(defaultKeyStore, Array.empty)
@@ -70,7 +81,7 @@ object SslContexts {
     keyStore
   }
 
-  private def trustManagers[F[_]](config: KubeConfig[F]) = {
+  private def trustManagers[F[_]](config: KubeConfig[F]): Array[TrustManager] = {
     val certDataStream = config.caCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val certFileStream = config.caCertFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 

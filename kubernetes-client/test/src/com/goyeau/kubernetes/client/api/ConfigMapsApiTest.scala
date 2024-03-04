@@ -2,25 +2,24 @@ package com.goyeau.kubernetes.client.api
 
 import cats.effect.*
 import com.goyeau.kubernetes.client.KubernetesClient
+import com.goyeau.kubernetes.client.MinikubeClientProvider
 import com.goyeau.kubernetes.client.operation.*
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import com.goyeau.kubernetes.client.TestPlatformSpecific
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
-import munit.FunSuite
 
 class ConfigMapsApiTest
-    extends FunSuite
-    with CreatableTests[IO, ConfigMap]
-    with GettableTests[IO, ConfigMap]
-    with ListableTests[IO, ConfigMap, ConfigMapList]
-    with ReplaceableTests[IO, ConfigMap]
-    with DeletableTests[IO, ConfigMap, ConfigMapList]
-    with WatchableTests[IO, ConfigMap]
-    with ContextProvider {
+    extends MinikubeClientProvider
+    with CreatableTests[ConfigMap]
+    with GettableTests[ConfigMap]
+    with ListableTests[ConfigMap, ConfigMapList]
+    with ReplaceableTests[ConfigMap]
+    with DeletableTests[ConfigMap, ConfigMapList]
+    with WatchableTests[ConfigMap]
+     {
 
-  implicit override lazy val F: Async[IO]       = IO.asyncForIO
-  implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val logger: Logger[IO] = TestPlatformSpecific.getLogger
   override lazy val resourceName: String        = classOf[ConfigMap].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): ConfigMapsApi[IO] = client.configMaps

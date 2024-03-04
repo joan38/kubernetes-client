@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client.operation
 
+import cats.syntax.all.*
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
 import com.goyeau.kubernetes.client.util.CirceEntityCodec.*
@@ -22,10 +23,9 @@ private[client] trait Deletable[F[_]] {
         maybeOptions.fold(Entity[F](EmptyBody.covary[F], Some(0L)))(EntityEncoder[F, DeleteOptions].toEntity(_))
       }
 
-    httpClient.status(
-      Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
-        .withEntity(deleteOptions)(encoder)
-        .withOptionalAuthorization(authorization)
-    )
+    Request[F](method = DELETE, uri = config.server.resolve(resourceUri) / name)
+      .withEntity(deleteOptions)(encoder)
+      .withOptionalAuthorization(authorization)
+      .flatMap(httpClient.status(_))
   }
 }
