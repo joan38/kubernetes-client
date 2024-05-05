@@ -1,5 +1,5 @@
-import mill._
-import mill.scalalib._
+import mill.*
+import mill.scalalib.*
 
 object Dependencies {
   lazy val circe = {
@@ -27,7 +27,7 @@ object Dependencies {
 
   lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.11.0")
 
-  lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.6.0")
+  lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.7.0")
 
   lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.11")
 
