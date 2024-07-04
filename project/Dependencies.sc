@@ -1,9 +1,9 @@
-import mill._
-import mill.scalalib._
+import mill.*
+import mill.scalalib.*
 
 object Dependencies {
   lazy val circe = {
-    val version = "0.14.6"
+    val version = "0.14.9"
     Agg(
       ivy"io.circe::circe-core:$version",
       ivy"io.circe::circe-generic:$version",
