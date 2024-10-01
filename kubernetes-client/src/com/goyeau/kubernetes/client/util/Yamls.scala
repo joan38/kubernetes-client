@@ -1,5 +1,6 @@
 package com.goyeau.kubernetes.client.util
 
+import cats.Applicative
 import cats.effect.Sync
 import cats.implicits.*
 import com.goyeau.kubernetes.client.KubeConfig
@@ -7,7 +8,9 @@ import fs2.io.file.{Files, Path}
 import io.circe.generic.semiauto.*
 import io.circe.yaml.parser.*
 import io.circe.{Codec, Decoder, Encoder}
-import org.http4s.Uri
+import org.http4s.Credentials.Token
+import org.http4s.headers.Authorization
+import org.http4s.{AuthScheme, Uri}
 import org.typelevel.log4cats.Logger
 
 case class Config(
@@ -34,7 +37,8 @@ case class AuthInfo(
     `client-certificate-data`: Option[String] = None,
     `client-key`: Option[String] = None,
     `client-key-data`: Option[String] = None,
-    exec: Option[AuthInfoExec] = None
+    exec: Option[AuthInfoExec] = None,
+    token: Option[String] = None
 )
 
 case class AuthInfoExecEnv(
@@ -87,6 +91,7 @@ private[client] object Yamls {
           .find(_.name == context.user)
           .liftTo[F](new IllegalArgumentException(s"Can't find user named ${context.user} in $kubeconfig"))
       user = namedAuthInfo.user
+      authInfoExec = user.exec
 
       server <- Sync[F].fromEither(Uri.fromString(cluster.server))
       config <- KubeConfig.of[F](
@@ -97,7 +102,9 @@ private[client] object Yamls {
         clientCertFile = user.`client-certificate`.map(Path(_)),
         clientKeyData = user.`client-key-data`,
         clientKeyFile = user.`client-key`.map(Path(_)),
-        authInfoExec = user.exec
+        authInfoExec = authInfoExec,
+        authorization = 
+          authInfoExec.fold(user.token.map { token => Applicative[F].pure(Authorization(Token(AuthScheme.Bearer, token))) })(_ => None)
       )
     } yield config
 
