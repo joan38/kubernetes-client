@@ -23,7 +23,7 @@ jobs:
           java-version: 11.0.x
           distribution: zulu
       - name: Style checks
-        run: ./mill all __.checkStyle __.docJar
+        run: ./mill __.checkStyle + __.docJar
 
   integration-kubernetes-v1-25:
     runs-on: ubuntu-latest
