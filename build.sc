@@ -1,5 +1,5 @@
 import $ivy.`com.goyeau::mill-git::0.2.5`
-import $ivy.`com.goyeau::mill-scalafix::0.3.1`
+import $ivy.`com.goyeau::mill-scalafix::0.4.2`
 import $ivy.`org.typelevel::scalac-options:0.1.4`
 
 import $file.project.Dependencies
@@ -15,7 +15,7 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.15", "2.12.17")
 trait KubernetesClientModule
     extends CrossScalaModule
     with StyleModule
