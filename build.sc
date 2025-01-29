@@ -1,6 +1,6 @@
 import $ivy.`com.goyeau::mill-git::0.2.5`
 import $ivy.`com.goyeau::mill-scalafix::0.4.2`
-import $ivy.`org.typelevel::scalac-options:0.1.4`
+import $ivy.`org.typelevel::scalac-options:0.1.7`
 
 import $file.project.Dependencies
 import Dependencies.Dependencies._
@@ -25,9 +25,7 @@ trait KubernetesClientModule
   override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
     scalaVersion() match {
-      case "3.3.1"   => ScalaVersion.V3_3_1
-      case "2.13.10" => ScalaVersion.V2_13_9
-      case "2.12.17" => ScalaVersion.V2_12_13
+      case s"$major.$minor.$patch" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
     },
     ScalacOptions.default + release(jvmVersion) + source3 +
       advancedOption("max-inlines", List("50"), _.isAtLeast(ScalaVersion.V3_0_0)) // ++ fatalWarningOptions
