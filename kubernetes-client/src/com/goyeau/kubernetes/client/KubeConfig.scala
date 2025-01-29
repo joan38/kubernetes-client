@@ -12,8 +12,10 @@ import org.http4s.headers.Authorization
 import org.http4s.{AuthScheme, Credentials, Uri}
 import org.typelevel.log4cats.Logger
 
+import scala.annotation.nowarn
 import scala.concurrent.duration.*
 
+@nowarn("msg=access modifiers for `copy|apply` method are copied from the case class constructor under Scala 3")
 case class KubeConfig[F[_]] private (
     server: Uri,
     authorization: Option[F[Authorization]],
