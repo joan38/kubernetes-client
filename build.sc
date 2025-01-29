@@ -5,7 +5,6 @@ import $ivy.`org.typelevel::scalac-options:0.1.4`
 import $file.project.Dependencies
 import Dependencies.Dependencies._
 import $file.project.SwaggerModelGenerator
-import SwaggerModelGenerator.SwaggerModelGenerator
 import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
 import mill._
@@ -17,11 +16,11 @@ import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOp
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
 object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.10", "2.12.17")
-class KubernetesClientModule(val crossScalaVersion: String)
+trait KubernetesClientModule
     extends CrossScalaModule
     with StyleModule
     with GitVersionedPublishModule
-    with SwaggerModelGenerator {
+    with SwaggerModelGenerator.SwaggerModelGenerator {
   lazy val jvmVersion       = "11"
   override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
@@ -39,7 +38,7 @@ class KubernetesClientModule(val crossScalaVersion: String)
   override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
     (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.2"))
 
-  object test extends Tests with Munit {
+  object test extends ScalaTests with Munit {
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
     override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
   }
