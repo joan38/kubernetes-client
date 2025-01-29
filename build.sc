@@ -15,7 +15,7 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.1", "2.13.15", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.4", "2.13.15", "2.12.17")
 trait KubernetesClientModule
     extends CrossScalaModule
     with StyleModule
