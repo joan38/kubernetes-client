@@ -1,8 +1,8 @@
 import $file.Model
 import Model.{Definition, Property}
-import $ivy.`io.circe::circe-core:0.14.0`
-import $ivy.`io.circe::circe-generic:0.14.0`
-import $ivy.`io.circe::circe-parser:0.14.0`
+import $ivy.`io.circe::circe-core:0.14.10`
+import $ivy.`io.circe::circe-generic:0.14.10`
+import $ivy.`io.circe::circe-parser:0.14.10`
 import mill._
 import mill.api.Logger
 import mill.scalalib._

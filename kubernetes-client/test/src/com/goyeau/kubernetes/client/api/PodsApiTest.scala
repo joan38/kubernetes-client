@@ -125,7 +125,7 @@ class PodsApiTest
           res <- namespacedApi(defaultNamespace).download(
             pod.metadata.get.name.get,
             Path("/etc/sysctl.conf"),
-            Path("./out/sysctl.conf"),
+            Path("./sysctl.conf"),
             pod.spec.flatMap(_.containers.headOption.map(_.name))
           )
         } yield res
