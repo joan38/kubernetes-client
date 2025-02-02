@@ -275,7 +275,7 @@ Generate a BSP configuration:
 ### Compiling
 
 ```shell
-./mill kubernetes-client[2.13.10].compile
+./mill kubernetes-client[2.13.15].compile
 ```
 
 ### Running the tests
@@ -283,13 +283,13 @@ Generate a BSP configuration:
 All tests:
 
 ```shell
-./mill kubernetes-client[2.13.10].test
+./mill kubernetes-client[2.13.15].test
 ```
 
 A specific test:
 
 ```shell
-./mill kubernetes-client[2.13.10].test.testOnly 'com.goyeau.kubernetes.client.api.PodsApiTest'
+./mill kubernetes-client[2.13.15].test.testOnly 'com.goyeau.kubernetes.client.api.PodsApiTest'
 ```
 
 [minikube](https://minikube.sigs.k8s.io/docs/) has to be installed and running.
