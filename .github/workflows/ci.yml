@@ -11,7 +11,7 @@ on:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -25,119 +25,41 @@ jobs:
       - name: Style checks
         run: ./mill __.checkStyle + __.docJar
 
-  integration-kubernetes-v1-25:
-    runs-on: ubuntu-latest
+  integration-kubernetes:
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
+      matrix:
+        kubernetes-version:
+          - v1.32.1
+          - v1.31.5
+          - v1.30.9
+          - v1.29.13
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Setup Minikube and start Kubernetes
         uses: medyagh/setup-minikube@v0.0.8
         with:
-          minikube-version: 1.28.0
-          kubernetes-version: v1.25.3
+          minikube-version: 1.35.0
+          kubernetes-version: ${{ matrix.kubernetes-version }}
       - name: Setup Java 11
         uses: actions/setup-java@v3
         with:
           java-version: 11.0.x
           distribution: zulu
-      - name: Test against Kubernetes v1.25
-        run: ./mill __[3.3.4].test
-
-  integration-kubernetes-v1-24:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Minikube and start Kubernetes
-        uses: medyagh/setup-minikube@v0.0.8
-        with:
-          minikube-version: 1.28.0
-          kubernetes-version: v1.24.7
-      - name: Setup Java 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11.0.x
-          distribution: zulu
-      - name: Test against Kubernetes v1.24
-        run: ./mill __[3.3.4].test
-
-  integration-kubernetes-v1-23:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Minikube and start Kubernetes
-        uses: medyagh/setup-minikube@v0.0.8
-        with:
-          minikube-version: 1.28.0
-          kubernetes-version: v1.23.13
-      - name: Setup Java 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11.0.x
-          distribution: zulu
-      - name: Test against Kubernetes v1.23
-        run: ./mill __[3.3.4].test
-
-  integration-kubernetes-v1-22:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Minikube and start Kubernetes
-        uses: medyagh/setup-minikube@v0.0.8
-        with:
-          minikube-version: 1.28.0
-          kubernetes-version: v1.22.15
-      - name: Setup Java 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11.0.x
-          distribution: zulu
-      - name: Test against Kubernetes v1.22
-        run: ./mill __[3.3.4].test
-
-  integration-kubernetes-v1-21:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Minikube and start Kubernetes
-        uses: medyagh/setup-minikube@v0.0.8
-        with:
-          minikube-version: 1.28.0
-          kubernetes-version: v1.21.14
-      - name: Setup Java 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11.0.x
-          distribution: zulu
-      - name: Test against Kubernetes v1.21
+      - name: Test against Kubernetes ${{ matrix.kubernetes-version }}
         run: ./mill __[3.3.4].test
 
   publish:
     needs:
       - checks
-      - integration-kubernetes-v1-25
-      - integration-kubernetes-v1-24
-      - integration-kubernetes-v1-23
-      - integration-kubernetes-v1-22
-      - integration-kubernetes-v1-21
+      - integration-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Pull all history with tags for correct versionning
+      - name: Pull all history with tags for correct versioning
         run: git fetch --prune --unshallow
       - name: Setup Java
         uses: actions/setup-java@v3
