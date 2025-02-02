@@ -5,31 +5,29 @@ import $ivy.`io.circe::circe-generic:0.14.10`
 import $ivy.`io.circe::circe-parser:0.14.10`
 import mill._
 import mill.api.Logger
+import mill.define.{Discover, ExternalModule, Sources}
 import mill.scalalib._
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
 import os._
 
+def kubernetesVersion: T[String] = T("1.31.1")
+
+def kubernetesSwagger: T[String] = T {
+  requests
+    .get(
+      s"https://raw.githubusercontent.com/kubernetes/kubernetes/refs/tags/v${kubernetesVersion()}/api/openapi-spec/swagger.json"
+    )
+    .text()
+}
+
 trait SwaggerModelGenerator extends JavaModule {
   import SwaggerModelGenerator._
 
-  def swaggerSources: T[Seq[PathRef]] = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
-  def allSwaggerSourceFiles: T[Seq[PathRef]] = T {
-    def isHiddenFile(path: os.Path) = path.last.startsWith(".")
-    for {
-      root <- swaggerSources()
-      if os.exists(root.path)
-      path <- if (os.isDir(root.path)) os.walk(root.path) else Seq(root.path)
-      if os.isFile(path) && path.ext == "json" && !isHiddenFile(path)
-    } yield PathRef(path)
-  }
-
   override def generatedSources = T {
     super.generatedSources() ++
-      allSwaggerSourceFiles()
-        .flatMap(swagger => processSwaggerFile(swagger.path, T.dest, T.log))
-        .map(PathRef(_))
+      processSwaggerFile(kubernetesSwagger(), T.ctx().dest, T.ctx().log).map(PathRef(_))
   }
 }
 
@@ -66,6 +64,7 @@ object SwaggerModelGenerator {
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.JSONSchemaProps",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ExternalDocumentation",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.WebhookClientConfig",
+      "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.SelectableField",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ServiceReference",
       "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.ValidationRule",
       "io.k8s.api.networking.v1",
@@ -74,8 +73,8 @@ object SwaggerModelGenerator {
     allowedPrefixes.exists(className.startsWith) && !skipClasses.contains(className)
   }
 
-  def processSwaggerFile(swaggerFile: Path, outputDir: Path, log: Logger): Seq[Path] = {
-    val json = parse(read(swaggerFile)).fold(throw _, identity)
+  def processSwaggerFile(kubernetesSwagger: String, outputDir: Path, log: Logger): Seq[Path] = {
+    val json = parse(kubernetesSwagger).fold(throw _, identity)
     for {
       definitionsJson   <- json.hcursor.downField("definitions").focus.toSeq
       definitionsObject <- definitionsJson.asObject.toSeq
@@ -164,7 +163,7 @@ object SwaggerModelGenerator {
       if (work.length <= maxLen) {
         lines.append(work)
         work = ""
-      } else {
+      } else
         (2 to 20).flatMap { lookBehind =>
           Seq(' ', ',', '.', ';')
             .flatMap { c =>
@@ -181,7 +180,6 @@ object SwaggerModelGenerator {
             lines.append(work)
             work = ""
         }
-      }
     }
     lines.toList
   }
