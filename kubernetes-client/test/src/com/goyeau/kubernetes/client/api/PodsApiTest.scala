@@ -277,16 +277,16 @@ class PodsApiTest
       .unsafeRunSync()
   }
 
-  private val podStatusCount = 4
-
   def waitUntilReady(namespaceName: String, name: String)(implicit client: KubernetesClient[IO]): IO[Pod] =
     retry(
       for {
         pod <- getChecked(namespaceName, name)
-        notStarted  = pod.status.flatMap(_.conditions.map(_.exists(c => c.status == "False"))).getOrElse(false)
-        statusCount = pod.status.flatMap(_.conditions.map(_.length)).getOrElse(0)
+        isReady = pod.status.exists(_.conditions.exists(_.exists {
+          case PodCondition("Ready", "True", _, _, _, _) => true
+          case _                                         => false
+        }))
         _ <-
-          if (notStarted || statusCount != podStatusCount)
+          if (!isReady)
             IO.raiseError(
               new RuntimeException(
                 s"Pod is not started: ${pod.status.flatMap(_.conditions).toSeq.flatten.map(_.asJson.noSpaces).mkString(", ")}"

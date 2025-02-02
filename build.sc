@@ -22,6 +22,7 @@ trait KubernetesClientModule
     with StyleModule
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
+  def kubernetesSwagger     = downloadedKubernetesSwagger
   lazy val jvmVersion       = "11"
   override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
@@ -48,4 +49,14 @@ trait KubernetesClientModule
     versionControl = VersionControl.github("joan38", "kubernetes-client"),
     developers = Seq(Developer("joan38", "Joan Goyeau", "https://github.com/joan38"))
   )
+}
+
+def kubernetesVersion: T[String] = T("1.31.1")
+
+def downloadedKubernetesSwagger: T[String] = T {
+  requests
+    .get(
+      s"https://raw.githubusercontent.com/kubernetes/kubernetes/refs/tags/v${kubernetesVersion()}/api/openapi-spec/swagger.json"
+    )
+    .text()
 }
