@@ -8,7 +8,7 @@ import io.k8s.api.core.v1.{
   PersistentVolumeClaim,
   PersistentVolumeClaimList,
   PersistentVolumeClaimSpec,
-  ResourceRequirements
+  VolumeResourceRequirements
 }
 import io.k8s.apimachinery.pkg.api.resource.Quantity
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
@@ -41,7 +41,7 @@ class PersistentVolumeClaimsApiTest
       metadata = ObjectMeta(name = resourceName.some, labels = labels.some).some,
       spec = PersistentVolumeClaimSpec(
         accessModes = Seq("ReadWriteOnce").some,
-        resources = ResourceRequirements(
+        resources = VolumeResourceRequirements(
           requests = Map("storage" -> Quantity("1Mi")).some
         ).some,
         storageClassName = "local-path".some
