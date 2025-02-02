@@ -1,9 +1,11 @@
-import $ivy.`com.goyeau::mill-git::0.2.5`
-import $ivy.`com.goyeau::mill-scalafix::0.4.2`
+import $ivy.`com.goyeau::mill-git::0.2.7`
+import $ivy.`com.goyeau::mill-scalafix::0.5.0`
 import $ivy.`org.typelevel::scalac-options:0.1.7`
+
 import $file.project.Dependencies
-import Dependencies.Dependencies._
-import $file.project.SwaggerModelGenerator
+import Dependencies.{bouncycastle, circe, circeYaml, collectionCompat, http4s, java8compat, logback, logging, tests}
+import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
+import SwaggerModelGeneratorFile.SwaggerModelGenerator
 import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
 import mill._
@@ -14,12 +16,12 @@ import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{fatalWarningOptions, maxInlines, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.4", "2.13.15", "2.12.20")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.4", "2.13.16", "2.12.20")
 trait KubernetesClientModule
     extends CrossScalaModule
     with StyleModule
     with GitVersionedPublishModule
-    with SwaggerModelGenerator.SwaggerModelGenerator {
+    with SwaggerModelGenerator {
   lazy val jvmVersion       = "11"
   override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
