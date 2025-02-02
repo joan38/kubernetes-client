@@ -54,7 +54,7 @@ jobs:
   publish:
     needs:
       - checks
-      - integration-tests
+      - integration-kubernetes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
