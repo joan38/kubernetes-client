@@ -33,7 +33,7 @@ object SslContexts {
     val keyDataStream = config.clientKeyData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val keyFileStream = config.clientKeyFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
-    for {
+    val _ = for {
       keyStream  <- keyDataStream.orElse(keyFileStream)
       certStream <- certDataStream.orElse(certFileStream)
     } yield {

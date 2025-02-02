@@ -1,26 +1,15 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.syntax.all.*
 import cats.effect.unsafe.implicits.global
 import cats.effect.{Async, IO}
-import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.Utils.retry
-import com.goyeau.kubernetes.client.api.ExecStream.{StdErr, StdOut}
 import com.goyeau.kubernetes.client.operation.*
-import fs2.io.file.{Files, Path}
-import fs2.{text, Stream}
 import io.k8s.api.core.v1.*
-import io.k8s.apimachinery.pkg.apis.meta.v1
-import io.k8s.apimachinery.pkg.apis.meta.v1.{ListMeta, ObjectMeta}
 import munit.FunSuite
-import org.http4s.{Request, Status, Uri}
+import org.http4s.{Request, Status}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.nio.file.Files as JFiles
-import scala.util.Random
 import org.http4s.implicits.*
-import org.http4s.jdkhttpclient.WSConnectionHighLevel
 
 class RawApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
 
