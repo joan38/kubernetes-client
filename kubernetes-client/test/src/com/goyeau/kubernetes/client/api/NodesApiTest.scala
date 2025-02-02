@@ -1,16 +1,10 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.IO
-import cats.Applicative
 import cats.effect.*
 import cats.implicits.*
 import com.goyeau.kubernetes.client.KubernetesClient
-import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest.*
 import com.goyeau.kubernetes.client.operation.*
-import io.k8s.api.coordination.v1.*
 import io.k8s.api.core.v1.Node
-import io.k8s.apiextensionsapiserver.pkg.apis.apiextensions.v1.*
-import munit.Assertions.*
 import munit.FunSuite
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger

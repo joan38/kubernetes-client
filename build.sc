@@ -1,7 +1,6 @@
 import $ivy.`com.goyeau::mill-git::0.2.5`
 import $ivy.`com.goyeau::mill-scalafix::0.4.2`
 import $ivy.`org.typelevel::scalac-options:0.1.7`
-
 import $file.project.Dependencies
 import Dependencies.Dependencies._
 import $file.project.SwaggerModelGenerator
@@ -12,10 +11,10 @@ import mill.scalalib.TestModule.Munit
 import mill.scalalib._
 import mill.scalalib.api.ZincWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
-import org.typelevel.scalacoptions.ScalacOptions.{advancedOption, fatalWarningOptions, release, source3}
+import org.typelevel.scalacoptions.ScalacOptions.{fatalWarningOptions, maxInlines, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 
-object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.4", "2.13.15", "2.12.17")
+object `kubernetes-client` extends Cross[KubernetesClientModule]("3.3.4", "2.13.15", "2.12.20")
 trait KubernetesClientModule
     extends CrossScalaModule
     with StyleModule
@@ -24,11 +23,8 @@ trait KubernetesClientModule
   lazy val jvmVersion       = "11"
   override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
-    scalaVersion() match {
-      case s"$major.$minor.$patch" => ScalaVersion(major.toInt, minor.toInt, patch.toInt)
-    },
-    ScalacOptions.default + release(jvmVersion) + source3 +
-      advancedOption("max-inlines", List("50"), _.isAtLeast(ScalaVersion.V3_0_0)) // ++ fatalWarningOptions
+    ScalaVersion.unsafeFromString(scalaVersion()),
+    ScalacOptions.default + release(jvmVersion) + source3 + maxInlines(50) // ++ fatalWarningOptions
   )
 
   override def ivyDeps =

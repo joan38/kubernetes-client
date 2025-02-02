@@ -20,8 +20,6 @@ private[client] trait Listable[F[_], Resource] {
 
   def list(labels: Map[String, String] = Map.empty): F[Resource] = {
     val uri = addLabels(labels, config.server.resolve(resourceUri))
-    httpClient.expectF[Resource](
-      Request[F](GET, uri).withOptionalAuthorization(authorization)
-    )
+    httpClient.expectF[Resource](Request[F](GET, uri).withOptionalAuthorization(authorization))
   }
 }

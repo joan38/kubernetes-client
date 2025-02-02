@@ -2,7 +2,6 @@ package com.goyeau.kubernetes.client.operation
 
 import cats.effect.Async
 import com.goyeau.kubernetes.client.KubeConfig
-import com.goyeau.kubernetes.client.operation.*
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.EntityDecoder

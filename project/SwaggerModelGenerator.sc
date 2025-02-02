@@ -1,10 +1,10 @@
-import $file.Model, Model.{Definition, Property}
+import $file.Model
+import Model.{Definition, Property}
 import $ivy.`io.circe::circe-core:0.14.0`
 import $ivy.`io.circe::circe-generic:0.14.0`
 import $ivy.`io.circe::circe-parser:0.14.0`
 import mill._
 import mill.api.Logger
-import mill.define.Sources
 import mill.scalalib._
 import io.circe._
 import io.circe.generic.auto._
@@ -14,7 +14,7 @@ import os._
 trait SwaggerModelGenerator extends JavaModule {
   import SwaggerModelGenerator._
 
-  def swaggerSources: Sources = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
+  def swaggerSources: T[Seq[PathRef]] = T.sources(resources().map(resource => PathRef(resource.path / "swagger")))
   def allSwaggerSourceFiles: T[Seq[PathRef]] = T {
     def isHiddenFile(path: os.Path) = path.last.startsWith(".")
     for {
@@ -28,7 +28,7 @@ trait SwaggerModelGenerator extends JavaModule {
   override def generatedSources = T {
     super.generatedSources() ++
       allSwaggerSourceFiles()
-        .flatMap(swagger => processSwaggerFile(swagger.path, T.ctx.dest, T.ctx.log))
+        .flatMap(swagger => processSwaggerFile(swagger.path, T.dest, T.log))
         .map(PathRef(_))
   }
 }
@@ -228,6 +228,7 @@ object SwaggerModelGenerator {
       case (Some(t), None) =>
         swaggerToScalaType(t, property.items.orElse(property.additionalProperties), property.format)
       case (None, Some(ref)) => sanitizeClassPath(ref)
+      case _ => throw new IllegalArgumentException(s"Either the type or the ref should be set on property: $property")
     }
 
   def swaggerToScalaType(
