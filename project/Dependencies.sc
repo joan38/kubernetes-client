@@ -28,7 +28,7 @@ lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-com
 
 lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.6.0")
 
-lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.4.11")
+lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.5.16")
 
 lazy val java8compat = Agg(ivy"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
