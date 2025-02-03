@@ -39,7 +39,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Setup Minikube and start Kubernetes
-        uses: medyagh/setup-minikube@v0.0.8
+        uses: medyagh/setup-minikube@v0.0.19
         with:
           minikube-version: 1.35.0
           kubernetes-version: ${{ matrix.kubernetes-version }}
