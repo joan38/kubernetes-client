@@ -2,7 +2,7 @@ import mill._
 import mill.scalalib._
 
 lazy val circe = {
-  val version = "0.14.6"
+  val version = "0.14.10"
   Agg(
     ivy"io.circe::circe-core:$version",
     ivy"io.circe::circe-generic:$version",
@@ -20,7 +20,7 @@ lazy val http4s = {
   )
 }
 
-lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.15.1")
+lazy val circeYaml = Agg(ivy"io.circe::circe-yaml:0.15.2")
 
 lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.77")
 
