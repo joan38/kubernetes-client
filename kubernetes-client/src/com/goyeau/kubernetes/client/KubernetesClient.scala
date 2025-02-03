@@ -5,15 +5,16 @@ import cats.data.OptionT
 import cats.effect.*
 import com.goyeau.kubernetes.client.api.*
 import com.goyeau.kubernetes.client.crd.{CrdContext, CustomResource, CustomResourceList}
+import com.goyeau.kubernetes.client.operation.*
 import com.goyeau.kubernetes.client.util.SslContexts
 import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
 import io.circe.{Decoder, Encoder}
+import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient}
-import org.http4s.client.websocket.WSClient
+import org.http4s.client.websocket.{WSClient, WSRequest}
 import org.typelevel.log4cats.Logger
-
 import java.net.http.HttpClient
 
 class KubernetesClient[F[_]: Async: Logger](

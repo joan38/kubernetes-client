@@ -1,6 +1,6 @@
 package com.goyeau.kubernetes.client.api
 
-import cats.effect.{Async, Resource}
+import cats.effect.Async
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.goyeau.kubernetes.client.KubeConfig
