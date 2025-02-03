@@ -66,26 +66,6 @@ class KubernetesClient[F[_]: Async: Logger](
       encoder: Encoder[CustomResource[A, B]],
       decoder: Decoder[CustomResource[A, B]]
   ) = new CustomResourcesApi[F, A, B](httpClient, config, authorization, context)
-
-  def customRequest(
-      request: Request[F]
-  ): F[Request[F]] =
-    Request[F](
-      method = request.method,
-      uri = config.server.resolve(request.uri),
-      httpVersion = request.httpVersion,
-      headers = request.headers,
-      body = request.body,
-      attributes = request.attributes
-    ).withOptionalAuthorization(authorization)
-
-  def customRequest(request: WSRequest): F[WSRequest] =
-    WSRequest(
-      uri = config.server.resolve(request.uri),
-      headers = request.headers,
-      method = request.method
-    ).withOptionalAuthorization(authorization)
-
 }
 
 object KubernetesClient {
