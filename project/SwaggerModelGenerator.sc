@@ -12,18 +12,10 @@ import io.circe.generic.auto._
 import io.circe.parser._
 import os._
 
-def kubernetesVersion: T[String] = T("1.31.1")
-
-def kubernetesSwagger: T[String] = T {
-  requests
-    .get(
-      s"https://raw.githubusercontent.com/kubernetes/kubernetes/refs/tags/v${kubernetesVersion()}/api/openapi-spec/swagger.json"
-    )
-    .text()
-}
-
 trait SwaggerModelGenerator extends JavaModule {
   import SwaggerModelGenerator._
+
+  def kubernetesSwagger: T[String]
 
   override def generatedSources = T {
     super.generatedSources() ++
