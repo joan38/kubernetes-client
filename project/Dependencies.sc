@@ -26,7 +26,7 @@ lazy val bouncycastle = Agg(ivy"org.bouncycastle:bcpkix-jdk18on:1.80")
 
 lazy val collectionCompat = Agg(ivy"org.scala-lang.modules::scala-collection-compat:2.12.0")
 
-lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.6.0")
+lazy val logging = Agg(ivy"org.typelevel::log4cats-slf4j:2.7.0")
 
 lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.5.16")
 
