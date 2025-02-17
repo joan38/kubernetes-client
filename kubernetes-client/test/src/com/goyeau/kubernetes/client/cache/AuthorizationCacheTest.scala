@@ -96,11 +96,10 @@ class AuthorizationCacheTest extends FunSuite {
       auth = mkAuthorization(
         expirationTimestamp = IO.realTimeInstant.map(_.minusSeconds(10).some),
         token = shouldFail.get.flatMap { shouldFail =>
-          if (shouldFail) {
+          if (shouldFail)
             IO.raiseError(new RuntimeException("test failure"))
-          } else {
+          else
             counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
-          }
         }
       )
       cache          <- AuthorizationCache[IO](retrieve = auth)
@@ -126,11 +125,10 @@ class AuthorizationCacheTest extends FunSuite {
       auth = mkAuthorization(
         expirationTimestamp = IO.realTimeInstant.map(_.minusSeconds(10).some),
         token = shouldFail.get.flatMap { shouldFail =>
-          if (shouldFail) {
+          if (shouldFail)
             IO.raiseError(new RuntimeException("test failure"))
-          } else {
+          else
             counter.getAndUpdate(_ + 1).map(i => s"test-token-$i")
-          }
         }
       )
       cache          <- AuthorizationCache[IO](retrieve = auth)
