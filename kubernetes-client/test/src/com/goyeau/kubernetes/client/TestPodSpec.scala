@@ -9,7 +9,7 @@ object TestPodSpec {
   val alpine: PodSpec = alpine(None)
 
   def alpine(command: Seq[String]): PodSpec = alpine(command.some)
-  
+
   private def alpine(command: Option[Seq[String]]): PodSpec = PodSpec(
     containers = Seq(
       Container(
