@@ -12,7 +12,7 @@ lazy val circe = {
 
 lazy val http4s = {
   val version          = "0.23.30"
-  val jdkClientVersion = "0.5.0"
+  val jdkClientVersion = "0.10.0"
   Agg(
     ivy"org.http4s::http4s-dsl:$version",
     ivy"org.http4s::http4s-circe:$version",
