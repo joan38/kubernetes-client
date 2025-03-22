@@ -7,7 +7,6 @@ import com.goyeau.kubernetes.client.Utils.retry
 import com.goyeau.kubernetes.client.api.CustomResourceDefinitionsApiTest
 import com.goyeau.kubernetes.client.{EventType, KubernetesClient, WatchEvent}
 import fs2.concurrent.SignallingRef
-import fs2.{Pipe, Stream}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
@@ -93,41 +92,38 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       })
     def processEvent(
         received: Ref[F, Map[String, Set[EventType]]],
-        signal: SignallingRef[F, Boolean]
-    ): Pipe[F, Either[String, WatchEvent[Resource]], Unit] =
-      _.flatMap {
+        signal: SignallingRef[F, Boolean],
+        event: Either[String, WatchEvent[Resource]]
+    ): F[Unit] =
+      event match {
         case Right(we) if isExpectedResource(we) =>
-          Stream.eval {
-            for {
-              _ <- received.update(events =>
-                we.`object`.metadata.flatMap(_.namespace) match {
-                  case Some(namespace) =>
-                    val updated = events.get(namespace) match {
-                      case Some(namespaceEvents) => namespaceEvents + we.`type`
-                      case _                     => Set(we.`type`)
-                    }
-                    events.updated(namespace, updated)
-                  case _ =>
-                    val crdNamespace = "customresourcedefinition"
-                    events.updated(crdNamespace, events.getOrElse(crdNamespace, Set.empty) + we.`type`)
-                }
-              )
-              allReceived <- received.get.map(_ == expected)
-              _           <- F.whenA(allReceived)(signal.set(true))
-            } yield ()
-          }
-        case _ => Stream.eval(F.unit)
+          for {
+            _ <- received.update(events =>
+              we.`object`.metadata.flatMap(_.namespace) match {
+                case Some(namespace) =>
+                  val updated = events.get(namespace) match {
+                    case Some(namespaceEvents) => namespaceEvents + we.`type`
+                    case _                     => Set(we.`type`)
+                  }
+                  events.updated(namespace, updated)
+                case _ =>
+                  val crdNamespace = "customresourcedefinition"
+                  events.updated(crdNamespace, events.getOrElse(crdNamespace, Set.empty) + we.`type`)
+              }
+            )
+            allReceived <- received.get.map(_ == expected)
+            _           <- F.whenA(allReceived)(signal.set(true))
+          } yield ()
+        case _ => F.unit
       }
 
     val watchEvents = for {
       signal         <- SignallingRef[F, Boolean](false)
       receivedEvents <- Ref.of(Map.empty[String, Set[EventType]])
       watchStream = watchingNamespace
-        .map(watchApi)
-        .getOrElse(api)
+        .fold(api)(watchApi)
         .watch(resourceVersion = resourceVersion)
-        .through(processEvent(receivedEvents, signal))
-        .evalMap(_ => receivedEvents.get)
+        .evalTap(processEvent(receivedEvents, signal, _))
         .interruptWhen(signal)
       _      <- watchStream.interruptAfter(60.seconds).compile.drain
       events <- receivedEvents.get

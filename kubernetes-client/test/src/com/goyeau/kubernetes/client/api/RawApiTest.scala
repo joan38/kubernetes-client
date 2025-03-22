@@ -9,6 +9,7 @@ import org.http4s.{Request, Status}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.nio.file.Files as JFiles
 import org.http4s.implicits.*
 
 class RawApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
