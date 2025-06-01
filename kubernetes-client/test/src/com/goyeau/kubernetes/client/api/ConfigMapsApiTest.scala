@@ -34,7 +34,7 @@ class ConfigMapsApiTest
     data = Option(Map("test" -> "data"))
   )
 
-  private val data = Option(Map("test" -> "updated-data"))
+  private val data                                            = Option(Map("test" -> "updated-data"))
   override def modifyResource(resource: ConfigMap): ConfigMap =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))), data = data)
 

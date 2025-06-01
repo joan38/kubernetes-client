@@ -202,7 +202,7 @@ private[client] class NamespacedPodsApi[F[_]](
     val uploadFileResult =
       uploadRequest.flatMap { uploadRequest =>
         wsClient.connectHighLevel(uploadRequest).use { connection =>
-          val source = Files[F].readAll(sourceFile, 4096, Flags.Read)
+          val source   = Files[F].readAll(sourceFile, 4096, Flags.Read)
           val sendData = source
             .mapChunks(chunk => Chunk(WSFrame.Binary(ByteVector(chunk.toChain.prepend(StdInId).toVector))))
             .through(connection.sendPipe)

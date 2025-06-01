@@ -94,7 +94,7 @@ class CustomResourcesApiTest
         status <- namespacedApi(namespaceName).create(resource)
         _ = assertEquals(status, Status.Created, status.sanitizedReason)
 
-        created <- getChecked(namespaceName, name)
+        created      <- getChecked(namespaceName, name)
         updateStatus <- namespacedApi(namespaceName).updateStatus(
           name,
           created.copy(status = CronTabStatus("updated").some)

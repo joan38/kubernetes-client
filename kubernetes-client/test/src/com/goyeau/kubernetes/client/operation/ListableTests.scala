@@ -15,7 +15,7 @@ trait ListableTests[F[
     extends FunSuite
     with MinikubeClientProvider[F] {
 
-  val resourceIsNamespaced = true
+  val resourceIsNamespaced   = true
   val namespaceResourceNames =
     (0 to 1).map(i => (s"${resourceName.toLowerCase}-$i-list", s"list-all-${resourceName.toLowerCase}-$i")).toSet
 
@@ -53,7 +53,7 @@ trait ListableTests[F[
     for {
       resourceList <- namespacedApi(namespaceName).list(labels)
       names = resourceList.items.flatMap(_.metadata.flatMap(_.name))
-      _ = assert(
+      _     = assert(
         names.forall(!resourceNames.contains(_)),
         s"Actual names: $names, not expected names: $resourceNames, in namespace: $namespaceName, with labels: $labels"
       )

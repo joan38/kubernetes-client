@@ -22,7 +22,7 @@ class KubernetesClient[F[_]: Async: Logger](
     authorization: Option[F[Authorization]]
 ) {
   lazy val namespaces: NamespacesApi[F] = new NamespacesApi(httpClient, config, authorization)
-  lazy val pods: PodsApi[F] = new PodsApi(
+  lazy val pods: PodsApi[F]             = new PodsApi(
     httpClient,
     wsClient,
     config,
@@ -52,9 +52,9 @@ class KubernetesClient[F[_]: Async: Logger](
     config,
     authorization
   )
-  lazy val ingresses: IngressessApi[F] = new IngressessApi(httpClient, config, authorization)
-  lazy val leases: LeasesApi[F]        = new LeasesApi(httpClient, config, authorization)
-  lazy val nodes: NodesApi[F]          = new NodesApi(httpClient, config, authorization)
+  lazy val ingresses: IngressessApi[F]                          = new IngressessApi(httpClient, config, authorization)
+  lazy val leases: LeasesApi[F]                                 = new LeasesApi(httpClient, config, authorization)
+  lazy val nodes: NodesApi[F]                                   = new NodesApi(httpClient, config, authorization)
   lazy val persistentVolumeClaims: PersistentVolumeClaimsApi[F] =
     new PersistentVolumeClaimsApi(httpClient, config, authorization)
   lazy val raw: RawApi[F] = new RawApi[F](httpClient, wsClient, config, authorization)
@@ -72,8 +72,8 @@ object KubernetesClient {
       client <- Resource.eval {
         Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
       }
-      httpClient <- JdkHttpClient[F](client)
-      wsClient   <- JdkWSClient[F](client)
+      httpClient    <- JdkHttpClient[F](client)
+      wsClient      <- JdkWSClient[F](client)
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)

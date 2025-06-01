@@ -25,7 +25,7 @@ object Utils {
       }
       .handleErrorWith { exception =>
         val firstLine = exception.getMessage.takeWhile(_ != '\n')
-        val message =
+        val message   =
           if (firstLine.contains(".scala"))
             firstLine.split('/').lastOption.getOrElse(firstLine)
           else

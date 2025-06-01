@@ -22,9 +22,9 @@ trait KubernetesClientModule
     with StyleModule
     with GitVersionedPublishModule
     with SwaggerModelGenerator {
-  def kubernetesSwagger     = downloadedKubernetesSwagger
-  lazy val jvmVersion       = "11"
-  override def javacOptions = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
+  def kubernetesSwagger      = downloadedKubernetesSwagger
+  lazy val jvmVersion        = "11"
+  override def javacOptions  = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
     ScalaVersion.unsafeFromString(scalaVersion()),
     ScalacOptions.default + release(jvmVersion) + source3 + maxInlines(50) // ++ fatalWarningOptions
@@ -41,7 +41,7 @@ trait KubernetesClientModule
   }
 
   override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
-  def pomSettings = PomSettings(
+  def pomSettings             = PomSettings(
     description = "A Kubernetes client for Scala",
     organization = "com.goyeau",
     url = "https://github.com/joan38/kubernetes-client",
