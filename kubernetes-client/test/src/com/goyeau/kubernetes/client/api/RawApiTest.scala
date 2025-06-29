@@ -35,7 +35,7 @@ class RawApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextPr
               }
             }
           (status, body) = response
-          _ = assertEquals(
+          _              = assertEquals(
             status,
             Status.Ok,
             s"non 200 status for get nodes raw request"

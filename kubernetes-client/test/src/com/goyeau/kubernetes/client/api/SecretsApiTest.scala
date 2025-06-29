@@ -36,7 +36,7 @@ class SecretsApiTest
       data = Option(Map("test" -> "ZGF0YQ=="))
     )
 
-  private val data = Option(Map("test" -> "dXBkYXRlZC1kYXRh"))
+  private val data                                      = Option(Map("test" -> "dXBkYXRlZC1kYXRh"))
   override def modifyResource(resource: Secret): Secret =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))), data = data)
   override def checkUpdated(updatedResource: Secret): Unit = assertEquals(updatedResource.data, data)

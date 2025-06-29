@@ -44,7 +44,7 @@ object AuthorizationCache {
                     if (shouldRenew)
                       getAndCacheToken.flatMap {
                         case Some(token) => token.pure[F]
-                        case None =>
+                        case None        =>
                           val expired = cached.expirationTimestamp.exists(_.isBefore(now))
                           Logger[F]
                             .debug(s"using the cached token (expired: $expired)") >>

@@ -71,7 +71,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
       case err: UnexpectedStatus if err.status == Status.NotFound =>
         for {
           ns <- client.namespaces.get(namespace)
-          _ <- logger.info(
+          _  <- logger.info(
             s"creating in namespace: ${ns.metadata.flatMap(_.name).getOrElse("n/a/")}, status: ${ns.status.flatMap(_.phase)}"
           )
           status <- namespacedApi(namespace).create(sampleResource(resourceName, Map.empty))
@@ -148,7 +148,7 @@ trait WatchableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
     usingMinikube { implicit client =>
       val name           = s"${resourceName.toLowerCase}-watch-all"
       val expectedEvents = Set[EventType](EventType.ADDED, EventType.MODIFIED, EventType.DELETED)
-      val expected =
+      val expected       =
         if (watchIsNamespaced)
           (defaultNamespace +: extraNamespace).map(_ -> expectedEvents).toMap
         else

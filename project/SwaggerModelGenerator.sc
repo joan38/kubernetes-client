@@ -140,7 +140,7 @@ object SwaggerModelGenerator {
         val description =
           generateDescription(property.description).split("\n").map(_.trim).filterNot(_.isEmpty).mkString("\n")
         val escapedName = escapeAttributeName(name)
-        val classPath =
+        val classPath   =
           if (required.contains(name)) generateType(property)
           else s"Option[${generateType(property)}] = None"
         s"""$escapedName: $classPath"""
@@ -187,7 +187,7 @@ object SwaggerModelGenerator {
         val description = generateScalaDocDescription(property.description)
         val escapedName = escapeAttributeName(name).reverse.padTo(longestName, ' ').reverse
         val prefix      = s"@param $escapedName "
-        val lines = s"""$prefix $description"""
+        val lines       = s"""$prefix $description"""
           .split('\n')
           .toSeq
           .map(_.trim)
@@ -233,8 +233,8 @@ object SwaggerModelGenerator {
           case Some("int64") => "Long"
           case f             => sys.error(s"Unsupported format '$f' for swaggerType '$swaggerType'")
         }
-      case ("object", Some(subProperty)) => s"Map[String, ${generateType(subProperty)}]"
-      case ("array", Some(subProperty))  => s"Seq[${generateType(subProperty)}]"
+      case ("object", Some(subProperty))        => s"Map[String, ${generateType(subProperty)}]"
+      case ("array", Some(subProperty))         => s"Seq[${generateType(subProperty)}]"
       case ("number", None) if format.isDefined =>
         format match {
           case Some("double") => "Double"

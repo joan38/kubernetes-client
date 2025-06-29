@@ -27,9 +27,9 @@ trait CreatableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   ): F[Resource] = {
     val resource = sampleResource(resourceName, labels)
     for {
-      status <- namespacedApi(namespaceName).create(resource)
-      _      <- logger.info(s"Created '$resourceName' in $namespaceName namespace: $status")
-      _      <- F.delay(assertEquals(status.isSuccess, true, s"$status should be successful"))
+      status   <- namespacedApi(namespaceName).create(resource)
+      _        <- logger.info(s"Created '$resourceName' in $namespaceName namespace: $status")
+      _        <- F.delay(assertEquals(status.isSuccess, true, s"$status should be successful"))
       resource <- retry(
         getChecked(namespaceName, resourceName),
         actionClue = Some(s"Getting after create '$resourceName' in $namespaceName namespace"),

@@ -49,7 +49,7 @@ class ReplicaSetsApiTest
     )
   }
 
-  private val replicas = Option(5)
+  private val replicas                                          = Option(5)
   override def modifyResource(resource: ReplicaSet): ReplicaSet = resource.copy(
     metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
     spec = resource.spec.map(_.copy(replicas = replicas))

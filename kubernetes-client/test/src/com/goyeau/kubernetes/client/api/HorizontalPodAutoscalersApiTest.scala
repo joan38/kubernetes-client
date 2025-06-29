@@ -43,7 +43,7 @@ class HorizontalPodAutoscalersApiTest
       )
     )
 
-  val maxReplicas = 3
+  val maxReplicas                                                                         = 3
   override def modifyResource(resource: HorizontalPodAutoscaler): HorizontalPodAutoscaler =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),

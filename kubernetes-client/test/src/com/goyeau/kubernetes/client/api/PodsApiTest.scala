@@ -45,7 +45,7 @@ class PodsApiTest
       spec = Option(TestPodSpec.alpine)
     )
 
-  private val activeDeadlineSeconds = Option(5L)
+  private val activeDeadlineSeconds               = Option(5L)
   override def modifyResource(resource: Pod): Pod =
     resource.copy(
       metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
@@ -82,7 +82,7 @@ class PodsApiTest
   private val successStatus = Some(Right(v1.Status(status = Some("Success"), metadata = Some(ListMeta()))))
 
   test("exec into pod") {
-    val podName = s"${resourceName.toLowerCase}-exec"
+    val podName            = s"${resourceName.toLowerCase}-exec"
     val (messages, status) = kubernetesClient
       .use { implicit client =>
         for {
@@ -115,7 +115,7 @@ class PodsApiTest
   }
 
   test("download a file") {
-    val podName = s"${resourceName.toLowerCase}-download"
+    val podName            = s"${resourceName.toLowerCase}-download"
     val (messages, status) = kubernetesClient
       .use { implicit client =>
         for {
@@ -146,7 +146,7 @@ class PodsApiTest
       list <- namespacedApi(defaultNamespace).exec(podName, container, Seq("ls", targetPath.toString))
       (messages, status) = list
       clue               = messages.map(_.asString).mkString("\n")
-      _ = assertEquals(
+      _                  = assertEquals(
         status,
         successStatus,
         s"Failed to list file in $defaultNamespace/$podName: $clue"
@@ -163,7 +163,7 @@ class PodsApiTest
       container
     )
     (messages, status) = uploaded
-    _ = assertEquals(
+    _                  = assertEquals(
       messages.length,
       0,
       s"sourcePath: $sourcePath, targetPath: $targetPath, stdout: " + messages.map(_.asString).mkString("")
@@ -191,7 +191,7 @@ class PodsApiTest
     )
     (errors, status) = downloaded
     _                = assertEquals(status, successStatus)
-    _ = assertEquals(
+    _                = assertEquals(
       errors.length,
       0,
       s"targetPath: $targetPath, downloadPath: $downloadPath, stderr: " + errors.map(_.asString).mkString("")
