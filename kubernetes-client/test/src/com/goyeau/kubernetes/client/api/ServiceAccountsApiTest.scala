@@ -33,7 +33,7 @@ class ServiceAccountsApiTest
     metadata = Option(ObjectMeta(name = Option(resourceName), labels = Option(labels)))
   )
 
-  private val labels = Option(Map("test" -> "updated-label"))
+  private val labels                                                    = Option(Map("test" -> "updated-label"))
   override def modifyResource(resource: ServiceAccount): ServiceAccount =
     resource.copy(metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name), labels = labels)))
 

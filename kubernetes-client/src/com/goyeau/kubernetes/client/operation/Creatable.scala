@@ -41,7 +41,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       .status(Request[F](GET, fullResourceUri).withOptionalAuthorization(authorization))
       .flatMap {
         case status if status.isSuccess => update
-        case Status.NotFound =>
+        case Status.NotFound            =>
           create(resource).flatMap {
             case Status.Conflict => update
             case status          => F.pure(status)
@@ -60,7 +60,7 @@ private[client] trait Creatable[F[_], Resource <: { def metadata: Option[ObjectM
       )
       .flatMap {
         case Some(_) => updateWithResource
-        case None =>
+        case None    =>
           createWithResource(resource).recoverWith {
             case UnexpectedStatus(status, _, _) if status === Status.Conflict => updateWithResource
           }

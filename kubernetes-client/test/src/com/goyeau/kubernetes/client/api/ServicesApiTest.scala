@@ -32,7 +32,7 @@ class ServicesApiTest
     spec = Option(ServiceSpec(ports = Option(Seq(ServicePort(2000)))))
   )
 
-  private val labels = Option(Map("test" -> "updated-label"))
+  private val labels                                      = Option(Map("test" -> "updated-label"))
   override def modifyResource(resource: Service): Service =
     resource.copy(metadata = resource.metadata.map(_.copy(labels = labels)))
 

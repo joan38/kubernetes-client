@@ -54,9 +54,9 @@ trait ReplaceableTests[F[_], Resource <: { def metadata: Option[ObjectMeta] }]
   test(s"replace a $resourceName with resource") {
     usingMinikube { implicit client =>
       for {
-        namespaceName <- Applicative[F].pure(resourceName.toLowerCase)
-        resourceName  <- Applicative[F].pure("some-with-resource")
-        _             <- createChecked(namespaceName, resourceName)
+        namespaceName    <- Applicative[F].pure(resourceName.toLowerCase)
+        resourceName     <- Applicative[F].pure("some-with-resource")
+        _                <- createChecked(namespaceName, resourceName)
         replacedResource <- retry(
           replaceWithResource(namespaceName, resourceName),
           actionClue = Some("Replacing resource with resource")

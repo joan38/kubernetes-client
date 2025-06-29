@@ -44,7 +44,7 @@ class JobsApiTest
         )
       )
     )
-  val labels = Map("app" -> "test")
+  val labels                                      = Map("app" -> "test")
   override def modifyResource(resource: Job): Job = resource.copy(
     metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name), labels = Option(labels)))
   )

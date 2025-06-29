@@ -50,7 +50,7 @@ class CronJobsApiTest
       )
     )
 
-  private val schedule = "2 * * * *"
+  private val schedule                                    = "2 * * * *"
   override def modifyResource(resource: CronJob): CronJob = resource.copy(
     metadata = Option(ObjectMeta(name = resource.metadata.flatMap(_.name))),
     spec = resource.spec.map(_.copy(schedule = schedule))
