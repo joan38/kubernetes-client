@@ -21,6 +21,7 @@ trait KubernetesClientModule
     extends CrossScalaModule
     with StyleModule
     with GitVersionedPublishModule
+    with SonatypeCentralPublishModule
     with SwaggerModelGenerator {
   def kubernetesSwagger      = downloadedKubernetesSwagger
   lazy val jvmVersion        = "11"
