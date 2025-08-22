@@ -9,6 +9,7 @@ import io.k8s.api.apps.v1.*
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
 import munit.FunSuite
+import fs2.io.file.Files
 
 class StatefulSetsApiTest
     extends FunSuite
@@ -22,6 +23,7 @@ class StatefulSetsApiTest
     with ContextProvider {
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[StatefulSet].getSimpleName
 

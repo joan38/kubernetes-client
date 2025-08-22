@@ -15,6 +15,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import fs2.io.file.Files
 
 class PersistentVolumeClaimsApiTest
     extends FunSuite
@@ -27,6 +28,7 @@ class PersistentVolumeClaimsApiTest
     with ContextProvider {
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[PersistentVolumeClaim].getSimpleName
 

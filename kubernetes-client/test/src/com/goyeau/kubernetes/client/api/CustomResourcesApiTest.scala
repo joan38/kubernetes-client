@@ -14,6 +14,7 @@ import io.circe.generic.semiauto.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.http4s.Status
+import fs2.io.file.Files
 
 case class CronTab(cronSpec: String, image: String, replicas: Int)
 object CronTab {
@@ -42,6 +43,7 @@ class CustomResourcesApiTest
     with ContextProvider {
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[CronTab].getSimpleName
   val kind                                      = classOf[CronTab].getSimpleName

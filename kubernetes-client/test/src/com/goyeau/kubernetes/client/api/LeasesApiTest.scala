@@ -8,6 +8,7 @@ import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import fs2.io.file.Files
 
 class LeasesApiTest
     extends FunSuite
@@ -21,6 +22,7 @@ class LeasesApiTest
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val G: Files[IO]       = Files.forIO
   override lazy val resourceName: String        = classOf[Lease].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): LeasesApi[IO] = client.leases

@@ -9,6 +9,7 @@ import io.k8s.api.apps.v1.*
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.{LabelSelector, ObjectMeta}
 import munit.FunSuite
+import fs2.io.file.Files
 
 class ReplicaSetsApiTest
     extends FunSuite
@@ -23,6 +24,7 @@ class ReplicaSetsApiTest
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val G: Files[IO]       = Files.forIO
   override lazy val resourceName: String        = classOf[ReplicaSet].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): ReplicaSetsApi[IO] = client.replicaSets

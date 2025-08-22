@@ -33,6 +33,7 @@ class PodsApiTest
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val G: Files[IO]       = Files.forIO
   override lazy val resourceName: String        = classOf[Pod].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): PodsApi[IO] = client.pods

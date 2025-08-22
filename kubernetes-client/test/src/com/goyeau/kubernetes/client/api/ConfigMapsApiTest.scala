@@ -8,6 +8,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import io.k8s.api.core.v1.{ConfigMap, ConfigMapList}
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
+import fs2.io.file.Files
 
 class ConfigMapsApiTest
     extends FunSuite
@@ -21,6 +22,7 @@ class ConfigMapsApiTest
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+  implicit override lazy val G: Files[IO]       = Files.forIO
   override lazy val resourceName: String        = classOf[ConfigMap].getSimpleName
 
   override def api(implicit client: KubernetesClient[IO]): ConfigMapsApi[IO] = client.configMaps

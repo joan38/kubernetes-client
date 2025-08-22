@@ -10,12 +10,12 @@ lazy val circe = {
   )
 }
 
+val http4sVersion = "0.23.30"
 lazy val http4s = {
-  val version          = "0.23.30"
-  val jdkClientVersion = "0.5.0"
+  val jdkClientVersion = "0.10.0"
   Agg(
-    ivy"org.http4s::http4s-dsl:$version",
-    ivy"org.http4s::http4s-circe:$version",
+    ivy"org.http4s::http4s-dsl:$http4sVersion",
+    ivy"org.http4s::http4s-circe:$http4sVersion",
     ivy"org.http4s::http4s-jdk-http-client:$jdkClientVersion"
   )
 }
@@ -32,4 +32,7 @@ lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.5.18")
 
 lazy val java8compat = Agg(ivy"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
-lazy val tests = Agg(ivy"org.scalameta::munit:1.1.1")
+lazy val tests = Agg(
+  ivy"org.scalameta::munit:1.1.1",
+  ivy"org.http4s::http4s-ember-client:${http4sVersion}"
+)

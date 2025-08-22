@@ -10,12 +10,14 @@ import com.goyeau.kubernetes.client.util.cache.{AuthorizationParse, ExecToken}
 import io.circe.{Decoder, Encoder}
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
-import org.http4s.jdkhttpclient.{JdkHttpClient, JdkWSClient, WSClient}
+import org.http4s.jdkhttpclient.*
+import org.http4s.client.websocket.WSClient
 import org.typelevel.log4cats.Logger
 
 import java.net.http.HttpClient
+import fs2.io.file.Files
 
-class KubernetesClient[F[_]: Async: Logger](
+class KubernetesClient[F[_]: Async: Logger: Files](
     httpClient: Client[F],
     wsClient: WSClient[F],
     config: KubeConfig[F],
@@ -67,13 +69,22 @@ class KubernetesClient[F[_]: Async: Logger](
 }
 
 object KubernetesClient {
-  def apply[F[_]: Async: Logger](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
+  /**
+    * Creates a KubernetesClient using JdkHttpClient.
+    */
+  def apply[F[_]: Async: Logger: Files](config: KubeConfig[F]): Resource[F, KubernetesClient[F]] =
+    apply(config, None)
+
+  /**
+    * Creates a KubernetesClient using the `providedClient` or if empty, the default JdkHttpClient.
+    */
+  def apply[F[_]: Async: Logger: Files](config: KubeConfig[F], providedClient: Option[Client[F]]): Resource[F, KubernetesClient[F]] =
     for {
-      client <- Resource.eval {
+      jdkClient <- Resource.eval {
         Sync[F].delay(HttpClient.newBuilder().sslContext(SslContexts.fromConfig(config)).build())
       }
-      httpClient    <- JdkHttpClient[F](client)
-      wsClient      <- JdkWSClient[F](client)
+      httpClient = providedClient.getOrElse(JdkHttpClient[F](jdkClient))
+      wsClient      = JdkWSClient[F](jdkClient)
       authorization <- Resource.eval {
         OptionT
           .fromOption(config.authorization)
@@ -105,6 +116,6 @@ object KubernetesClient {
       authorization
     )
 
-  def apply[F[_]: Async: Logger](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
+  def apply[F[_]: Async: Logger: Files](config: F[KubeConfig[F]]): Resource[F, KubernetesClient[F]] =
     Resource.eval(config).flatMap(apply(_))
 }

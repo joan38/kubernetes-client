@@ -13,11 +13,13 @@ import org.http4s.Status
 import org.http4s.client.UnexpectedStatus
 import munit.Assertions.*
 import munit.FunSuite
+import fs2.io.file.Files
 
 class NamespacesApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
   import NamespacesApiTest.*
 
   implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName: String        = classOf[Namespace].getSimpleName
 
