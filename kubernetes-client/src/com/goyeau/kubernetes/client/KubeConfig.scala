@@ -79,7 +79,7 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed)
     *   - KUBERNETES_SERVICE_PORT env variable
     */
-  def standard[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def standard[F[_]: Logger: Files](implicit F: Async[F]): F[KubeConfig[F]] =
     findFromEnv
       .orElse(findConfigInHomeDir(none))
       .orElse(findClusterConfig)
@@ -87,20 +87,20 @@ object KubeConfig {
 
   /** Use the file specified in KUBECONFIG env variable, if exists. Uses the 'current-context' specified in the file.
     */
-  def fromEnv[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def fromEnv[F[_]: Logger: Files](implicit F: Async[F]): F[KubeConfig[F]] =
     findFromEnv
       .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the configuration from ~/.kube/config, if exists. Uses the 'current-context' specified in the file.
     */
-  def inHomeDir[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def inHomeDir[F[_]: Logger: Files](implicit F: Async[F]): F[KubeConfig[F]] =
     findConfigInHomeDir(none)
       .getOrRaise(KubeConfigNotFoundError)
 
   /** Uses the configuration from ~/.kube/config, if exists. Uses the provided contextName (will fail if the context
     * does not exist).
     */
-  def inHomeDir[F[_]: Logger](contextName: String)(implicit F: Async[F]): F[KubeConfig[F]] =
+  def inHomeDir[F[_]: Logger: Files](contextName: String)(implicit F: Async[F]): F[KubeConfig[F]] =
     findConfigInHomeDir(contextName.some)
       .getOrRaise(KubeConfigNotFoundError)
 
@@ -112,26 +112,26 @@ object KubeConfig {
     *   - KUBERNETES_SERVICE_HOST env variable (https protocol is assumed),
     *   - KUBERNETES_SERVICE_PORT env variable.
     */
-  def cluster[F[_]: Logger](implicit F: Async[F]): F[KubeConfig[F]] =
+  def cluster[F[_]: Logger: Files](implicit F: Async[F]): F[KubeConfig[F]] =
     findClusterConfig
       .getOrRaise(KubeConfigNotFoundError)
 
   /** Read the configuration from the specified file. Uses the provided contextName (will fail if the context does not
     * exist).
     */
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] =
+  def fromFile[F[_]: Async: Logger: Files](kubeconfig: Path): F[KubeConfig[F]] =
     Yamls.fromKubeConfigFile(kubeconfig, None)
 
   /** Read the configuration from the specified file. Uses the 'current-context' specified in the file.
     */
-  def fromFile[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
+  def fromFile[F[_]: Async: Logger: Files](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
     Yamls.fromKubeConfigFile(kubeconfig, Option(contextName))
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Async: Logger](kubeconfig: Path): F[KubeConfig[F]] = fromFile(kubeconfig)
+  def apply[F[_]: Async: Logger: Files](kubeconfig: Path): F[KubeConfig[F]] = fromFile(kubeconfig)
 
   @deprecated(message = "Use fromFile instead", since = "0.4.1")
-  def apply[F[_]: Async: Logger](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
+  def apply[F[_]: Async: Logger: Files](kubeconfig: Path, contextName: String): F[KubeConfig[F]] =
     fromFile(kubeconfig, contextName)
 
   def of[F[_]: ApplicativeThrow](
@@ -183,7 +183,7 @@ object KubeConfig {
     ApplicativeThrow[F].fromEither(configOrError)
   }
 
-  private def findFromEnv[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  private def findFromEnv[F[_]: Logger: Files](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     envPath[F](EnvKubeConfig)
       .flatMapF(checkExists(_))
       .flatTapNone {
@@ -194,7 +194,7 @@ object KubeConfig {
       }
       .semiflatMap(fromFile(_))
 
-  private def findConfigInHomeDir[F[_]: Logger](
+  private def findConfigInHomeDir[F[_]: Logger: Files](
       contextName: Option[String]
   )(implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     findHomeDir
@@ -208,7 +208,7 @@ object KubeConfig {
       }
       .semiflatMap(path => contextName.fold(fromFile(path))(fromFile(path, _)))
 
-  private def findClusterConfig[F[_]: Logger](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
+  private def findClusterConfig[F[_]: Logger: Files](implicit F: Async[F]): OptionT[F, KubeConfig[F]] =
     (
       path(ServiceAccountTokenPath)
         .flatMapF(checkExists(_))
@@ -249,7 +249,7 @@ object KubeConfig {
         )
       }
 
-  private def findHomeDir[F[_]: Logger](implicit F: Async[F]): OptionT[F, Path] =
+  private def findHomeDir[F[_]: Logger: Files](implicit F: Async[F]): OptionT[F, Path] =
     OptionT.liftF(
       Logger[F].debug(s"finding the home directory")
     ) >>
@@ -293,7 +293,7 @@ object KubeConfig {
   private def envPath[F[_]: Async](name: String): OptionT[F, Path] =
     env(name).map(Path(_))
 
-  private def checkExists[F[_]: Async](path: Path): F[Option[Path]] =
+  private def checkExists[F[_]: Async: Files](path: Path): F[Option[Path]] =
     Files[F].exists(path).map(if (_) Option(path) else none) // Option.when does not exist in scala 2.12
 
 }

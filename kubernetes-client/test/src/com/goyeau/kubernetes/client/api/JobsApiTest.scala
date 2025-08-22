@@ -10,6 +10,7 @@ import io.k8s.api.batch.v1.{Job, JobList, JobSpec}
 import io.k8s.api.core.v1.*
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
+import fs2.io.file.Files
 
 class JobsApiTest
     extends FunSuite
@@ -23,6 +24,7 @@ class JobsApiTest
     with ContextProvider {
 
   implicit lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   lazy val resourceName: String        = classOf[Job].getSimpleName
 

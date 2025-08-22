@@ -18,15 +18,15 @@ import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.implicits.*
-import org.http4s.jdkhttpclient.*
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 import scodec.bits.ByteVector
+import org.http4s.client.websocket.*
 
 import java.nio.file.Path as JPath
 import scala.concurrent.duration.DurationInt
 
-private[client] class PodsApi[F[_]: Logger](
+private[client] class PodsApi[F[_]: Logger: Files](
     val httpClient: Client[F],
     wsClient: WSClient[F],
     val config: KubeConfig[F],
@@ -75,6 +75,7 @@ private[client] class NamespacedPodsApi[F[_]](
     namespace: String
 )(implicit
     val F: Async[F],
+    val G: Files[F],
     val resourceEncoder: Encoder[Pod],
     val resourceDecoder: Decoder[Pod],
     val listDecoder: Decoder[PodList],
@@ -113,11 +114,11 @@ private[client] class NamespacedPodsApi[F[_]](
       ("container" -> container) ++?
       ("command"   -> commands)
 
-    WSRequest(uri, method = Method.POST)
+    WSRequest(uri, Headers.empty, method = Method.POST)
       .withOptionalAuthorization(authorization)
       .map { r =>
-        r.copy(
-          headers = r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
+        r.withHeaders(
+          r.headers.put(Header.Raw(CIString("Sec-WebSocket-Protocol"), "v4.channel.k8s.io"))
         )
       }
   }

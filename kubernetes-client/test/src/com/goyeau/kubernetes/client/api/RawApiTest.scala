@@ -10,10 +10,12 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import org.http4s.implicits.*
+import fs2.io.file.Files
 
 class RawApiTest extends FunSuite with MinikubeClientProvider[IO] with ContextProvider {
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   // MinikubeClientProvider will create a namespace with this name, even though it's not used in this test

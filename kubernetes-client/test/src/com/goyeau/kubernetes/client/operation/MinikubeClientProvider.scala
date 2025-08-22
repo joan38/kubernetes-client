@@ -9,20 +9,35 @@ import fs2.io.file.Path
 import munit.Suite
 import org.typelevel.log4cats.Logger
 import io.k8s.apimachinery.pkg.apis.meta.v1.DeleteOptions
+import fs2.io.file.Files
+import org.http4s.ember.client.EmberClientBuilder
+import com.goyeau.kubernetes.client.util.SslContexts
+import org.http4s.client.middleware.{Logger => ClientLogger}
 
 trait MinikubeClientProvider[F[_]] {
   this: Suite =>
 
   implicit def F: Async[F]
+  implicit def G: Files[F]
   implicit def logger: Logger[F]
 
   def unsafeRunSync[A](f: F[A]): A
+  
+  val kubeConfig = KubeConfig.fromFile[F](
+    Path(s"${System.getProperty("user.home")}/.kube/config"),
+    sys.env.getOrElse("KUBE_CONTEXT_NAME", "minikube")
+  )
+  
+  val emberBasedKubernetesClient: Resource[F, KubernetesClient[F]] = {
+    for {
+      kc <- Resource.eval(kubeConfig)
+      tlsContext = SslContexts.tlsFromConfig(kc)
+      emberClient <- EmberClientBuilder.default.withTLSContext(tlsContext).build.map(c => ClientLogger(false, false)(c))
+      k8Client <- KubernetesClient(kc, Some(emberClient))
+    } yield k8Client
+  }
 
   val kubernetesClient: Resource[F, KubernetesClient[F]] = {
-    val kubeConfig = KubeConfig.fromFile[F](
-      Path(s"${System.getProperty("user.home")}/.kube/config"),
-      sys.env.getOrElse("KUBE_CONTEXT_NAME", "minikube")
-    )
     KubernetesClient(kubeConfig)
   }
 

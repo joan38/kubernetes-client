@@ -10,6 +10,10 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 import scala.jdk.CollectionConverters.*
+import fs2.io.net.tls.TLSContext
+import cats.effect.kernel.Async
+import javax.net.ssl.TrustManager
+import javax.net.ssl.KeyManager
 
 object SslContexts {
   private val TrustStoreSystemProperty         = "javax.net.ssl.trustStore"
@@ -23,8 +27,12 @@ object SslContexts {
     sslContext
   }
 
+  def tlsFromConfig[F[_]: Async](config: KubeConfig[F]): TLSContext[F] = {
+    TLSContext.Builder.forAsync[F].fromSSLContext(fromConfig(config))
+  }
+
   @SuppressWarnings(Array("scalafix:DisableSyntax.asInstanceOf"))
-  private def keyManagers[F[_]](config: KubeConfig[F]) = {
+  private def keyManagers[F[_]](config: KubeConfig[F]): Array[KeyManager] = {
     // Client certificate
     val certDataStream = config.clientCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val certFileStream = config.clientCertFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
@@ -70,7 +78,7 @@ object SslContexts {
     keyStore
   }
 
-  private def trustManagers[F[_]](config: KubeConfig[F]) = {
+  private def trustManagers[F[_]](config: KubeConfig[F]): Array[TrustManager] = {
     val certDataStream = config.caCertData.map(data => new ByteArrayInputStream(Base64.getDecoder.decode(data)))
     val certFileStream = config.caCertFile.map(_.toNioPath.toFile).map(new FileInputStream(_))
 
@@ -86,20 +94,20 @@ object SslContexts {
         }
     }
 
-    val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
+    val trustManagerFactory: TrustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
     trustManagerFactory.init(defaultTrustStore)
     trustManagerFactory.getTrustManagers
   }
 
-  private lazy val defaultTrustStore = {
+  private lazy val defaultTrustStore: KeyStore = {
     val securityDirectory = s"${System.getProperty("java.home")}/lib/security"
 
-    val propertyTrustStoreFile =
+    val propertyTrustStoreFile: Option[File] =
       Option(System.getProperty(TrustStoreSystemProperty, "")).filter(_.nonEmpty).map(new File(_))
     val jssecacertsFile = Option(new File(s"$securityDirectory/jssecacerts")).filter(f => f.exists && f.isFile)
     val cacertsFile     = new File(s"$securityDirectory/cacerts")
 
-    val keyStore = KeyStore.getInstance(KeyStore.getDefaultType)
+    val keyStore: KeyStore = KeyStore.getInstance(KeyStore.getDefaultType)
     keyStore.load(
       new FileInputStream(propertyTrustStoreFile.orElse(jssecacertsFile).getOrElse(cacertsFile)),
       System.getProperty(TrustStorePasswordSystemProperty, "changeit").toCharArray

@@ -8,9 +8,12 @@ import io.k8s.api.core.v1.Node
 import munit.FunSuite
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import fs2.io.file.Files
 
 class NodesApiTest extends FunSuite with ContextProvider with MinikubeClientProvider[IO] {
   implicit lazy val F: Async[IO]                               = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
+
   implicit lazy val logger: Logger[IO]                         = Slf4jLogger.getLogger[IO]
   lazy val resourceName: String                                = classOf[Node].getSimpleName
   def api(implicit client: KubernetesClient[IO]): NodesApi[IO] = client.nodes

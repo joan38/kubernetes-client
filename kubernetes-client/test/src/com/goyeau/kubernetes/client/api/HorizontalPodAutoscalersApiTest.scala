@@ -13,6 +13,7 @@ import io.k8s.api.autoscaling.v1.{
 }
 import io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
 import munit.FunSuite
+import fs2.io.file.Files
 
 class HorizontalPodAutoscalersApiTest
     extends FunSuite
@@ -25,6 +26,7 @@ class HorizontalPodAutoscalersApiTest
     with ContextProvider {
 
   implicit override lazy val F: Async[IO]       = IO.asyncForIO
+  implicit override lazy val G: Files[IO]       = Files.forIO
   implicit override lazy val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
   override lazy val resourceName: String        = classOf[HorizontalPodAutoscaler].getSimpleName
 
