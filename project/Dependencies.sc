@@ -2,7 +2,7 @@ import mill._
 import mill.scalalib._
 
 lazy val circe = {
-  val version = "0.14.14"
+  val version = "0.14.15"
   Agg(
     ivy"io.circe::circe-core:$version",
     ivy"io.circe::circe-generic:$version",
