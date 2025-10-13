@@ -32,4 +32,4 @@ lazy val logback = Agg(ivy"ch.qos.logback:logback-classic:1.5.19")
 
 lazy val java8compat = Agg(ivy"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
-lazy val tests = Agg(ivy"org.scalameta::munit:1.2.0")
+lazy val tests = Agg(ivy"org.scalameta::munit:1.2.1")
