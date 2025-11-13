@@ -1,5 +1,5 @@
 //| mill-version: 1.0.5-native
-//| mill-jvm-version: 11
+//| mill-jvm-version: 17
 //| mill-jvm-opts: ["-Xms2g", "-Xmx2g", "-Xss4m", "-XX:ReservedCodeCacheSize=500m"]
 //| mvnDeps:
 //| - com.goyeau::mill-git::0.3.0
