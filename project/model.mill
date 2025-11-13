@@ -1,10 +1,14 @@
+package build.project
+
+import io.circe.Codec
+
 case class Definition(
     description: Option[String],
     required: Option[Seq[String]],
     properties: Option[Map[String, Property]],
     `type`: Option[String],
     `x-kubernetes-group-version-kind`: Option[Seq[Kind]]
-)
+) derives Codec
 
 case class Property(
     description: Option[String],
@@ -13,10 +17,10 @@ case class Property(
     items: Option[Property],
     additionalProperties: Option[Property],
     $ref: Option[String]
-)
+) derives Codec
 
 case class Kind(
     group: String,
     kind: String,
     version: String
-)
+) derives Codec

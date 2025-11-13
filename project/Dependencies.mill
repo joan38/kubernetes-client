@@ -1,0 +1,38 @@
+package build.project
+
+import mill.*
+import mill.scalalib.*
+
+object Dependencies:
+  lazy val circe = {
+    val version = "0.14.15"
+    Seq(
+      mvn"io.circe::circe-core:$version",
+      mvn"io.circe::circe-generic:$version",
+      mvn"io.circe::circe-parser:$version"
+    )
+  }
+
+  lazy val http4s = {
+    val version          = "0.23.32"
+    val jdkClientVersion = "0.5.0"
+    Seq(
+      mvn"org.http4s::http4s-dsl:$version",
+      mvn"org.http4s::http4s-circe:$version",
+      mvn"org.http4s::http4s-jdk-http-client:$jdkClientVersion"
+    )
+  }
+
+  lazy val circeYaml = Seq(mvn"io.circe::circe-yaml:0.15.2")
+
+  lazy val bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.82")
+
+  lazy val collectionCompat = Seq(mvn"org.scala-lang.modules::scala-collection-compat:2.14.0")
+
+  lazy val logging = Seq(mvn"org.typelevel::log4cats-slf4j:2.7.1")
+
+  lazy val logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.21")
+
+  lazy val java8compat = Seq(mvn"org.scala-lang.modules::scala-java8-compat:1.0.2")
+
+  lazy val tests = Seq(mvn"org.scalameta::munit:1.2.1")
