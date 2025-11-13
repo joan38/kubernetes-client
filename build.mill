@@ -1,17 +1,24 @@
-import $ivy.`com.goyeau::mill-git::0.2.7`
-import $ivy.`com.goyeau::mill-scalafix::0.5.0`
-import $ivy.`org.typelevel::scalac-options:0.1.7`
+//| mill-version: 1.0.5-native
+//| mill-jvm-version: 11
+//| mill-jvm-opts: ["-Xms2g", "-Xmx2g", "-Xss4m", "-XX:ReservedCodeCacheSize=500m"]
+//| mvnDeps:
+//| - com.goyeau::mill-git::0.3.0
+//| - com.goyeau::mill-scalafix::0.6.0
+//| - org.typelevel::scalac-options:0.1.7
+//| - io.circe::circe-core:0.14.15
+//| - io.circe::circe-generic:0.14.15
+//| - io.circe::circe-parser:0.14.15
 
-import $file.project.Dependencies
-import Dependencies.{bouncycastle, circe, circeYaml, collectionCompat, http4s, java8compat, logback, logging, tests}
-import $file.project.{SwaggerModelGenerator => SwaggerModelGeneratorFile}
-import SwaggerModelGeneratorFile.SwaggerModelGenerator
+package build
+
+import build.project.Dependencies.*
+import build.project.SwaggerModelGenerator
 import com.goyeau.mill.git.{GitVersionModule, GitVersionedPublishModule}
 import com.goyeau.mill.scalafix.StyleModule
 import mill._
 import mill.scalalib.TestModule.Munit
 import mill.scalalib._
-import mill.scalalib.api.ZincWorkerUtil.isScala3
+import mill.javalib.api.JvmWorkerUtil.isScala3
 import mill.scalalib.publish.{Developer, License, PomSettings, VersionControl}
 import org.typelevel.scalacoptions.ScalacOptions.{fatalWarningOptions, maxInlines, release, source3}
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
@@ -31,17 +38,17 @@ trait KubernetesClientModule
     ScalacOptions.default + release(jvmVersion) + source3 + maxInlines(50) // ++ fatalWarningOptions
   )
 
-  override def ivyDeps =
-    super.ivyDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
-  override def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++
-    (if (isScala3(scalaVersion())) Agg.empty else Agg(ivy"org.typelevel:::kind-projector:0.13.3"))
+  override def mvnDeps =
+    super.mvnDeps() ++ http4s ++ circe ++ circeYaml ++ bouncycastle ++ collectionCompat ++ logging ++ java8compat
+  override def scalacPluginMvnDeps = super.scalacPluginMvnDeps() ++
+    (if (isScala3(scalaVersion())) Seq.empty else Seq(mvn"org.typelevel:::kind-projector:0.13.3"))
 
   object test extends ScalaTests with Munit {
     override def forkArgs = super.forkArgs() :+ "-Djdk.tls.client.protocols=TLSv1.2"
-    override def ivyDeps  = super.ivyDeps() ++ tests ++ logback
+    override def mvnDeps  = super.mvnDeps() ++ tests ++ logback
   }
 
-  override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)
+  override def publishVersion = GitVersionModule.version(withSnapshotSuffix = true)()
   def pomSettings             = PomSettings(
     description = "A Kubernetes client for Scala",
     organization = "com.goyeau",
@@ -52,9 +59,9 @@ trait KubernetesClientModule
   )
 }
 
-def kubernetesVersion: T[String] = T("1.31.1")
+def kubernetesVersion: T[String] = Task("1.31.1")
 
-def downloadedKubernetesSwagger: T[String] = T {
+def downloadedKubernetesSwagger: T[String] = Task {
   requests
     .get(
       s"https://raw.githubusercontent.com/kubernetes/kubernetes/refs/tags/v${kubernetesVersion()}/api/openapi-spec/swagger.json"
