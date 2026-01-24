@@ -1,4 +1,4 @@
-//| mill-version: 1.0.5-native
+//| mill-version: 1.0.6-native
 //| mill-jvm-version: 17
 //| mill-jvm-opts: ["-Xms2g", "-Xmx2g", "-Xss4m", "-XX:ReservedCodeCacheSize=500m"]
 //| mvnDeps:
