@@ -31,7 +31,7 @@ object Dependencies:
 
   lazy val logging = Seq(mvn"org.typelevel::log4cats-slf4j:2.7.1")
 
-  lazy val logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.21")
+  lazy val logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.26")
 
   lazy val java8compat = Seq(mvn"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
