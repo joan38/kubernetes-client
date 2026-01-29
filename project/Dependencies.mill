@@ -25,7 +25,7 @@ object Dependencies:
 
   lazy val circeYaml = Seq(mvn"io.circe::circe-yaml:0.15.2")
 
-  lazy val bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.82")
+  lazy val bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.83")
 
   lazy val collectionCompat = Seq(mvn"org.scala-lang.modules::scala-collection-compat:2.14.0")
 
