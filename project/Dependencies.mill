@@ -35,4 +35,4 @@ object Dependencies:
 
   lazy val java8compat = Seq(mvn"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
-  lazy val tests = Seq(mvn"org.scalameta::munit:1.2.1")
+  lazy val tests = Seq(mvn"org.scalameta::munit:1.2.2")
