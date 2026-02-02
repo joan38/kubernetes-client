@@ -1,10 +1,10 @@
-//| mill-version: 1.0.6-native
+//| mill-version: 1.1.0-native
 //| mill-jvm-version: 17
 //| mill-jvm-opts: ["-Xms2g", "-Xmx2g", "-Xss4m", "-XX:ReservedCodeCacheSize=500m"]
 //| mvnDeps:
-//| - com.goyeau::mill-git::0.3.0
+//| - com.goyeau::mill-git::0.3.2
 //| - com.goyeau::mill-scalafix::0.6.0
-//| - org.typelevel::scalac-options:0.1.7
+//| - org.typelevel::scalac-options:0.1.8
 //| - io.circe::circe-core:0.14.15
 //| - io.circe::circe-generic:0.14.15
 //| - io.circe::circe-parser:0.14.15
@@ -31,11 +31,11 @@ trait KubernetesClientModule
     with SonatypeCentralPublishModule
     with SwaggerModelGenerator {
   def kubernetesSwagger      = downloadedKubernetesSwagger
-  lazy val jvmVersion        = "11"
-  override def javacOptions  = super.javacOptions() ++ Seq("-source", jvmVersion, "-target", jvmVersion)
+  def jvmVersion             = "11"
+  override def javacOptions  = super.javacOptions() ++ Seq("-source", jvmVersion(), "-target", jvmVersion())
   override def scalacOptions = super.scalacOptions() ++ ScalacOptions.tokensForVersion(
     ScalaVersion.unsafeFromString(scalaVersion()),
-    ScalacOptions.default + release(jvmVersion) + source3 + maxInlines(50) // ++ fatalWarningOptions
+    ScalacOptions.default + release(jvmVersion()) + source3 + maxInlines(50) // ++ fatalWarningOptions
   )
 
   override def mvnDeps =

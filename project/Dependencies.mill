@@ -4,7 +4,7 @@ import mill.*
 import mill.scalalib.*
 
 object Dependencies:
-  lazy val circe = {
+  def circe = {
     val version = "0.14.15"
     Seq(
       mvn"io.circe::circe-core:$version",
@@ -13,7 +13,7 @@ object Dependencies:
     )
   }
 
-  lazy val http4s = {
+  def http4s = {
     val version          = "0.23.33"
     val jdkClientVersion = "0.5.0"
     Seq(
@@ -23,16 +23,16 @@ object Dependencies:
     )
   }
 
-  lazy val circeYaml = Seq(mvn"io.circe::circe-yaml:0.15.2")
+  def circeYaml = Seq(mvn"io.circe::circe-yaml:0.15.2")
 
-  lazy val bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.83")
+  def bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.83")
 
-  lazy val collectionCompat = Seq(mvn"org.scala-lang.modules::scala-collection-compat:2.14.0")
+  def collectionCompat = Seq(mvn"org.scala-lang.modules::scala-collection-compat:2.14.0")
 
-  lazy val logging = Seq(mvn"org.typelevel::log4cats-slf4j:2.7.1")
+  def logging = Seq(mvn"org.typelevel::log4cats-slf4j:2.7.1")
 
-  lazy val logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.27")
+  def logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.27")
 
-  lazy val java8compat = Seq(mvn"org.scala-lang.modules::scala-java8-compat:1.0.2")
+  def java8compat = Seq(mvn"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
-  lazy val tests = Seq(mvn"org.scalameta::munit:1.2.2")
+  def tests = Seq(mvn"org.scalameta::munit:1.2.2")
