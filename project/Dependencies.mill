@@ -31,7 +31,7 @@ object Dependencies:
 
   def logging = Seq(mvn"org.typelevel::log4cats-slf4j:2.8.0")
 
-  def logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.27")
+  def logback = Seq(mvn"ch.qos.logback:logback-classic:1.5.37")
 
   def java8compat = Seq(mvn"org.scala-lang.modules::scala-java8-compat:1.0.2")
 
