@@ -14,7 +14,7 @@ object Dependencies:
   }
 
   def http4s = {
-    val version          = "0.23.34"
+    val version          = "0.23.36"
     val jdkClientVersion = "0.5.0"
     Seq(
       mvn"org.http4s::http4s-dsl:$version",
