@@ -5,7 +5,7 @@ import mill.scalalib.*
 
 object Dependencies:
   def circe = {
-    val version = "0.14.15"
+    val version = "0.14.16"
     Seq(
       mvn"io.circe::circe-core:$version",
       mvn"io.circe::circe-generic:$version",
