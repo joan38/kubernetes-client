@@ -25,7 +25,7 @@ object Dependencies:
 
   def circeYaml = Seq(mvn"io.circe::circe-yaml:0.15.2")
 
-  def bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.84")
+  def bouncycastle = Seq(mvn"org.bouncycastle:bcpkix-jdk18on:1.85")
 
   def collectionCompat = Seq(mvn"org.scala-lang.modules::scala-collection-compat:2.14.0")
 
